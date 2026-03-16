@@ -130,7 +130,7 @@ body{
 /* ══════════════════════════════════════════════════════════════
    LOGIN
 ══════════════════════════════════════════════════════════════ */
-#loginScreen{display:none!important;
+#loginScreen{display:none!important;}
 #mainApp{display:flex!important;flex-direction:column;height:100vh;overflow:hidden;}
   min-height:100dvh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;padding:32px;
@@ -3058,12 +3058,65 @@ select.sel{
   <button class="btnp" onclick="saveCadastro()">SALVAR</button>
   <button class="btncanc" onclick="closeM('mCadastro')">Cancelar</button>
 </div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+function sw(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
+  const tabEl = document.getElementById('t-' + name);
+  if (!tabEl) { console.warn('Tab não encontrada: t-' + name); return; }
+  tabEl.classList.add('on');
+  if (el) el.classList.add('on');
+  // Atualizar título da topbar
+  const titles = {home:'Dashboard',proj:'Estações & Espaços',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',config:'Cadastros'};
+  // Reset chat state ao navegar
+  if (name === 'chat') {
+    const cw = document.getElementById('chatWin');
+    const ce = document.getElementById('chatEmpty');
+    if (!curChId) {
+      if (cw) cw.style.display = 'none';
+      if (ce) ce.style.display = 'flex';
+    }
+  }
+  const ttEl = document.getElementById('topbar-page-title');
+  if (ttEl) ttEl.textContent = titles[name] || '';
+  if (name === 'proj') setTimeout(renderHierarquia, 50);
+  if (name === 'gantt') setTimeout(renderGantt, 50);
+  if (name === 'painel') setTimeout(renderPainel, 50);
+  if (name === 'config') { renderCadastros(); updateSelects(); }
+}
+
+// ── CHART DASHBOARD ───────────────────────────────────────────────
+
 const SUPA_URL='https://fjfggqdwlxmtpzhtdepq.supabase.co';
 const SUPA_KEY='sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF';
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
+// Paleta de cores
+const CL = ['#4F46E5','#10B981','#F59E0B','#EF4444','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#06B6D4'];
+const DC = {'ARRECADA+':'#10B981','SIAFIC':'#3B82F6','FOLHA.AI':'#8B5CF6','ZapFlow':'#F59E0B','Marketing':'#EC4899','DAE':'#4F46E5'};
+
 // ── Guard: protege todas as operações de banco quando db=null ──
+
+// Funções auxiliares
+function stopTimer(id) {
+  const t = tar.find(x => x.id === id);
+  if (t) { t.tempo_gasto = t.tempo_gasto || 0; renderTasks(); }
+}
+function swME(tab, el) {
+  document.querySelectorAll('.me-conteudo').forEach(c => c.style.display = 'none');
+  document.querySelectorAll('.me-tab-btn').forEach(b => b.classList.remove('on'));
+  const cont = document.getElementById('meConteudo-' + tab);
+  if (cont) cont.style.display = 'block';
+  if (el) el.classList.add('on');
+  meRenderAtual && meRenderAtual();
+}
+window.sw = sw;
+
+
+// Navegação — declarada primeiro para estar disponível nos onclick do HTML
+ // garantir escopo global
+
 function dbGuard(fn) {
   return async function(...args) {
     if (!db) { showToast('Banco não conectado'); return { data: null, error: { message: 'db=null' } }; }
@@ -3210,83 +3263,31 @@ document.addEventListener('keypress', e => {
 async function loadAll() {
   showLoading(true);
 
-  // Dados de demonstração — substituídos por dados reais quando Supabase estiver configurado
-  const hoje = new Date().toISOString().split('T')[0];
-
-  proj = [
-    {id:'p1',nome:'ARRECADA+',dept:'ARRECADA+',prog:78,prior:'alta',status:'ativo',fim:'2025-12-31',eq:['MA','AC','MC'],descricao:'Sistema de arrecadação fiscal inteligente',espaco_id:null},
-    {id:'p2',nome:'SIAFIC.AI',dept:'SIAFIC',prog:62,prior:'urgente',status:'ativo',fim:'2025-11-30',eq:['MA','MR'],descricao:'Inteligência fiscal com IA',espaco_id:null},
-    {id:'p3',nome:'FOLHA.AI',dept:'FOLHA.AI',prog:45,prior:'media',status:'ativo',fim:'2025-06-30',eq:['MA','LC'],descricao:'Gestão de folha de pagamento',espaco_id:null},
-    {id:'p4',nome:'ZapFlow 2.0',dept:'ZapFlow',prog:90,prior:'alta',status:'ativo',fim:'2025-10-31',eq:['MA','AX'],descricao:'Automação de fluxos via WhatsApp',espaco_id:null},
-    {id:'p5',nome:'Marketing DAE',dept:'Marketing',prog:33,prior:'baixa',status:'ativo',fim:'2025-08-28',eq:['MA','YR'],descricao:'Estratégia de comunicação',espaco_id:null},
-  ];
-
-  memb = [
-    {id:'m1',av:'MA',nome:'Mabiane Andrade de Souza',cargo:'Gestora / PO',dept:'DAE',cor:'#4F46E5',online:true,email:'mabiane.souza@sudoesteinformatica.com.br'},
-    {id:'m2',av:'AC',nome:'Ana Claudia Silva',cargo:'Analista Fiscal',dept:'ARRECADA+',cor:'#10B981',online:true},
-    {id:'m3',av:'MR',nome:'Mariana Rodrigues',cargo:'Desenvolvedora',dept:'SIAFIC',cor:'#F59E0B',online:false},
-    {id:'m4',av:'LC',nome:'Luciano Costa',cargo:'Analista de Sistemas',dept:'FOLHA.AI',cor:'#3B82F6',online:true},
-    {id:'m5',av:'AX',nome:'Alexandre Xavier',cargo:'Desenvolvedor',dept:'ZapFlow',cor:'#EF4444',online:false},
-    {id:'m6',av:'YR',nome:'Yuri Rocha',cargo:'Designer',dept:'Marketing',cor:'#8B5CF6',online:true},
-    {id:'m7',av:'JO',nome:'Jeferson Oliveira',cargo:'Desenvolvedor',dept:'DAE',cor:'#0EA5E9',online:true},
-  ];
-
-  tar = [
-    {id:'t1',titulo:'Revisar módulo de liquidação',projeto_id:'p2',resp:'MA',prior:'urgente',status:'em andamento',ok:false,prazo:hoje},
-    {id:'t2',titulo:'Configurar alertas LRF automáticos',projeto_id:'p2',resp:'MA',prior:'alta',status:'to do',ok:false,prazo:'2025-04-20'},
-    {id:'t3',titulo:'Testar integração SIAFIC x IA',projeto_id:'p2',resp:'AC',prior:'urgente',status:'em andamento',ok:false,prazo:'2025-03-18'},
-    {id:'t4',titulo:'Upload múltiplo de documentos',projeto_id:'p4',resp:'AX',prior:'media',status:'feito',ok:true,prazo:'2025-03-10'},
-    {id:'t5',titulo:'Dashboard de arrecadação',projeto_id:'p1',resp:'MC',prior:'alta',status:'em andamento',ok:false,prazo:'2025-04-10'},
-    {id:'t6',titulo:'Relatório bimestral pessoal',projeto_id:'p1',resp:'MA',prior:'urgente',status:'to do',ok:false,prazo:'2025-03-16'},
-    {id:'t7',titulo:'Cadastro de servidores',projeto_id:'p3',resp:'LC',prior:'media',status:'to do',ok:false,prazo:'2025-05-05'},
-    {id:'t8',titulo:'Material gráfico DAE',projeto_id:'p5',resp:'YR',prior:'baixa',status:'to do',ok:false,prazo:'2025-06-10'},
-    {id:'t9',titulo:'Automação de relatórios ZapFlow',projeto_id:'p4',resp:'AX',prior:'alta',status:'em andamento',ok:false,prazo:'2025-04-01'},
-    {id:'t10',titulo:'Implantação módulo de férias',projeto_id:'p3',resp:'LC',prior:'media',status:'to do',ok:false,prazo:'2025-05-20'},
-  ];
-
-  riscos = [
-    {id:'r1',desc:'Prazo RREO em risco — falta documentação',sev:'Alta',resp:'MA',status:'aberto',projeto_id:'p2'},
-    {id:'r2',desc:'Integração SIAFIC instável em produção',sev:'Alta',resp:'MR',status:'aberto',projeto_id:'p2'},
-    {id:'r3',desc:'Equipe reduzida no ZapFlow 2.0',sev:'Média',resp:'MA',status:'aberto',projeto_id:'p4'},
-    {id:'r4',desc:'Prazo de entrega FOLHA.AI em risco',sev:'Média',resp:'LC',status:'aberto',projeto_id:'p3'},
-  ];
-
-  reun = [
-    {id:'re1',tit:'Alinhamento SIAFIC.AI',dia:'20',mes:'MAR',hora:'10:00',local:'Google Meet',link:'https://meet.google.com',participantes:['MA','MR','AC'],status:'proxima',ata:''},
-    {id:'re2',tit:'Review ZapFlow 2.0',dia:'22',mes:'MAR',hora:'14:00',local:'Google Meet',link:'',participantes:['MA','AX'],status:'proxima',ata:''},
-    {id:'re3',tit:'Reunião de Equipe DAE',dia:'25',mes:'MAR',hora:'09:00',local:'Sala de Reuniões',link:'',participantes:['MA','AC','MR','LC','AX','YR'],status:'proxima',ata:''},
-  ];
-
-  agenda = [];
-  ferias = [
-    {id:'f1',membro_av:'MR',inicio:'2025-04-01',fim:'2025-04-15'},
-  ];
-  ativs = [];
-  espacos = [
-    {id:'e1',nome:'Sistemas Fiscais',estacao:'SIAFIC',icone:'📊',descricao:'Módulos fiscais'},
-    {id:'e2',nome:'Arrecadação',estacao:'ARRECADA+',icone:'💰',descricao:'Sistemas de arrecadação'},
-    {id:'e3',nome:'Folha e RH',estacao:'FOLHA.AI',icone:'👥',descricao:'Gestão de pessoal'},
-    {id:'e4',nome:'Automações',estacao:'ZapFlow',icone:'⚡',descricao:'Fluxos automatizados'},
-  ];
-
-  // Tentar carregar dados reais do Supabase (sem bloquear se falhar)
   if (db) {
     try {
-      const [pm,tm,mm,rm,rem,espm] = await Promise.all([
+      const [pm,tm,mm,fm,rm,rem,am,avm,espm] = await Promise.all([
         safeDb.from('projetos').select('*').order('created_at',{ascending:false}),
         safeDb.from('tarefas').select('*').order('created_at',{ascending:false}),
         safeDb.from('membros').select('*').order('nome'),
-        safeDb.from('riscos').select('*').eq('status','aberto'),
+        safeDb.from('ferias').select('*').order('inicio'),
+        safeDb.from('riscos').select('*').eq('status','aberto').order('created_at',{ascending:false}),
         safeDb.from('reunioes').select('*').order('created_at',{ascending:false}),
+        safeDb.from('agenda').select('*').order('created_at',{ascending:false}),
+        safeDb.from('atividades').select('*').order('created_at',{ascending:false}).limit(20),
         safeDb.from('espacos').select('*').order('nome'),
       ]);
-      if (pm.data  && pm.data.length)  proj    = pm.data;
-      if (tm.data  && tm.data.length)  tar     = tm.data;
-      if (mm.data  && mm.data.length)  memb    = mm.data;
-      if (rm.data  && rm.data.length)  riscos  = rm.data;
-      if (rem.data && rem.data.length) reun    = rem.data;
-      if (espm.data && espm.data.length) espacos = espm.data;
-    } catch(e) { /* usa dados demo */ }
+      proj    = pm.data  || [];
+      tar     = tm.data  || [];
+      memb    = mm.data  || [];
+      ferias  = fm.data  || [];
+      riscos  = rm.data  || [];
+      reun    = rem.data || [];
+      agenda  = am.data  || [];
+      ativs   = avm.data || [];
+      espacos = espm.data || [];
+    } catch(e) {
+      console.error('Erro ao carregar dados:', e);
+    }
   }
 
   await loadNotifs();
@@ -3459,33 +3460,7 @@ function showLoading(on) {
 }
 
 // ── NAVEGAÇÃO ─────────────────────────────────────────────────────
-function sw(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
-  const tabEl = document.getElementById('t-' + name);
-  if (!tabEl) { console.warn('Tab não encontrada: t-' + name); return; }
-  tabEl.classList.add('on');
-  if (el) el.classList.add('on');
-  // Atualizar título da topbar
-  const titles = {home:'Dashboard',proj:'Estações & Espaços',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',config:'Cadastros'};
-  // Reset chat state ao navegar
-  if (name === 'chat') {
-    const cw = document.getElementById('chatWin');
-    const ce = document.getElementById('chatEmpty');
-    if (!curChId) {
-      if (cw) cw.style.display = 'none';
-      if (ce) ce.style.display = 'flex';
-    }
-  }
-  const ttEl = document.getElementById('topbar-page-title');
-  if (ttEl) ttEl.textContent = titles[name] || '';
-  if (name === 'proj') setTimeout(renderHierarquia, 50);
-  if (name === 'gantt') setTimeout(renderGantt, 50);
-  if (name === 'painel') setTimeout(renderPainel, 50);
-  if (name === 'config') { renderCadastros(); updateSelects(); }
-}
 
-// ── CHART DASHBOARD ───────────────────────────────────────────────
 function renderChart() {
   const d = proj.slice(0,6).map((p,i) => ({ l: p.nome.split(' ')[0], v: p.prog, c: CL[i] }));
   document.getElementById('dChart').innerHTML = d.map(x => `<div class="bar" style="height:${x.v*.6}px;background:${x.c};opacity:.85;" onclick="showToast('${x.l}: ${x.v}%')"></div>`).join('');
@@ -4898,7 +4873,7 @@ Formato da ata:
 
   try {
     // Usar Google Gemini API (gratuito)
-    const GEMINI_KEY = 'AIzaSyAtrlXmXcP6pGhiy359q4hvfpzLlKdtmt0';
+    // GEMINI_KEY já declarado
     const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -7425,10 +7400,14 @@ setTimeout(updateSelects, 500);
 // ══════════════════════════════════════════════════════════════════
 // MEU ESPAÇO — Área exclusiva da Gestora Mabiane
 // ══════════════════════════════════════════════════════════════════
-let meNotas    = JSON.parse(localStorage.getItem('me_notas')    || '[]');
-let meTarefas  = JSON.parse(localStorage.getItem('me_tarefas')  || '[]');
-let meAgenda   = JSON.parse(localStorage.getItem('me_agenda')   || '[]');
+// removido duplicado
+// removido
+// removido
 let mePlanos   = JSON.parse(localStorage.getItem('me_planos')   || '[]');
+// dup removed: // meNotas    = JSON.parse(localStorage.getItem('me_notas')    || '[]');
+// dup removed: // meTarefas  = JSON.parse(localStorage.getItem('me_tarefas')  || '[]');
+// dup removed: // meAgenda   = JSON.parse(localStorage.getItem('me_agenda')   || '[]');
+// dup removed: // mePlanos   = JSON.parse(localStorage.getItem('me_planos')   || '[]');
 let meTabAtual = 'notas';
 let meFormTipo = 'nota';
 
