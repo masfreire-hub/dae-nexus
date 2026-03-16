@@ -2741,77 +2741,7 @@ select.sel{
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- MEU ESPAÇO — Área exclusiva da Gestora                 -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<div class="tab" id="t-meuespaço">
-  <div class="ph">
-    <div>
-      <div class="pt">MEU ESPAÇO</div>
-      <div class="ps">Suas anotações, tarefas e agenda pessoal</div>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btnadd" onclick="meMostrarForm('nota')">+ Nota</button>
-      <button class="btnadd" onclick="meMostrarForm('tarefa')" style="background:var(--brand-light);color:var(--brand)">+ Tarefa</button>
-    </div>
-  </div>
 
-  <!-- TABS INTERNAS -->
-  <div style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto;">
-    <button class="chip on" id="meTab-notas" onclick="meSwitchTab('notas',this)">📝 Anotações</button>
-    <button class="chip" id="meTab-tarefas" onclick="meSwitchTab('tarefas',this)">✅ Minhas Tarefas</button>
-    <button class="chip" id="meTab-agenda" onclick="meSwitchTab('agenda',this)">📅 Agenda Pessoal</button>
-    <button class="chip" id="meTab-planos" onclick="meSwitchTab('planos',this)">🎯 Planejamentos</button>
-  </div>
-
-  <!-- FORM RÁPIDO -->
-  <div id="meForm" style="display:none;margin:0 16px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;">
-    <div id="meFormTitle" style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:10px;">Nova Anotação</div>
-    <input id="meFormTitulo" placeholder="Título..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--tx);margin-bottom:8px;font-family:var(--fb);">
-    <textarea id="meFormConteudo" placeholder="Conteúdo..." rows="3" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--tx);resize:none;font-family:var(--fb);margin-bottom:8px;"></textarea>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <select id="meFormPrior" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--tx);font-family:var(--fb);">
-        <option value="normal">Normal</option>
-        <option value="importante">⚠️ Importante</option>
-        <option value="urgente">🔴 Urgente</option>
-      </select>
-      <input id="meFormData" type="date" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--tx);font-family:var(--fb);">
-      <div style="display:flex;gap:6px;margin-left:auto;">
-        <button onclick="meSalvar()" style="background:var(--brand);border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--fb);">Salvar</button>
-        <button onclick="document.getElementById('meForm').style.display='none'" style="background:var(--surface3);border:none;border-radius:8px;padding:7px 12px;font-size:12px;color:var(--tx2);cursor:pointer;font-family:var(--fb);">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- CONTEÚDO NOTAS -->
-  <div id="meConteudo-notas" class="me-conteudo on">
-    <div style="padding:0 16px 8px;font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Anotações</div>
-    <div id="meListaNotas" style="padding:0 16px;"></div>
-  </div>
-
-  <!-- CONTEÚDO TAREFAS -->
-  <div id="meConteudo-tarefas" class="me-conteudo" style="display:none;">
-    <div style="padding:0 16px 8px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Minhas Tarefas</span>
-      <div style="display:flex;gap:6px;">
-        <button class="chip on" id="meTFiltro-todas" onclick="meFiltrarTarefas('todas',this)">Todas</button>
-        <button class="chip" id="meTFiltro-abertas" onclick="meFiltrarTarefas('abertas',this)">Abertas</button>
-        <button class="chip" id="meTFiltro-feitas" onclick="meFiltrarTarefas('feitas',this)">Feitas</button>
-      </div>
-    </div>
-    <div id="meListaTarefas" style="padding:0 16px;"></div>
-  </div>
-
-  <!-- CONTEÚDO AGENDA -->
-  <div id="meConteudo-agenda" class="me-conteudo" style="display:none;">
-    <div style="padding:0 16px 8px;font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Agenda Pessoal</div>
-    <div id="meListaAgenda" style="padding:0 16px;"></div>
-  </div>
-
-  <!-- CONTEÚDO PLANEJAMENTOS -->
-  <div id="meConteudo-planos" class="me-conteudo" style="display:none;">
-    <div style="padding:0 16px 8px;font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Planejamentos</div>
-    <div id="meListaPlanos" style="padding:0 16px;"></div>
-  </div>
-
-</div>
 
 <div class="tab" id="t-config">
       <div class="ph"><div><div class="pt">CADASTROS</div><div class="ps">Gerencie estações, setores, cargos, tipos e status</div></div></div>
@@ -3385,6 +3315,11 @@ async function loadNotifs() {
 }
 
 function renderAll() {
+  // Garantir tab home visível
+  if (!document.querySelector('.tab.on')) {
+    const th = document.getElementById('t-home');
+    if (th) th.classList.add('on');
+  }
   const h = new Date().getHours();
   const nome = curUser?.nome?.split(' ')[0] || 'Mabiane';
   document.getElementById('wname').textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome.toUpperCase()}`;
@@ -6902,7 +6837,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const ma = document.getElementById('mainApp');
   if(ma) ma.style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
   showLoading(true);
-  loadAll().finally(()=>showLoading(false));
+  loadAll().finally(()=>{ showLoading(false); sw('home', document.querySelector('.ni.on')); });
 });
 
 // ══════════════════════════════════════════════════════════════════
