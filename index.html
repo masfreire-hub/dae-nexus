@@ -2781,52 +2781,112 @@ select.sel{
 
 
 <div class="tab" id="t-arquivos">
-  <div class="ph">
-    <div>
-      <div class="pt">📁 ARQUIVOS & DOCUMENTOS</div>
-      <div class="ps">Central de documentos · Anexos de tarefas · Arquivos importantes</div>
-    </div>
-    <button class="btnadd" style="padding:8px 16px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:var(--fh)" onclick="abrirUploadArquivo()">+ ENVIAR ARQUIVO</button>
-  </div>
+<style>
+#t-arquivos { display:flex; flex-direction:column; height:100%; padding:0; }
+#arq-wrap { display:flex; flex:1; overflow:hidden; }
+#arq-sidebar { width:220px; flex-shrink:0; border-right:1px solid var(--border); overflow-y:auto; padding:12px 8px; display:flex; flex-direction:column; gap:2px; }
+#arq-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+#arq-toolbar { padding:10px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex-shrink:0; }
+#arq-breadcrumb { padding:8px 14px 0; font-size:11px; color:var(--tx3); display:flex; align-items:center; gap:4px; flex-shrink:0; }
+#arq-breadcrumb span { cursor:pointer; } #arq-breadcrumb span:hover { color:var(--brand); }
+#arq-content { flex:1; overflow-y:auto; padding:10px 14px 80px; }
+.arq-folder-item { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:8px; cursor:pointer; font-size:12px; color:var(--tx2); font-weight:500; transition:background .15s; }
+.arq-folder-item:hover, .arq-folder-item.on { background:var(--surface3); color:var(--tx); }
+.arq-folder-item.on { font-weight:700; color:var(--brand); }
+.arq-file-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); margin-bottom:6px; transition:box-shadow .15s; }
+.arq-file-row:hover { box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+.arq-file-ico { width:38px; height:38px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.arq-file-name { font-size:12px; font-weight:700; color:var(--tx); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px; }
+.arq-file-meta { font-size:10px; color:var(--tx3); margin-top:1px; }
+.arq-file-tag { font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; display:inline-block; margin-right:3px; }
+.arq-fav { color:#F59E0B; cursor:pointer; font-size:14px; }
+.arq-fav.off { color:var(--tx3); }
+.arq-actions { display:flex; gap:4px; margin-left:auto; flex-shrink:0; }
+.arq-btn { border:1px solid var(--border); background:var(--surface2); border-radius:6px; padding:4px 9px; font-size:10px; cursor:pointer; color:var(--tx2); font-weight:600; transition:background .15s; }
+.arq-btn:hover { background:var(--surface3); color:var(--tx); }
+.arq-btn.red { border-color:rgba(239,68,68,.3); color:#EF4444; background:rgba(239,68,68,.07); }
+.arq-btn.red:hover { background:rgba(239,68,68,.15); }
+.arq-btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+.arq-dropzone-active { border-color:var(--brand) !important; background:rgba(79,70,229,.05) !important; }
+.arq-upload-bar { height:3px; background:var(--brand); border-radius:2px; transition:width .3s; }
+#arq-view-toggle button { padding:5px 10px; font-size:11px; border:1px solid var(--border); background:transparent; cursor:pointer; color:var(--tx2); }
+#arq-view-toggle button.on { background:var(--brand); color:#fff; border-color:var(--brand); }
+#arq-view-toggle button:first-child { border-radius:6px 0 0 6px; }
+#arq-view-toggle button:last-child { border-radius:0 6px 6px 0; }
+.arq-grid-card { background:var(--surface2); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:box-shadow .15s; }
+.arq-grid-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+#arq-content.grid-view { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; }
+#arq-content.list-view { display:block; }
+</style>
 
-  <!-- BANNER SETUP -->
-  <div id="arqSetupBanner" style="margin:0 16px 14px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:12px;padding:12px 16px;display:flex;align-items:flex-start;gap:10px">
-    <div style="font-size:20px;flex-shrink:0">⚙️</div>
-    <div style="flex:1">
-      <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:3px">Configure o Storage do Supabase (1 vez)</div>
-      <div style="font-size:11px;color:#78350F;line-height:1.6">
-        1. Acesse <strong>supabase.com</strong> → seu projeto → <strong>Storage</strong><br>
-        2. Clique em <strong>New Bucket</strong> → nome: <code>arquivos</code> → marque <strong>Public</strong> → Create<br>
-        3. Volte aqui e comece a enviar arquivos! ✅
-      </div>
-    </div>
-    <button onclick="document.getElementById('arqSetupBanner').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#92400E;padding:0;flex-shrink:0">✕</button>
-  </div>
-
-  <!-- FILTROS -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:0 16px">
-    <button class="chip on" id="arqFiltroTodos"   onclick="filtrarArquivos('todos',this)">Todos</button>
-    <button class="chip" id="arqFiltroDocs"       onclick="filtrarArquivos('doc',this)">📄 Documentos</button>
-    <button class="chip" id="arqFiltroImagens"    onclick="filtrarArquivos('img',this)">🖼️ Imagens</button>
-    <button class="chip" id="arqFiltroPlanihas"   onclick="filtrarArquivos('plan',this)">📊 Planilhas</button>
-    <button class="chip" id="arqFiltroMidia"      onclick="filtrarArquivos('midia',this)">🎥 Mídia</button>
-    <input id="arqBusca" class="inp" style="margin:0;flex:1;min-width:160px;font-size:12px;padding:6px 10px" placeholder="🔍 Buscar arquivo..." oninput="renderArquivos()">
-  </div>
-
-  <!-- DROP ZONE -->
-  <div id="arqDropZone" style="margin:0 16px 14px;border:2px dashed var(--border);border-radius:14px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)"
-    onclick="abrirUploadArquivo()"
-    ondragover="event.preventDefault();this.style.borderColor='var(--brand)';this.style.background='rgba(79,70,229,.06)'"
-    ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'"
-    ondrop="handleArqDrop(event)">
-    <div style="font-size:28px;margin-bottom:6px">📂</div>
-    <div style="font-size:13px;font-weight:700;color:var(--tx2)">Arraste arquivos aqui ou clique para enviar</div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:4px">PDF, Word, Excel, Imagens, Vídeos, Áudios · Máx 50MB por arquivo</div>
+<!-- TOPBAR -->
+<div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0">
+  <div style="flex:1">
+    <div style="font-size:16px;font-weight:800;color:var(--tx);letter-spacing:-.3px">📁 Arquivos & Documentos</div>
+    <div style="font-size:11px;color:var(--tx3);margin-top:1px">Central de documentos · gestão de arquivos da equipe</div>
   </div>
   <input type="file" id="arqFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.mp3,.wav,.zip,.txt" style="display:none" onchange="uploadArquivos(this.files)">
+  <button onclick="abrirUploadArquivo()" style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);display:flex;align-items:center;gap:6px">
+    ⬆ Enviar arquivo
+  </button>
+  <button onclick="arqCriarPasta()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--tx2)">
+    📂 Nova pasta
+  </button>
+</div>
 
-  <!-- GRID DE ARQUIVOS -->
-  <div id="arqGrid" style="padding:0 16px 80px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
+<!-- LAYOUT PRINCIPAL -->
+<div id="arq-wrap">
+  <!-- SIDEBAR PASTAS -->
+  <div id="arq-sidebar">
+    <div style="font-size:9px;font-weight:800;color:var(--tx3);letter-spacing:.8px;padding:4px 8px;margin-bottom:4px">PASTAS</div>
+    <div class="arq-folder-item on" onclick="arqNavPasta('',this)" id="arqFolderRaiz">
+      🏠 Todos os arquivos
+    </div>
+    <div class="arq-folder-item" onclick="arqNavPasta('favoritos',this)" id="arqFolderFav">
+      ⭐ Favoritos
+    </div>
+    <div style="height:1px;background:var(--border);margin:8px 4px"></div>
+    <div style="font-size:9px;font-weight:800;color:var(--tx3);letter-spacing:.8px;padding:4px 8px;margin-bottom:2px">MINHAS PASTAS</div>
+    <div id="arqPastasList"></div>
+    <div style="height:1px;background:var(--border);margin:8px 4px"></div>
+    <div style="font-size:9px;font-weight:800;color:var(--tx3);letter-spacing:.8px;padding:4px 8px;margin-bottom:4px">TIPO</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('doc',this)">📄 Documentos</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('img',this)">🖼️ Imagens</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('plan',this)">📊 Planilhas</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('midia',this)">🎥 Mídia</div>
+  </div>
+
+  <!-- ÁREA PRINCIPAL -->
+  <div id="arq-main">
+    <!-- TOOLBAR -->
+    <div id="arq-toolbar">
+      <input id="arqBusca" class="inp" style="margin:0;width:220px;font-size:12px;padding:6px 10px" placeholder="🔍 Buscar por nome ou tag..." oninput="renderArquivos()">
+      <select id="arqOrdem" class="sel" style="margin:0;font-size:11px;padding:5px 8px;width:auto" onchange="renderArquivos()">
+        <option value="nome">Nome A→Z</option>
+        <option value="nome_desc">Nome Z→A</option>
+        <option value="data">Mais recentes</option>
+        <option value="tam">Maior tamanho</option>
+      </select>
+      <div id="arq-view-toggle" style="margin-left:auto">
+        <button class="on" id="arqBtnList" onclick="arqSetView('list',this)">☰ Lista</button>
+        <button id="arqBtnGrid" onclick="arqSetView('grid',this)">⊞ Grade</button>
+      </div>
+    </div>
+
+    <!-- BREADCRUMB -->
+    <div id="arq-breadcrumb">
+      <span onclick="arqNavPasta('',null)">🏠 Início</span>
+      <span id="arqBreadExtra" style="display:none"> › <span id="arqBreadNome"></span></span>
+    </div>
+
+    <!-- DROPZONE + CONTEÚDO -->
+    <div id="arq-content" class="list-view"
+      ondragover="event.preventDefault();document.getElementById('arq-content').classList.add('arq-dropzone-active')"
+      ondragleave="document.getElementById('arq-content').classList.remove('arq-dropzone-active')"
+      ondrop="handleArqDrop(event)">
+    </div>
+  </div>
+</div>
 </div>
 
   </div><!-- /body-wrap -->
@@ -4005,10 +4065,9 @@ async function openDet(type, id) {
       <div class="sl" style="margin-top:4px">📎 Anexos</div>
       <div id="anexosBox" style="margin-bottom:8px"></div>
       <div style="display:flex;gap:6px;margin-bottom:12px">
-        <button onclick="document.getElementById('anexoInput_${id}').click()" style="flex:1;background:var(--surface2);border:1.5px dashed var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--tx2);cursor:pointer;font-weight:600">
+        <button onclick="triggerAnexoInput('${id}')" style="flex:1;background:var(--surface2);border:1.5px dashed var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--tx2);cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">
           📎 Anexar arquivo
         </button>
-        <input type="file" id="anexoInput_${id}" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mp3,.wav,.zip,.txt" style="display:none" onchange="uploadAnexoTarefa('${id}',this.files)">
       </div>
 
       <div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">
@@ -5147,26 +5206,48 @@ async function saveAta(id) {
 // MÓDULO ARQUIVOS & ANEXOS — Supabase Storage
 // ═══════════════════════════════════════════════════════════════════
 
-let arquivosDb = [];          // cache global
-let arqFiltroAtivo = 'todos'; // filtro ativo
+// ═══════════════════════════════════════════════════════════════════
+// MÓDULO ARQUIVOS & DOCUMENTOS v2 — com pastas, tags, favoritos
+// ═══════════════════════════════════════════════════════════════════
+
+let arquivosDb   = [];
+let arqPastaAtual = '';       // caminho atual ('' = raiz)
+let arqFiltroTipoAtivo = '';  // '' = todos
+let arqViewMode  = 'list';    // 'list' | 'grid'
+let arqFavs      = JSON.parse(localStorage.getItem('arqFavs')||'[]');
+let arqPastas    = JSON.parse(localStorage.getItem('arqPastas')||'["Processos","Financeiro","RH","Contratos","Relatórios"]');
 
 const ARQ_BUCKET = 'arquivos';
-const ARQ_TIPOS = {
-  pdf: { ico:'📄', cat:'doc', cor:'#EF4444' },
-  doc: { ico:'📝', cat:'doc', cor:'#3B82F6' }, docx: { ico:'📝', cat:'doc', cor:'#3B82F6' },
-  xls: { ico:'📊', cat:'plan', cor:'#22C55E' }, xlsx: { ico:'📊', cat:'plan', cor:'#22C55E' },
-  ppt: { ico:'📊', cat:'doc', cor:'#F97316' }, pptx: { ico:'📊', cat:'doc', cor:'#F97316' },
-  jpg: { ico:'🖼️', cat:'img', cor:'#8B5CF6' }, jpeg: { ico:'🖼️', cat:'img', cor:'#8B5CF6' },
-  png: { ico:'🖼️', cat:'img', cor:'#8B5CF6' }, gif: { ico:'🖼️', cat:'img', cor:'#8B5CF6' },
-  webp:{ ico:'🖼️', cat:'img', cor:'#8B5CF6' },
-  mp4: { ico:'🎥', cat:'midia', cor:'#EC4899' }, mov: { ico:'🎥', cat:'midia', cor:'#EC4899' },
-  mp3: { ico:'🎵', cat:'midia', cor:'#14B8A6' }, wav: { ico:'🎵', cat:'midia', cor:'#14B8A6' },
-  zip: { ico:'🗜️', cat:'doc', cor:'#F59E0B' }, txt: { ico:'📃', cat:'doc', cor:'#6B7280' }
+const ARQ_TIPOS  = {
+  pdf:  { ico:'📄', cat:'doc',   cor:'#EF4444', label:'PDF'      },
+  doc:  { ico:'📝', cat:'doc',   cor:'#3B82F6', label:'Word'     },
+  docx: { ico:'📝', cat:'doc',   cor:'#3B82F6', label:'Word'     },
+  xls:  { ico:'📊', cat:'plan',  cor:'#22C55E', label:'Excel'    },
+  xlsx: { ico:'📊', cat:'plan',  cor:'#22C55E', label:'Excel'    },
+  ppt:  { ico:'📑', cat:'doc',   cor:'#F97316', label:'PPT'      },
+  pptx: { ico:'📑', cat:'doc',   cor:'#F97316', label:'PPT'      },
+  jpg:  { ico:'🖼️', cat:'img',   cor:'#8B5CF6', label:'Imagem'   },
+  jpeg: { ico:'🖼️', cat:'img',   cor:'#8B5CF6', label:'Imagem'   },
+  png:  { ico:'🖼️', cat:'img',   cor:'#8B5CF6', label:'Imagem'   },
+  gif:  { ico:'🖼️', cat:'img',   cor:'#8B5CF6', label:'GIF'      },
+  webp: { ico:'🖼️', cat:'img',   cor:'#8B5CF6', label:'Imagem'   },
+  mp4:  { ico:'🎥', cat:'midia', cor:'#EC4899', label:'Vídeo'    },
+  mov:  { ico:'🎥', cat:'midia', cor:'#EC4899', label:'Vídeo'    },
+  mp3:  { ico:'🎵', cat:'midia', cor:'#14B8A6', label:'Áudio'    },
+  wav:  { ico:'🎵', cat:'midia', cor:'#14B8A6', label:'Áudio'    },
+  zip:  { ico:'🗜️', cat:'doc',   cor:'#F59E0B', label:'ZIP'      },
+  txt:  { ico:'📃', cat:'doc',   cor:'#6B7280', label:'Texto'    },
+};
+
+const ARQ_TAG_CORES = {
+  urgente:   '#EF4444', rotina:   '#3B82F6', relatório: '#8B5CF6',
+  contrato:  '#F97316', financeiro:'#22C55E', rh:       '#EC4899',
+  importante:'#F59E0B',
 };
 
 function arqInfo(nome) {
   const ext = (nome.split('.').pop()||'').toLowerCase();
-  return ARQ_TIPOS[ext] || { ico:'📁', cat:'doc', cor:'#6B7280' };
+  return ARQ_TIPOS[ext] || { ico:'📁', cat:'doc', cor:'#6B7280', label:'Arquivo' };
 }
 
 function fmtBytes(b) {
@@ -5176,115 +5257,311 @@ function fmtBytes(b) {
   return (b/1048576).toFixed(1) + ' MB';
 }
 
-// ── Carregar arquivos do Supabase Storage ───────────────────────
-async function carregarArquivos() {
-  try {
-    const { data, error } = await db.storage.from(ARQ_BUCKET).list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } });
-    if (error) throw error;
-    arquivosDb = data || [];
-  } catch(e) {
-    // Bucket pode não existir ainda — silencioso
-    arquivosDb = [];
-  }
+function fmtDataArq(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
 }
 
-// ── Render tela de Arquivos ──────────────────────────────────────
+function arqNomeLimpo(nome) { return nome.replace(/^\d+_/, ''); }
+
+// ── Pastas ──────────────────────────────────────────────────────
+function arqSalvarPastas() { localStorage.setItem('arqPastas', JSON.stringify(arqPastas)); }
+function arqSalvarFavs()   { localStorage.setItem('arqFavs',   JSON.stringify(arqFavs)); }
+
+function renderArqPastasSidebar() {
+  const el = document.getElementById('arqPastasList');
+  if (!el) return;
+  el.innerHTML = arqPastas.map(p => `
+    <div class="arq-folder-item" onclick="arqNavPasta('${p}',this)" id="arqFolder_${p.replace(/\s/g,'_')}"
+         style="justify-content:space-between;group:true">
+      <span>📁 ${p}</span>
+      <span style="display:none;gap:2px" class="arq-pasta-acts">
+        <span onclick="event.stopPropagation();arqRenomearPasta('${p}')" style="cursor:pointer;font-size:11px;opacity:.6" title="Renomear">✏️</span>
+        <span onclick="event.stopPropagation();arqExcluirPasta('${p}')" style="cursor:pointer;font-size:11px;opacity:.6" title="Excluir">🗑</span>
+      </span>
+    </div>`).join('');
+
+  // Mostrar ações ao hover
+  el.querySelectorAll('.arq-folder-item').forEach(item => {
+    const acts = item.querySelector('.arq-pasta-acts');
+    if (!acts) return;
+    item.addEventListener('mouseenter', () => acts.style.display = 'flex');
+    item.addEventListener('mouseleave', () => acts.style.display = 'none');
+  });
+}
+
+function arqCriarPasta() {
+  const nome = prompt('Nome da nova pasta:');
+  if (!nome?.trim()) return;
+  if (arqPastas.includes(nome.trim())) { showToast('⚠️ Pasta já existe!'); return; }
+  arqPastas.push(nome.trim());
+  arqSalvarPastas();
+  renderArqPastasSidebar();
+  showToast('📂 Pasta criada!');
+}
+
+function arqRenomearPasta(nome) {
+  const novo = prompt('Novo nome:', nome);
+  if (!novo?.trim() || novo.trim() === nome) return;
+  arqPastas = arqPastas.map(p => p === nome ? novo.trim() : p);
+  arqSalvarPastas();
+  renderArqPastasSidebar();
+  showToast('✏️ Pasta renomeada!');
+}
+
+function arqExcluirPasta(nome) {
+  if (!confirm(`Excluir pasta "${nome}"?\nOs arquivos dentro serão mantidos na raiz.`)) return;
+  arqPastas = arqPastas.filter(p => p !== nome);
+  arqSalvarPastas();
+  if (arqPastaAtual === nome) arqNavPasta('', null);
+  else renderArqPastasSidebar();
+  showToast('🗑 Pasta excluída!');
+}
+
+function arqNavPasta(pasta, el) {
+  arqPastaAtual = pasta;
+  arqFiltroTipoAtivo = '';
+  // Atualizar sidebar ativo
+  document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
+  if (el) { el.classList.add('on'); }
+  else {
+    const r = document.getElementById('arqFolderRaiz');
+    if (r) r.classList.add('on');
+  }
+  // Breadcrumb
+  const extra = document.getElementById('arqBreadExtra');
+  const nome  = document.getElementById('arqBreadNome');
+  if (extra && nome) {
+    if (pasta && pasta !== 'favoritos') { extra.style.display='inline'; nome.textContent = pasta; }
+    else if (pasta === 'favoritos') { extra.style.display='inline'; nome.textContent = '⭐ Favoritos'; }
+    else { extra.style.display='none'; }
+  }
+  renderArquivos();
+}
+
+function arqFiltroTipo(tipo, el) {
+  arqFiltroTipoAtivo = arqFiltroTipoAtivo === tipo ? '' : tipo;
+  document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
+  if (arqFiltroTipoAtivo) el?.classList.add('on');
+  else document.getElementById('arqFolderRaiz')?.classList.add('on');
+  renderArquivos();
+}
+
+function arqSetView(mode, btn) {
+  arqViewMode = mode;
+  document.querySelectorAll('#arq-view-toggle button').forEach(b => b.classList.remove('on'));
+  btn?.classList.add('on');
+  const c = document.getElementById('arq-content');
+  if (c) { c.className = mode === 'grid' ? 'grid-view' : 'list-view'; }
+  renderArquivos();
+}
+
+// ── Tags ────────────────────────────────────────────────────────
+function arqGetTags(nome) {
+  const tags = JSON.parse(localStorage.getItem('arqTags_' + nome) || '[]');
+  return tags;
+}
+function arqSetTags(nome, tags) { localStorage.setItem('arqTags_' + nome, JSON.stringify(tags)); }
+
+function arqAdicionarTag(nome) {
+  const tag = prompt('Tag (ex: urgente, contrato, financeiro):');
+  if (!tag?.trim()) return;
+  const tags = arqGetTags(nome);
+  if (!tags.includes(tag.trim())) { tags.push(tag.trim()); arqSetTags(nome, tags); }
+  renderArquivos();
+}
+
+// ── Favoritos ───────────────────────────────────────────────────
+function arqToggleFav(nome) {
+  if (arqFavs.includes(nome)) arqFavs = arqFavs.filter(f => f !== nome);
+  else arqFavs.push(nome);
+  arqSalvarFavs();
+  renderArquivos();
+}
+
+// ── Carregar do Storage ─────────────────────────────────────────
+async function carregarArquivos() {
+  try {
+    const pasta = (arqPastaAtual && arqPastaAtual !== 'favoritos') ? arqPastaAtual + '/' : '';
+    const { data, error } = await db.storage.from(ARQ_BUCKET).list(pasta, { limit:300, sortBy:{ column:'name', order:'asc' } });
+    if (error) throw error;
+    // Filtrar subpastas que não são a pasta de tarefas
+    arquivosDb = (data||[]).filter(f => f.name !== 'tarefas' && !f.name.startsWith('.'));
+  } catch(e) { arquivosDb = []; }
+}
+
+// ── Render principal ─────────────────────────────────────────────
 async function renderArquivos() {
-  const grid = document.getElementById('arqGrid');
-  if (!grid) return;
-  grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tx3);font-size:12px">Carregando arquivos...</div>';
+  const container = document.getElementById('arq-content');
+  if (!container) return;
+  renderArqPastasSidebar();
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tx3);font-size:12px;grid-column:1/-1">⏳ Carregando...</div>';
+
   await carregarArquivos();
-  
-  const busca = (document.getElementById('arqBusca')?.value||'').toLowerCase();
+
+  const busca  = (document.getElementById('arqBusca')?.value||'').toLowerCase();
+  const ordem  = document.getElementById('arqOrdem')?.value || 'nome';
+
   let lista = arquivosDb.filter(f => {
-    if (busca && !f.name.toLowerCase().includes(busca)) return false;
-    if (arqFiltroAtivo !== 'todos') {
-      const info = arqInfo(f.name);
-      if (info.cat !== arqFiltroAtivo) return false;
+    if (f.id === null) return false; // pasta/diretório
+    const nomeLimpo = arqNomeLimpo(f.name).toLowerCase();
+    const tags = arqGetTags(f.name).join(' ').toLowerCase();
+    if (busca && !nomeLimpo.includes(busca) && !tags.includes(busca)) return false;
+    if (arqFiltroTipoAtivo) {
+      if (arqInfo(f.name).cat !== arqFiltroTipoAtivo) return false;
+    }
+    if (arqPastaAtual === 'favoritos') {
+      if (!arqFavs.includes(f.name)) return false;
     }
     return true;
   });
 
-  if (!lista.length) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)"><div style="font-size:40px;margin-bottom:12px">📂</div><div style="font-size:13px;font-weight:700">Nenhum arquivo encontrado</div><div style="font-size:11px;margin-top:6px">Arraste arquivos ou clique em + ENVIAR ARQUIVO</div></div>';
+  // Ordenação
+  lista.sort((a, b) => {
+    if (ordem === 'nome')      return arqNomeLimpo(a.name).localeCompare(arqNomeLimpo(b.name));
+    if (ordem === 'nome_desc') return arqNomeLimpo(b.name).localeCompare(arqNomeLimpo(a.name));
+    if (ordem === 'data')      return new Date(b.created_at||0) - new Date(a.created_at||0);
+    if (ordem === 'tam')       return (b.metadata?.size||0) - (a.metadata?.size||0);
+    return 0;
+  });
+
+  // Pastas virtuais (subpastas no grid)
+  const pastasVirtuais = arqPastaAtual === '' ? arqPastas.map(p => ({ _isPasta: true, nome: p })) : [];
+
+  if (!lista.length && !pastasVirtuais.length) {
+    container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--tx3)">
+      <div style="font-size:48px;margin-bottom:12px">📂</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Nenhum arquivo aqui ainda</div>
+      <div style="font-size:12px">Arraste arquivos nesta área ou clique em ⬆ Enviar arquivo</div>
+    </div>`;
     return;
   }
 
-  grid.innerHTML = lista.map(f => {
-    const info = arqInfo(f.name);
-    const tamanho = fmtBytes(f.metadata?.size);
-    const data = f.created_at ? new Date(f.created_at).toLocaleDateString('pt-BR') : '—';
-    const urlPub = db.storage.from(ARQ_BUCKET).getPublicUrl(f.name).data?.publicUrl || '#';
-    const isImg = info.cat === 'img';
-    return `
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:box-shadow .2s;display:flex;flex-direction:column"
-         onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'" onmouseleave="this.style.boxShadow='none'">
-      ${isImg
-        ? `<div style="height:120px;background:var(--surface3);overflow:hidden;display:flex;align-items:center;justify-content:center">
-             <img src="${urlPub}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'font-size:32px;text-align:center\'>🖼️</div>'">
-           </div>`
-        : `<div style="height:80px;background:${info.cor}18;display:flex;align-items:center;justify-content:center;font-size:36px">${info.ico}</div>`
-      }
-      <div style="padding:10px;flex:1">
-        <div style="font-size:11px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px" title="${f.name}">${f.name}</div>
-        <div style="font-size:10px;color:var(--tx3)">${tamanho} · ${data}</div>
-      </div>
-      <div style="display:flex;gap:4px;padding:6px 10px;border-top:1px solid var(--border)">
-        <button onclick="window.open('${urlPub}','_blank')" style="flex:1;background:var(--brand);color:#fff;border:none;border-radius:6px;padding:5px;font-size:10px;font-weight:700;cursor:pointer">⬇ Abrir</button>
-        <button onclick="copiarLinkArquivo('${urlPub}')" style="background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer" title="Copiar link">🔗</button>
-        <button onclick="excluirArquivo('${f.name}',this)" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;color:#EF4444" title="Excluir">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
+  const pasta  = (arqPastaAtual && arqPastaAtual !== 'favoritos') ? arqPastaAtual + '/' : '';
+
+  if (arqViewMode === 'grid') {
+    container.className = 'grid-view';
+    container.innerHTML = [
+      ...pastasVirtuais.map(p => `
+        <div class="arq-grid-card" onclick="arqNavPasta('${p.nome}', document.getElementById('arqFolder_${p.nome.replace(/\s/g,'_')}'))">
+          <div style="height:70px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;font-size:32px">📁</div>
+          <div style="padding:8px 10px">
+            <div style="font-size:11px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nome}</div>
+            <div style="font-size:10px;color:var(--tx3)">Pasta</div>
+          </div>
+        </div>`),
+      ...lista.map(f => {
+        const info   = arqInfo(f.name);
+        const url    = db.storage.from(ARQ_BUCKET).getPublicUrl(pasta + f.name).data?.publicUrl || '#';
+        const isFav  = arqFavs.includes(f.name);
+        const tags   = arqGetTags(f.name);
+        const isImg  = info.cat === 'img';
+        return `
+        <div class="arq-grid-card">
+          ${isImg
+            ? `<div style="height:100px;overflow:hidden;background:var(--surface3);display:flex;align-items:center;justify-content:center">
+                 <img src="${url}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'font-size:28px;text-align:center\'>🖼️</div>'">
+               </div>`
+            : `<div style="height:70px;background:${info.cor}18;display:flex;align-items:center;justify-content:center;font-size:28px">${info.ico}</div>`
+          }
+          <div style="padding:8px 10px;flex:1">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
+              <div style="font-size:11px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" title="${arqNomeLimpo(f.name)}">${arqNomeLimpo(f.name)}</div>
+              <span class="arq-fav ${isFav?'':'off'}" onclick="arqToggleFav('${f.name}')" title="${isFav?'Remover favorito':'Favoritar'}">★</span>
+            </div>
+            <div style="font-size:10px;color:var(--tx3);margin-top:2px">${fmtBytes(f.metadata?.size)} · ${fmtDataArq(f.created_at)}</div>
+            ${tags.length ? `<div style="margin-top:4px">${tags.map(t=>`<span class="arq-file-tag" style="background:${ARQ_TAG_CORES[t]||'#6B7280'}22;color:${ARQ_TAG_CORES[t]||'#6B7280'}">${t}</span>`).join('')}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:4px;padding:6px 8px;border-top:1px solid var(--border)">
+            <button class="arq-btn primary" onclick="window.open('${url}','_blank')" style="flex:1;font-size:10px">⬇ Abrir</button>
+            <button class="arq-btn" onclick="copiarLinkArquivo('${url}')" title="Copiar link">🔗</button>
+            <button class="arq-btn" onclick="arqAdicionarTag('${f.name}')" title="Tag">🏷️</button>
+            <button class="arq-btn red" onclick="excluirArquivo('${pasta+f.name}',this)" title="Excluir">🗑</button>
+          </div>
+        </div>`;
+      })
+    ].join('');
+  } else {
+    // LISTA
+    container.className = 'list-view';
+    container.innerHTML = [
+      ...pastasVirtuais.map(p => `
+        <div class="arq-file-row" onclick="arqNavPasta('${p.nome}', document.getElementById('arqFolder_${p.nome.replace(/\s/g,'_')}'))" style="cursor:pointer">
+          <div class="arq-file-ico" style="background:rgba(245,158,11,.12)">📁</div>
+          <div style="flex:1;overflow:hidden">
+            <div class="arq-file-name">${p.nome}</div>
+            <div class="arq-file-meta">Pasta</div>
+          </div>
+          <span style="font-size:11px;color:var(--tx3)">›</span>
+        </div>`),
+      ...lista.map(f => {
+        const info  = arqInfo(f.name);
+        const url   = db.storage.from(ARQ_BUCKET).getPublicUrl(pasta + f.name).data?.publicUrl || '#';
+        const isFav = arqFavs.includes(f.name);
+        const tags  = arqGetTags(f.name);
+        const quem  = f.metadata?.owner || curUser?.nome?.split(' ')[0] || '—';
+        return `
+        <div class="arq-file-row">
+          <div class="arq-file-ico" style="background:${info.cor}18">${info.ico}</div>
+          <div style="flex:1;overflow:hidden;min-width:0">
+            <div class="arq-file-name" title="${arqNomeLimpo(f.name)}">${arqNomeLimpo(f.name)}</div>
+            <div class="arq-file-meta">${info.label} · ${fmtBytes(f.metadata?.size)} · ${fmtDataArq(f.created_at)}
+              ${tags.map(t=>`<span class="arq-file-tag" style="background:${ARQ_TAG_CORES[t]||'#6B7280'}22;color:${ARQ_TAG_CORES[t]||'#6B7280'}">${t}</span>`).join('')}
+            </div>
+          </div>
+          <span class="arq-fav ${isFav?'':'off'}" onclick="arqToggleFav('${f.name}')" style="margin-right:6px" title="${isFav?'Remover':'Favoritar'}">★</span>
+          <div class="arq-actions">
+            <button class="arq-btn primary" onclick="window.open('${url}','_blank')">⬇ Abrir</button>
+            <button class="arq-btn" onclick="arqRenomearArquivo('${pasta+f.name}','${arqNomeLimpo(f.name)}')" title="Renomear">✏️</button>
+            <button class="arq-btn" onclick="copiarLinkArquivo('${url}')" title="Copiar link">🔗</button>
+            <button class="arq-btn" onclick="arqAdicionarTag('${f.name}')" title="Adicionar tag">🏷️</button>
+            <button class="arq-btn" onclick="arqMoverPara('${f.name}')" title="Mover para pasta">📂</button>
+            <button class="arq-btn red" onclick="excluirArquivo('${pasta+f.name}',this)" title="Excluir">🗑</button>
+          </div>
+        </div>`;
+      })
+    ].join('');
+  }
 }
 
-function filtrarArquivos(cat, btn) {
-  arqFiltroAtivo = cat;
-  document.querySelectorAll('#t-arquivos .chip').forEach(c => c.classList.remove('on'));
-  if (btn) btn.classList.add('on');
-  renderArquivos();
-}
-
-// ── Upload via botão ou drag-and-drop ───────────────────────────
+// ── Upload ───────────────────────────────────────────────────────
 function abrirUploadArquivo() { document.getElementById('arqFileInput')?.click(); }
 
 function handleArqDrop(event) {
   event.preventDefault();
-  const dz = document.getElementById('arqDropZone');
-  if (dz) { dz.style.borderColor = 'var(--border)'; dz.style.background = 'var(--surface2)'; }
+  document.getElementById('arq-content')?.classList.remove('arq-dropzone-active');
   uploadArquivos(event.dataTransfer.files);
 }
 
 async function uploadArquivos(files) {
   if (!files?.length) return;
-  const arr = Array.from(files);
-  let ok = 0, erros = 0;
+  const arr  = Array.from(files);
+  const pasta = (arqPastaAtual && arqPastaAtual !== 'favoritos') ? arqPastaAtual + '/' : '';
   showToast(`⬆️ Enviando ${arr.length} arquivo(s)...`);
+  let ok = 0, erros = 0;
   for (const file of arr) {
     if (file.size > 52428800) { showToast(`❌ ${file.name} excede 50MB`); erros++; continue; }
     const nomeUnico = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    const { error } = await db.storage.from(ARQ_BUCKET).upload(nomeUnico, file, { cacheControl:'3600', upsert:false });
+    const { error } = await db.storage.from(ARQ_BUCKET).upload(pasta + nomeUnico, file, { cacheControl:'3600', upsert:false });
     if (error) {
-      if (error.message?.includes('Bucket not found')) {
-        showToast('⚠️ Storage não configurado. Veja as instruções no topo da tela.');
-        return;
-      }
+      if (error.message?.includes('Bucket not found')) { showToast('⚠️ Bucket "arquivos" não criado no Supabase Storage.'); return; }
       erros++;
     } else {
       ok++;
       await logAtividade('arquivo_upload', 'Arquivo enviado', file.name, curUser?.av, null, null, '#3B82F6');
     }
   }
-  if (ok) showToast(`✅ ${ok} arquivo(s) enviado(s)!`);
+  if (ok)    showToast(`✅ ${ok} arquivo(s) enviado(s)!`);
   if (erros) showToast(`❌ ${erros} erro(s) no upload`);
   renderArquivos();
 }
 
-async function excluirArquivo(nome, btn) {
-  if (!confirm(`Excluir "${nome}"?`)) return;
-  btn.disabled = true;
-  const { error } = await db.storage.from(ARQ_BUCKET).remove([nome]);
-  if (error) { showToast('❌ Erro ao excluir: ' + error.message); btn.disabled = false; return; }
+async function excluirArquivo(caminho, btn) {
+  const nomeLimpo = arqNomeLimpo(caminho.split('/').pop());
+  if (!confirm(`Excluir "${nomeLimpo}"?`)) return;
+  if (btn) btn.disabled = true;
+  const { error } = await db.storage.from(ARQ_BUCKET).remove([caminho]);
+  if (error) { showToast('❌ Erro ao excluir: ' + error.message); if (btn) btn.disabled = false; return; }
   showToast('🗑 Arquivo excluído!');
   renderArquivos();
 }
@@ -5295,58 +5572,33 @@ function copiarLinkArquivo(url) {
     .catch(() => showToast('❌ Não foi possível copiar'));
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// ANEXOS EM TAREFAS — Supabase Storage pasta /tarefas/{id}/
-// ═══════════════════════════════════════════════════════════════════
-
-async function carregarAnexosTarefa(tarefaId) {
-  const box = document.getElementById('anexosBox');
-  if (!box) return;
-  box.innerHTML = '<div style="font-size:11px;color:var(--tx3)">Carregando...</div>';
-  try {
-    const { data, error } = await db.storage.from(ARQ_BUCKET).list('tarefas/' + tarefaId, { sortBy:{ column:'created_at', order:'desc' } });
-    if (error || !data?.length) { box.innerHTML = '<div style="font-size:11px;color:var(--tx3);padding:4px 0">Nenhum anexo.</div>'; return; }
-    box.innerHTML = data.map(f => {
-      const info = arqInfo(f.name);
-      const urlPub = db.storage.from(ARQ_BUCKET).getPublicUrl('tarefas/' + tarefaId + '/' + f.name).data?.publicUrl || '#';
-      const isImg = info.cat === 'img';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
-        ${isImg
-          ? `<img src="${urlPub}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">`
-          : `<div style="width:36px;height:36px;border-radius:6px;background:${info.cor}18;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${info.ico}</div>`}
-        <div style="flex:1;overflow:hidden">
-          <div style="font-size:11px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
-          <div style="font-size:10px;color:var(--tx3)">${fmtBytes(f.metadata?.size)}</div>
-        </div>
-        <button onclick="window.open('${urlPub}','_blank')" style="background:var(--brand);border:none;border-radius:6px;padding:4px 10px;font-size:10px;color:#fff;cursor:pointer;font-weight:700">⬇</button>
-        <button onclick="excluirAnexoTarefa('${tarefaId}','${f.name}',this)" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 8px;font-size:10px;color:#EF4444;cursor:pointer">🗑</button>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    box.innerHTML = '<div style="font-size:11px;color:var(--tx3);padding:4px 0">Nenhum anexo.</div>';
-  }
+async function arqRenomearArquivo(caminhoAntigo, nomeAtual) {
+  const novo = prompt('Novo nome:', nomeAtual);
+  if (!novo?.trim() || novo.trim() === nomeAtual) return;
+  const pasta = caminhoAntigo.includes('/') ? caminhoAntigo.substring(0, caminhoAntigo.lastIndexOf('/') + 1) : '';
+  const novoNome = pasta + novo.trim();
+  const { error } = await db.storage.from(ARQ_BUCKET).move(caminhoAntigo, novoNome);
+  if (error) { showToast('❌ Erro ao renomear: ' + error.message); return; }
+  showToast('✏️ Arquivo renomeado!');
+  renderArquivos();
 }
 
-async function uploadAnexoTarefa(tarefaId, files) {
-  if (!files?.length) return;
-  const arr = Array.from(files);
-  showToast(`⬆️ Enviando ${arr.length} anexo(s)...`);
-  let ok = 0;
-  for (const file of arr) {
-    if (file.size > 52428800) { showToast(`❌ ${file.name} excede 50MB`); continue; }
-    const nomeUnico = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    const path = `tarefas/${tarefaId}/${nomeUnico}`;
-    const { error } = await db.storage.from(ARQ_BUCKET).upload(path, file, { cacheControl:'3600', upsert:false });
-    if (error) {
-      if (error.message?.includes('Bucket not found')) {
-        showToast('⚠️ Bucket "arquivos" não criado. Acesse Supabase > Storage > New Bucket.');
-        return;
-      }
-      showToast('❌ Erro: ' + error.message);
-    } else { ok++; }
-  }
-  if (ok) { showToast(`✅ ${ok} anexo(s) adicionado(s)!`); carregarAnexosTarefa(tarefaId); }
+async function arqMoverPara(nome) {
+  if (!arqPastas.length) { showToast('⚠️ Crie uma pasta primeiro!'); return; }
+  const opcoes = ['(raiz)', ...arqPastas];
+  const escolha = prompt('Mover para:\n' + opcoes.map((p,i)=>`${i}. ${p}`).join('\n') + '\n\nDigite o número:');
+  if (escolha === null) return;
+  const idx = parseInt(escolha);
+  if (isNaN(idx) || idx < 0 || idx >= opcoes.length) { showToast('❌ Opção inválida'); return; }
+  const destino = idx === 0 ? nome : opcoes[idx] + '/' + nome;
+  const origem  = (arqPastaAtual && arqPastaAtual !== 'favoritos') ? arqPastaAtual + '/' + nome : nome;
+  const { error } = await db.storage.from(ARQ_BUCKET).move(origem, destino);
+  if (error) { showToast('❌ Erro ao mover: ' + error.message); return; }
+  showToast(`📂 Movido para ${opcoes[idx]}!`);
+  renderArquivos();
 }
+
+function filtrarArquivos(cat, btn) { arqFiltroTipo(cat, btn); }
 
 async function excluirAnexoTarefa(tarefaId, nome, btn) {
   if (!confirm(`Excluir "${nome}"?`)) return;
