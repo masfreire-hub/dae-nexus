@@ -786,57 +786,84 @@ button{font-family:var(--fb);}
 /* ═══════════════════════════════════════════════════════════════
    DETAIL PANEL
 ═══════════════════════════════════════════════════════════════ */
-.detpanel{
-  display:none;position:fixed;inset:0;z-index:300;
-  background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);
-  align-items:stretch;justify-content:flex-end;
-}
+.detpanel{display:none;position:fixed;inset:0;z-index:300;background:rgba(10,18,35,0.6);backdrop-filter:blur(8px);align-items:stretch;justify-content:flex-end;}
 .detpanel.on{display:flex;}
-.detbox{
-  background:#FFFFFF;
-  width:660px;max-width:100vw;
-  display:flex;flex-direction:column;
-  box-shadow:-8px 0 40px rgba(0,0,0,0.18);
-  animation:slideInRight .28s var(--ease) both;
-  color:#1E2A3B;overflow:hidden;
-}
-.det-header{padding:12px 16px 10px;border-bottom:1px solid #F1F5F9;flex-shrink:0;}
-.det-title{font-size:15px;font-weight:800;color:#0F172A;line-height:1.3;margin-bottom:7px;}
+.detbox{background:#fff;width:700px;max-width:100vw;display:flex;flex-direction:column;box-shadow:-12px 0 48px rgba(0,0,0,0.16);animation:slideInRight .3s cubic-bezier(.16,1,.3,1) both;color:#0F172A;overflow:hidden;}
+@keyframes slideInRight{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── HEADER ── */
+.det-header{padding:0;flex-shrink:0;background:#fff;}
+.det-header-top{padding:16px 18px 12px;border-bottom:1px solid #F1F5F9;display:flex;flex-direction:column;gap:10px;}
+.det-title{font-size:18px;font-weight:800;color:#0F172A;line-height:1.3;padding-right:10px;flex:1;}
+.det-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .det-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
-.det-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.2px;}
+.det-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.3px;display:inline-flex;align-items:center;gap:3px;}
+.det-meta-row{display:flex;align-items:center;gap:14px;padding:8px 18px;background:#F8FAFC;border-bottom:2px solid #F1F5F9;flex-shrink:0;flex-wrap:wrap;}
+.det-meta-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:#475569;}
+.det-meta-chip strong{color:#0F172A;font-weight:600;}
+.det-meta-av{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;}
+
+/* ── BODY ── */
 .det-body{display:flex;flex:1;overflow:hidden;min-height:0;}
-.det-left{width:180px;flex-shrink:0;border-right:1px solid #F1F5F9;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;background:#FAFBFC;}
+
+/* ── SIDEBAR 30% ── */
+.det-left{width:210px;flex-shrink:0;border-right:1px solid #F1F5F9;overflow-y:auto;background:#F8FAFC;display:flex;flex-direction:column;}
+.det-left-inner{padding:12px;display:flex;flex-direction:column;gap:12px;flex:1;}
+.det-block{background:#fff;border:1px solid #F1F5F9;border-radius:10px;padding:10px 12px;}
+.det-block-title{font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:4px;}
+.det-row{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
+.det-row:last-child{margin-bottom:0;}
+.det-lbl{font-size:9px;font-weight:700;color:#CBD5E1;letter-spacing:.5px;text-transform:uppercase;}
+.det-val{font-size:12px;font-weight:600;color:#1E293B;}
+
+/* ── TIMER BLOCK ── */
+.det-timer-block{background:linear-gradient(135deg,#4F46E5,#6366F1);border-radius:10px;padding:12px;color:#fff;display:flex;flex-direction:column;gap:8px;}
+.det-timer-label{font-size:9px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;}
+.det-timer-display{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:2px;line-height:1;}
+.det-timer-btn{padding:8px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s;}
+.det-timer-btn-start{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);}
+.det-timer-btn-start:hover{background:rgba(255,255,255,.3);}
+.det-timer-btn-stop{background:#EF4444;color:#fff;}
+
+/* ── ÁREA DIREITA 70% ── */
 .det-right{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fff;}
-.det-section-title{font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px;}
-.det-field{margin-bottom:6px;}
-.det-field-label{font-size:9px;font-weight:700;color:#B0B8C4;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;}
-.det-field-val{font-size:11px;font-weight:700;color:#1E293B;}
-.det-timer-box{background:#fff;border:1px solid #E9EEF4;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;}
-.det-timer-val{font-size:16px;font-weight:800;color:#0F172A;font-family:monospace;letter-spacing:1px;flex:1;}
-.det-btn-timer{padding:6px 10px;border-radius:7px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;}
-.det-btn-iniciar{background:#22C55E;color:#fff;}
-.det-btn-parar{background:#EF4444;color:#fff;}
-.det-actions-bar{padding:8px 12px;border-top:1px solid #F1F5F9;display:flex;gap:6px;flex-shrink:0;background:#fff;justify-content:flex-end;align-items:center;}
-.det-btn-concluir{padding:7px 16px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:#4F46E5;color:#fff;}
-.det-btn-editar{padding:7px 12px;border-radius:8px;border:1.5px solid #E2E8F0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#475569;}
-.det-btn-excluir{padding:7px 10px;border-radius:8px;border:1.5px solid #FEE2E2;background:#FFF5F5;font-size:12px;cursor:pointer;color:#DC2626;}
-.det-coms{flex:1;overflow-y:auto;padding:10px 14px 6px;}
-.det-com-item{display:flex;gap:8px;margin-bottom:10px;}
-.det-com-av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;}
-.det-com-body{flex:1;background:#F8FAFC;border-radius:0 8px 8px 8px;padding:6px 10px;}
-.det-com-meta{font-size:10px;color:#94A3B8;margin-bottom:2px;}
-.det-com-txt{font-size:12px;color:#1E293B;line-height:1.5;}
-.det-com-input{padding:7px 10px;border-top:1px solid #F1F5F9;background:#fff;display:flex;gap:6px;align-items:center;flex-shrink:0;}
-.det-com-input input{flex:1;border:1.5px solid #E2E8F0;border-radius:8px;padding:7px 10px;font-size:12px;outline:none;font-family:inherit;transition:border-color .2s;background:#F8FAFC;}
-.det-com-input input:focus{border-color:#4F46E5;background:#fff;}
-.det-com-send{width:30px;height:30px;border-radius:8px;background:#4F46E5;border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.det-anexos{padding:7px 10px;border-top:1px solid #F1F5F9;flex-shrink:0;max-height:110px;overflow-y:auto;background:#FAFBFC;}
-.detclose{width:26px;height:26px;border:none;border-radius:7px;background:#F1F5F9;color:#64748B;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+.det-right-header{padding:10px 14px;border-bottom:1px solid #F1F5F9;font-size:10px;font-weight:800;color:#94A3B8;letter-spacing:.7px;text-transform:uppercase;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.det-coms{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:0;}
+.det-coms-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#CBD5E1;padding:24px;}
+.det-com-item{display:flex;gap:10px;margin-bottom:14px;}
+.det-com-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.det-com-bubble{flex:1;}
+.det-com-meta{font-size:10px;color:#94A3B8;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+.det-com-meta strong{color:#334155;font-weight:700;}
+.det-com-body{background:#F1F5F9;border-radius:3px 10px 10px 10px;padding:9px 12px;}
+.det-com-txt{font-size:13px;color:#1E293B;line-height:1.55;}
+
+/* ── INPUT COMENTÁRIO ── */
+.det-com-input{padding:10px 14px;border-top:1px solid #F1F5F9;background:#fff;display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.det-com-inp{flex:1;border:1.5px solid #E2E8F0;border-radius:10px;padding:9px 14px;font-size:13px;outline:none;font-family:inherit;transition:border-color .2s;background:#F8FAFC;color:#0F172A;}
+.det-com-inp:focus{border-color:#4F46E5;background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.08);}
+.det-com-send{width:36px;height:36px;border-radius:10px;background:#4F46E5;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;}
+.det-com-send:hover{background:#4338CA;}
+
+/* ── ANEXOS ── */
+.det-anexos{border-top:1px solid #F1F5F9;flex-shrink:0;background:#FAFBFC;max-height:130px;overflow-y:auto;}
+.det-anexos-header{padding:7px 14px;display:flex;align-items:center;justify-content:space-between;}
+.det-anexos-title{font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:.7px;text-transform:uppercase;}
+.det-anexar-btn{font-size:10px;font-weight:700;color:#4F46E5;background:none;border:none;cursor:pointer;padding:2px 6px;}
+.det-anexos-list{padding:0 14px 8px;}
+
+/* ── ACTIONS BAR ── */
+.det-actions-bar{padding:10px 14px;border-top:2px solid #F1F5F9;display:flex;gap:6px;flex-shrink:0;background:#fff;justify-content:flex-end;align-items:center;}
+.det-btn-concluir{padding:8px 18px;border-radius:9px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:#4F46E5;color:#fff;display:flex;align-items:center;gap:5px;transition:background .2s;}
+.det-btn-concluir:hover{background:#4338CA;}
+.det-btn-reabrir{padding:8px 18px;border-radius:9px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:#F1F5F9;color:#475569;display:flex;align-items:center;gap:5px;}
+.det-btn-editar{padding:8px 14px;border-radius:9px;border:1.5px solid #E2E8F0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#475569;display:flex;align-items:center;gap:4px;}
+.det-btn-excluir{padding:8px 10px;border-radius:9px;border:1.5px solid #FEE2E2;background:#FFF5F5;font-size:12px;cursor:pointer;color:#DC2626;}
+.detclose{width:28px;height:28px;border:none;border-radius:7px;background:#F1F5F9;color:#64748B;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
 .detclose:hover{background:#FEE2E2;color:#DC2626;}
-.deth{display:flex;align-items:center;gap:10px;margin-bottom:0;}
-.detrow{font-size:11px;color:#374151;padding:5px 0;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:5px;}
-.detrow:last-child{border-bottom:none;}
-@media(max-width:640px){.detbox{width:100vw;}.det-body{flex-direction:column;}.det-left{width:100%;border-right:none;border-bottom:1px solid #F1F5F9;max-height:200px;}}
+.deth{display:none;}
+.detrow{font-size:11px;color:#374151;padding:5px 0;border-bottom:1px solid #F1F5F9;}
+@media(max-width:700px){.detbox{width:100vw;}.det-body{flex-direction:column;}.det-left{width:100%;border-right:none;border-bottom:1px solid #F1F5F9;max-height:240px;}}
 
 /* ═══════════════════════════════════════════════════════════════
    TOAST
@@ -3194,24 +3221,47 @@ select.sel{
 </div></div>
 <div class="detpanel" id="detPanel" onclick="if(event.target===this)closeDet()">
   <div class="detbox">
+
+    <!-- HEADER -->
     <div class="det-header">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
-        <div class="det-title" id="detTitle">—</div>
-        <button class="detclose" onclick="closeDet()">✕</button>
+      <div class="det-header-top">
+        <div class="det-title-row">
+          <div class="det-title" id="detTitle">—</div>
+          <button class="detclose" onclick="closeDet()">✕</button>
+        </div>
+        <div class="det-badges" id="detBadges"></div>
       </div>
-      <div class="det-badges" id="detBadges"></div>
+      <div class="det-meta-row" id="detMetaRow"></div>
     </div>
+
+    <!-- BODY -->
     <div class="det-body">
-      <div class="det-left" id="detLeft"></div>
+
+      <!-- SIDEBAR ESQUERDA -->
+      <div class="det-left">
+        <div class="det-left-inner" id="detLeft"></div>
+      </div>
+
+      <!-- ÁREA PRINCIPAL -->
       <div class="det-right">
+        <div class="det-right-header">💬 Comentários <span id="detComCount" style="color:#CBD5E1;font-weight:400"></span></div>
         <div class="det-coms" id="comsBox"></div>
         <div class="det-com-input" id="detComInput" style="display:none">
-          <input id="comInp" placeholder="Comentar... (Enter para enviar)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}">
+          <input class="det-com-inp" id="comInp" placeholder="Escrever um comentário... (Enter para enviar)"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}">
           <button class="det-com-send" onclick="addComentario(window._detTarefaId)">➤</button>
         </div>
-        <div class="det-anexos" id="detAnexos"></div>
+        <div class="det-anexos" id="detAnexos">
+          <div class="det-anexos-header">
+            <span class="det-anexos-title">📎 Anexos</span>
+            <button class="det-anexar-btn" onclick="triggerAnexoInput(window._detTarefaId)">+ Anexar</button>
+          </div>
+          <div class="det-anexos-list" id="anexosBox"></div>
+        </div>
       </div>
     </div>
+
+    <!-- BARRA DE AÇÕES -->
     <div class="det-actions-bar" id="detActionsBar"></div>
   </div>
 </div>
@@ -4067,65 +4117,74 @@ async function openDet(type, id) {
     const statusOpts = ['to do','em andamento','pronto p/ testar','feito','bloqueado'];
     const priorOpts  = ['urgente','alta','media','baixa'];
 
+    // Meta row no header
+    const metaRow = document.getElementById('detMetaRow');
+    if (metaRow) metaRow.innerHTML = `
+      <div class="det-meta-chip">
+        <div class="det-meta-av" style="background:${m?.cor||'#4F46E5'}20;color:${m?.cor||'#4F46E5'}">${t.resp||'—'}</div>
+        <strong>${m?m.nome.split(' ')[0]:t.resp||'—'}</strong>
+      </div>
+      ${p ? `<div class="det-meta-chip">📌 <strong>${p.nome}</strong></div>` : ''}
+      ${t.prazo ? `<div class="det-meta-chip" style="color:${isVencida?'#DC2626':'#475569'}">📅 <strong style="color:${isVencida?'#DC2626':'#0F172A'}">${new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</strong></div>` : ''}
+      <div style="margin-left:auto">
+        <span style="font-size:10px;color:#94A3B8;cursor:pointer;font-weight:600" onclick="abrirTransferencia('${id}')">↔ Transferir</span>
+      </div>
+    `;
+
     document.getElementById('detLeft').innerHTML = `
-      <!-- TIMER — ação principal -->
-      <div class="det-timer-box">
-        <div class="det-section-title">⏱ Tempo registrado</div>
-        <div class="det-timer-val" id="tempoDisplay">${fmtTempo(tempoGasto)}</div>
-        <button id="btnTimer" class="det-btn-timer ${isTimerOn?'det-btn-parar':'det-btn-iniciar'}" onclick="toggleTimer('${id}')">
-          ${isTimerOn ? '⏹ Parar timer' : '▶ Iniciar timer'}
+      <!-- TIMER -->
+      <div class="det-timer-block">
+        <div class="det-timer-label">⏱ Tempo registrado</div>
+        <div class="det-timer-display" id="tempoDisplay">${fmtTempo(tempoGasto)}</div>
+        <button id="btnTimer" class="det-timer-btn ${isTimerOn?'det-timer-btn-stop':'det-timer-btn-start'}" onclick="toggleTimer('${id}')">
+          ${isTimerOn ? '⏹ Parar' : '▶ Iniciar timer'}
         </button>
       </div>
 
-      <!-- PROJETO & RESPONSÁVEL -->
-      <div>
-        <div class="det-section-title">📌 Projeto</div>
-        <div class="det-field-val" style="margin-bottom:4px">${p?p.nome:'—'}</div>
-        ${esp?`<div style="font-size:10px;color:#6B7280">📁 ${esp.nome}</div>`:''}
-      </div>
-
-      <div>
-        <div class="det-section-title">👤 Responsável</div>
-        <div style="font-size:11px;font-weight:600;color:#1E293B;margin-bottom:2px">${m?m.nome:t.resp||'—'}</div>
-        <div style="font-size:10px;color:#4F46E5;cursor:pointer;font-weight:600" onclick="abrirTransferencia('${id}')">↔ Transferir</div>
-      </div>
-
-      <!-- DATAS -->
-      <div>
-        <div class="det-section-title">📅 Datas</div>
-        <div class="det-field" style="margin-bottom:8px">
-          <div class="det-field-label">Início</div>
-          <input type="date" style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:7px;color:#111827;font-size:11px;font-weight:700;width:100%;padding:5px 8px;cursor:pointer" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)">
-        </div>
-        <div class="det-field">
-          <div class="det-field-label">Prazo</div>
-          <input type="date" style="background:#F8FAFC;border:1px solid ${isVencida?'#FCA5A5':'#E5E7EB'};border-radius:7px;color:${isVencida?'#DC2626':'#111827'};font-size:11px;font-weight:700;width:100%;padding:5px 8px;cursor:pointer" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)">
-        </div>
-      </div>
-
       <!-- STATUS & PRIORIDADE -->
-      <div>
-        <div class="det-section-title">⚙️ Configurações</div>
-        <div class="det-field" style="margin-bottom:8px">
-          <div class="det-field-label">Status</div>
-          <select class="sel" style="margin:0;font-size:11px" onchange="salvarStatus('${id}',this.value)">
+      <div class="det-block">
+        <div class="det-block-title">⚙ Configurações</div>
+        <div class="det-row">
+          <div class="det-lbl">Status</div>
+          <select class="sel" style="margin:0;font-size:11px;padding:5px 8px" onchange="salvarStatus('${id}',this.value)">
             ${statusOpts.map(s=>`<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
-        <div class="det-field">
-          <div class="det-field-label">Prioridade</div>
-          <select class="sel" style="margin:0;font-size:11px" onchange="salvarPrioridade('${id}',this.value)">
+        <div class="det-row">
+          <div class="det-lbl">Prioridade</div>
+          <select class="sel" style="margin:0;font-size:11px;padding:5px 8px" onchange="salvarPrioridade('${id}',this.value)">
             ${priorOpts.map(s=>`<option value="${s}" ${t.prior===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
       </div>
 
+      <!-- DATAS -->
+      <div class="det-block">
+        <div class="det-block-title">📅 Datas</div>
+        <div class="det-row">
+          <div class="det-lbl">Início</div>
+          <input type="date" style="background:#F8FAFC;border:1px solid #E9EEF4;border-radius:7px;color:#1E293B;font-size:11px;font-weight:600;width:100%;padding:5px 8px;cursor:pointer;font-family:inherit" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)">
+        </div>
+        <div class="det-row">
+          <div class="det-lbl">Prazo</div>
+          <input type="date" style="background:${isVencida?'#FFF5F5':'#F8FAFC'};border:1px solid ${isVencida?'#FCA5A5':'#E9EEF4'};border-radius:7px;color:${isVencida?'#DC2626':'#1E293B'};font-size:11px;font-weight:600;width:100%;padding:5px 8px;cursor:pointer;font-family:inherit" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)">
+        </div>
+      </div>
+
+      <!-- PROJETO -->
+      <div class="det-block">
+        <div class="det-block-title">📌 Projeto</div>
+        <div class="det-val" style="font-size:12px;font-weight:600;color:#1E293B">${p?p.nome:'—'}</div>
+        ${esp?`<div style="font-size:10px;color:#94A3B8;margin-top:2px">📁 ${esp.nome}</div>`:''}
+      </div>
+
       <!-- HISTÓRICO -->
-      ${t.historico_resp ? `<div>
-        <div class="det-section-title">🔄 Histórico</div>
+      ${t.historico_resp ? `<div class="det-block">
+        <div class="det-block-title">🔄 Histórico</div>
         ${JSON.parse(t.historico_resp||'[]').slice(-3).map(h=>`
-          <div style="font-size:10px;color:#374151;padding:3px 0;border-bottom:1px solid #F3F4F6">
-            <span style="color:#9CA3AF">${h.data}</span> ${h.de} → <strong>${h.para}</strong>
+          <div style="font-size:10px;color:#334155;padding:4px 0;border-bottom:1px solid #F8FAFC;display:flex;justify-content:space-between">
+            <span>${h.de} → <strong>${h.para}</strong></span>
+            <span style="color:#CBD5E1">${h.data}</span>
           </div>`).join('')}
       </div>` : ''}
     `;
@@ -4133,47 +4192,47 @@ async function openDet(type, id) {
     // ── Comentários ────────────────────────────────────────────────
     const { data: coms } = isLocal ? { data: [] } : await safeDb.from('comentarios').select('*').eq('tarefa_id', id).order('created_at');
     const comsBox = document.getElementById('comsBox');
+    const countEl = document.getElementById('detComCount');
+    if (countEl && coms?.length) countEl.textContent = '(' + coms.length + ')';
     if (comsBox) {
-      const comsHtml = (coms||[]).map(c => {
-        const cm = memb.find(x => x.av===c.autor);
-        return `<div class="det-com-item">
-          <div class="det-com-av" style="background:${cm?.cor||'#4F46E5'}18;color:${cm?.cor||'#4F46E5'}">${c.autor}</div>
-          <div style="flex:1">
-            <div class="det-com-meta"><strong style="color:#374151">${cm?.nome||c.autor}</strong> · ${fmtDate(c.created_at)}</div>
-            <div class="det-com-body"><div class="det-com-txt">${c.texto}</div></div>
-          </div>
+      if (!coms?.length) {
+        comsBox.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;color:#CBD5E1;text-align:center">
+          <div style="font-size:36px;margin-bottom:10px;opacity:.5">💬</div>
+          <div style="font-size:13px;font-weight:600;color:#94A3B8">Nenhum comentário ainda</div>
+          <div style="font-size:11px;margin-top:4px;color:#CBD5E1">Inicie a conversa sobre esta tarefa</div>
         </div>`;
-      }).join('');
-      comsBox.innerHTML = comsHtml || `<div style="text-align:center;padding:24px;color:#9CA3AF">
-        <div style="font-size:28px;margin-bottom:6px">💬</div>
-        <div style="font-size:12px;font-weight:600">Nenhum comentário ainda</div>
-        <div style="font-size:11px;margin-top:3px">Seja o primeiro a comentar</div>
-      </div>`;
-      comsBox.scrollTop = comsBox.scrollHeight;
+      } else {
+        comsBox.innerHTML = (coms||[]).map(c => {
+          const cm = memb.find(x => x.av===c.autor);
+          const isMine = c.autor === curUser?.av;
+          return `<div class="det-com-item" style="${isMine?'flex-direction:row-reverse;':''}">
+            <div class="det-com-av" style="background:${cm?.cor||'#4F46E5'}20;color:${cm?.cor||'#4F46E5'}">${c.autor}</div>
+            <div class="det-com-bubble" style="${isMine?'align-items:flex-end;':''}display:flex;flex-direction:column">
+              <div class="det-com-meta" style="${isMine?'flex-direction:row-reverse;':''}">
+                <strong>${isMine?'Você':cm?.nome||c.autor}</strong>
+                <span>${fmtDate(c.created_at)}</span>
+              </div>
+              <div class="det-com-body" style="${isMine?'background:#EEF2FF;border-radius:10px 3px 10px 10px;':''}">
+                <div class="det-com-txt">${c.texto}</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+        comsBox.scrollTop = comsBox.scrollHeight;
+      }
     }
     // Input de comentário
     const comInput = document.getElementById('detComInput');
     if (comInput) comInput.style.display = isLocal ? 'none' : 'flex';
 
-    // ── Anexos ─────────────────────────────────────────────────────
-    const detAnexos = document.getElementById('detAnexos');
-    if (detAnexos) {
-      detAnexos.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:10px;font-weight:800;color:#6B7280;letter-spacing:.6px;text-transform:uppercase">📎 Anexos</div>
-          <button onclick="triggerAnexoInput('${id}')" style="font-size:10px;font-weight:700;color:#4F46E5;background:none;border:none;cursor:pointer">+ Anexar</button>
-        </div>
-        <div id="anexosBox"></div>
-      `;
-    }
-
     // ── Barra de ações ─────────────────────────────────────────────
     document.getElementById('detActionsBar').innerHTML = `
-      <button class="det-btn-concluir" onclick="togTask('${id}');openDet('task','${id}')">
-        ${t.ok ? '↩ Reabrir tarefa' : '✓ Concluir tarefa'}
-      </button>
+      ${t.ok
+        ? `<button class="det-btn-reabrir" onclick="togTask('${id}');openDet('task','${id}')">↩ Reabrir</button>`
+        : `<button class="det-btn-concluir" onclick="togTask('${id}');openDet('task','${id}')">✓ Concluir tarefa</button>`
+      }
       <button class="det-btn-editar" onclick="openEditTask('${id}');closeDet()">✏ Editar</button>
-      <button class="det-btn-excluir" onclick="delTask('${id}');closeDet()">🗑</button>
+      <button class="det-btn-excluir" onclick="if(confirm('Excluir esta tarefa?')){delTask('${id}');closeDet()}" title="Excluir tarefa">🗑</button>
     `;
     // Carregar anexos da tarefa
     carregarAnexosTarefa(id);
