@@ -788,28 +788,60 @@ button{font-family:var(--fb);}
 ═══════════════════════════════════════════════════════════════ */
 .detpanel{
   display:none;position:fixed;inset:0;z-index:300;
-  background:rgba(30,42,59,0.45);backdrop-filter:blur(4px);
-  align-items:flex-end;
+  background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);
+  align-items:stretch;justify-content:flex-end;
 }
 .detpanel.on{display:flex;}
 .detbox{
   background:#FFFFFF;
-  border-radius:22px 22px 0 0;padding:22px;width:100%;
-  box-shadow:0 -8px 40px rgba(0,0,0,0.15);
-  max-height:88dvh;overflow-y:auto;
-  animation:slideUp .3s var(--ease) both;
-  color:#1E2A3B;
+  width:520px;max-width:100vw;
+  display:flex;flex-direction:column;
+  box-shadow:-8px 0 40px rgba(0,0,0,0.18);
+  animation:slideInRight .28s var(--ease) both;
+  color:#1E2A3B;overflow:hidden;
 }
-.deth{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.detclose{
-  width:28px;height:28px;border:none;border-radius:7px;
-  background:var(--surface3);color:var(--tx2);
-  font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:all var(--dur) ease;
+@keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.det-header{
+  padding:18px 20px 14px;
+  border-bottom:1px solid #E5E7EB;
+  flex-shrink:0;
 }
+.det-title{font-size:17px;font-weight:800;color:#0F172A;line-height:1.3;margin-bottom:10px;}
+.det-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.det-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.3px;}
+.det-body{display:flex;flex:1;overflow:hidden;}
+.det-left{width:200px;flex-shrink:0;border-right:1px solid #E5E7EB;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;}
+.det-right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.det-section-title{font-size:9px;font-weight:800;color:#6B7280;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
+.det-field{margin-bottom:0;}
+.det-field-label{font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px;}
+.det-field-val{font-size:12px;font-weight:700;color:#111827;}
+.det-timer-box{background:#F8FAFC;border:1px solid #E5E7EB;border-radius:10px;padding:12px;text-align:center;}
+.det-timer-val{font-size:22px;font-weight:800;color:#0F172A;font-family:monospace;letter-spacing:1px;margin:4px 0;}
+.det-btn-timer{width:100%;padding:9px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;}
+.det-btn-iniciar{background:linear-gradient(135deg,#22C55E,#16A34A);color:#fff;}
+.det-btn-parar{background:linear-gradient(135deg,#EF4444,#DC2626);color:#fff;}
+.det-actions-bar{padding:14px 16px;border-top:1px solid #E5E7EB;display:flex;gap:8px;flex-shrink:0;background:#FAFAFA;}
+.det-btn-concluir{flex:1;padding:10px;border-radius:10px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;}
+.det-btn-editar{padding:10px 16px;border-radius:10px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#374151;}
+.det-btn-excluir{padding:10px 14px;border-radius:10px;border:1.5px solid #FEE2E2;background:#FFF5F5;font-size:12px;font-weight:700;cursor:pointer;color:#DC2626;}
+.det-coms{flex:1;overflow-y:auto;padding:14px 16px 0;}
+.det-com-item{display:flex;gap:9px;margin-bottom:14px;}
+.det-com-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.det-com-body{flex:1;background:#F3F4F6;border-radius:0 10px 10px 10px;padding:8px 12px;}
+.det-com-meta{font-size:10px;color:#6B7280;margin-bottom:3px;}
+.det-com-txt{font-size:12px;color:#1F2937;line-height:1.5;}
+.det-com-input{padding:10px 14px;border-top:1px solid #E5E7EB;background:#fff;display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.det-com-input input{flex:1;border:1.5px solid #E5E7EB;border-radius:10px;padding:8px 12px;font-size:12px;outline:none;font-family:inherit;transition:border-color .2s;}
+.det-com-input input:focus{border-color:#4F46E5;}
+.det-com-send{width:34px;height:34px;border-radius:9px;background:#4F46E5;border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.det-anexos{padding:10px 14px;border-top:1px solid #E5E7EB;flex-shrink:0;max-height:160px;overflow-y:auto;}
+.detclose{width:30px;height:30px;border:none;border-radius:8px;background:#F3F4F6;color:#6B7280;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
 .detclose:hover{background:#FEE2E2;color:#DC2626;}
-.detrow{font-size:12px;color:var(--tx2);padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;}
+.deth{display:flex;align-items:center;gap:10px;margin-bottom:0;}
+.detrow{font-size:12px;color:#374151;padding:7px 0;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:6px;}
 .detrow:last-child{border-bottom:none;}
+@media(max-width:640px){.detbox{width:100%;}.det-body{flex-direction:column;}.det-left{width:100%;height:auto;border-right:none;border-bottom:1px solid #E5E7EB;}}
 
 /* ═══════════════════════════════════════════════════════════════
    TOAST
@@ -1151,7 +1183,7 @@ select,input[type="checkbox"]{accent-color:var(--brand);}
   .ov .modal{border-radius:20px;margin:auto;}
   .ov{align-items:center;}
   .detpanel{align-items:stretch;justify-content:flex-end;}
-  .detbox{border-radius:0;max-width:520px;height:100%;max-height:100vh;border:none;border-left:1px solid var(--border);background:#FFFFFF;color:#1E2A3B;}
+  .detbox{max-width:100vw;width:100%;border-radius:0;height:100%;border:none;border-left:1px solid #E5E7EB;}
   .nmsgs{max-height:500px;}
   .kcol{min-width:240px;}
   .nova-wrap{height:calc(100dvh - var(--topbar-h) - 56px);}
@@ -3165,13 +3197,27 @@ select.sel{
   <button class="btnp" onclick="dispararConvites()">🚀 DISPARAR AGORA</button>
   <button class="btncanc" onclick="closeM('mConvite')">Cancelar</button>
 </div></div>
-<div class="detpanel" id="detPanel">
+<div class="detpanel" id="detPanel" onclick="if(event.target===this)closeDet()">
   <div class="detbox">
-    <div class="deth">
-      <div style="font-family:var(--fh);font-size:16px;letter-spacing:1px;flex:1;padding-right:10px" id="detTitle">-</div>
-      <button class="detclose" onclick="closeDet()">✕</button>
+    <div class="det-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <div class="det-title" id="detTitle">—</div>
+        <button class="detclose" onclick="closeDet()">✕</button>
+      </div>
+      <div class="det-badges" id="detBadges"></div>
     </div>
-    <div id="detContent"></div>
+    <div class="det-body">
+      <div class="det-left" id="detLeft"></div>
+      <div class="det-right">
+        <div class="det-coms" id="comsBox"></div>
+        <div class="det-com-input" id="detComInput" style="display:none">
+          <input id="comInp" placeholder="Comentar... (Enter para enviar)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}">
+          <button class="det-com-send" onclick="addComentario(window._detTarefaId)">➤</button>
+        </div>
+        <div class="det-anexos" id="detAnexos"></div>
+      </div>
+    </div>
+    <div class="det-actions-bar" id="detActionsBar"></div>
   </div>
 </div>
 
@@ -3982,8 +4028,25 @@ async function openDet(type, id) {
     const p = proj.find(x => x.id===t.projeto_id);
     const m = memb.find(x => x.av===t.resp);
     const pc = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#22C55E'}[t.prior]||'#C9920A';
+    window._detTarefaId = id;
+
+    // ── Cores de prioridade e status ──────────────────────────────
+    const PRIOR_COR  = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#22C55E'};
+    const STATUS_COR = {'to do':'#6B7280','em andamento':'#3B82F6','pronto p/ testar':'#8B5CF6','feito':'#22C55E','bloqueado':'#EF4444'};
+    const priorCor   = PRIOR_COR[t.prior]  || '#6B7280';
+    const statusCor  = STATUS_COR[t.status] || '#6B7280';
+    const isVencida  = t.prazo && new Date(t.prazo) < new Date() && !t.ok;
+
+    // ── Título e badges ────────────────────────────────────────────
     document.getElementById('detTitle').textContent = t.titulo||t.tit||'—';
-    // Verificar se tarefa existe no Supabase
+    document.getElementById('detBadges').innerHTML = `
+      <span class="det-badge" style="background:${priorCor}18;color:${priorCor}">● ${(t.prior||'—').toUpperCase()}</span>
+      <span class="det-badge" style="background:${statusCor}18;color:${statusCor}">${(t.status||'—').toUpperCase()}</span>
+      ${isVencida ? '<span class="det-badge" style="background:#FEE2E2;color:#DC2626">⚠ VENCIDA</span>' : ''}
+      ${t.ok ? '<span class="det-badge" style="background:#D1FAE5;color:#059669">✓ CONCLUÍDA</span>' : ''}
+    `;
+
+    // ── Verificar Supabase ─────────────────────────────────────────
     const isLocal = String(id).startsWith('local_');
     if (!isLocal) {
       const { data: tarefaCheck, error: errCheck } = await safeDb.from('tarefas').select('id').eq('id', id).single();
@@ -3994,106 +4057,127 @@ async function openDet(type, id) {
         return;
       }
     }
-    // Carregar comentários (apenas tarefas no Supabase)
-    const { data: coms } = isLocal ? { data: [] } : await safeDb.from('comentarios').select('*').eq('tarefa_id', id).order('created_at');
-    const comsHtml = (coms||[]).map(c => {
-      const cm = memb.find(x => x.av===c.autor);
-      return `<div style="display:flex;gap:8px;margin-bottom:10px">
-        <div style="width:26px;height:26px;border-radius:8px;background:${cm?.cor||'#C9920A'}22;color:${cm?.cor||'#C9920A'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${c.autor}</div>
-        <div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:2px">${cm?.nome||c.autor} <span style="color:var(--tx3);font-weight:400">${fmtDate(c.created_at)}</span></div><div style="font-size:12px;color:var(--tx)">${c.texto}</div></div>
-      </div>`;
-    }).join('') || '<div style="font-size:11px;color:var(--tx3);padding:8px 0">Nenhum comentário ainda.</div>';
-    const tempoGasto = t.tempo_gasto || 0;
-    const isTimerOn = timerTarefaId === id;
-    const statusOpts = ['to do','em andamento','pronto p/ testar','feito','bloqueado'];
-    const priorOpts = ['urgente','alta','media','baixa'];
-    const inicio = t.data_inicio || t.created_at?.slice(0,10) || '—';
-    const esp = espacos.find(e => e.id === (p?.espaco_id));
 
-    document.getElementById('detContent').innerHTML = `
-      <!-- CABEÇALHO INFO -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <div style="background:var(--surface2);border-radius:8px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:9px;font-weight:800;color:#4B5563;letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase">PROJETO</div>
-          <div style="font-size:12px;font-weight:700;color:var(--tx)">${p?p.nome:'—'}</div>
-          ${esp?`<div style="font-size:10px;color:#6B7280;margin-top:2px">📁 ${esp.nome}</div>`:''}
-        </div>
-        <div style="background:var(--surface2);border-radius:8px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:9px;font-weight:800;color:#4B5563;letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase">RESPONSÁVEL</div>
-          <div style="font-size:12px;font-weight:700;color:var(--tx)">${m?m.nome:t.resp||'—'}</div>
-          <div style="font-size:10px;color:var(--gold2);cursor:pointer;margin-top:3px;font-weight:600" onclick="abrirTransferencia('${id}')">↔️ Transferir</div>
-        </div>
-        <div style="background:var(--surface2);border-radius:8px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:9px;font-weight:800;color:#4B5563;letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase">DATA INÍCIO</div>
-          <input type="date" style="background:none;border:none;color:var(--tx);font-size:12px;font-weight:700;width:100%;cursor:pointer" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)">
-        </div>
-        <div style="background:var(--surface2);border-radius:8px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:9px;font-weight:800;color:#4B5563;letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase">PRAZO FINAL</div>
-          <input type="date" style="background:none;border:none;color:${t.prazo&&new Date(t.prazo)<new Date()?'#EF4444':'var(--tx)'};font-size:12px;font-weight:700;width:100%;cursor:pointer" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)">
+    // ── Painel ESQUERDO ────────────────────────────────────────────
+    const tempoGasto = t.tempo_gasto || 0;
+    const isTimerOn  = timerTarefaId === id;
+    const esp        = espacos.find(e => e.id === (p?.espaco_id));
+    const statusOpts = ['to do','em andamento','pronto p/ testar','feito','bloqueado'];
+    const priorOpts  = ['urgente','alta','media','baixa'];
+
+    document.getElementById('detLeft').innerHTML = `
+      <!-- TIMER — ação principal -->
+      <div class="det-timer-box">
+        <div class="det-section-title">⏱ Tempo registrado</div>
+        <div class="det-timer-val" id="tempoDisplay">${fmtTempo(tempoGasto)}</div>
+        <button id="btnTimer" class="det-btn-timer ${isTimerOn?'det-btn-parar':'det-btn-iniciar'}" onclick="toggleTimer('${id}')">
+          ${isTimerOn ? '⏹ Parar timer' : '▶ Iniciar timer'}
+        </button>
+      </div>
+
+      <!-- PROJETO & RESPONSÁVEL -->
+      <div>
+        <div class="det-section-title">📌 Projeto</div>
+        <div class="det-field-val" style="margin-bottom:4px">${p?p.nome:'—'}</div>
+        ${esp?`<div style="font-size:10px;color:#6B7280">📁 ${esp.nome}</div>`:''}
+      </div>
+
+      <div>
+        <div class="det-section-title">👤 Responsável</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:8px;background:${m?.cor||'#4F46E5'}22;color:${m?.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0">${t.resp||'—'}</div>
+          <div>
+            <div class="det-field-val" style="font-size:11px">${m?m.nome:t.resp||'—'}</div>
+            <div style="font-size:10px;color:#4F46E5;cursor:pointer;font-weight:600" onclick="abrirTransferencia('${id}')">↔ Transferir</div>
+          </div>
         </div>
       </div>
 
-      <!-- STATUS E PRIORIDADE -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <div>
-          <div style="font-size:9px;font-weight:800;color:#4B5563;letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase">STATUS</div>
-          <select class="sel" style="margin:0" onchange="salvarStatus('${id}',this.value)">
+      <!-- DATAS -->
+      <div>
+        <div class="det-section-title">📅 Datas</div>
+        <div class="det-field" style="margin-bottom:8px">
+          <div class="det-field-label">Início</div>
+          <input type="date" style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:7px;color:#111827;font-size:11px;font-weight:700;width:100%;padding:5px 8px;cursor:pointer" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)">
+        </div>
+        <div class="det-field">
+          <div class="det-field-label">Prazo</div>
+          <input type="date" style="background:#F8FAFC;border:1px solid ${isVencida?'#FCA5A5':'#E5E7EB'};border-radius:7px;color:${isVencida?'#DC2626':'#111827'};font-size:11px;font-weight:700;width:100%;padding:5px 8px;cursor:pointer" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)">
+        </div>
+      </div>
+
+      <!-- STATUS & PRIORIDADE -->
+      <div>
+        <div class="det-section-title">⚙️ Configurações</div>
+        <div class="det-field" style="margin-bottom:8px">
+          <div class="det-field-label">Status</div>
+          <select class="sel" style="margin:0;font-size:11px" onchange="salvarStatus('${id}',this.value)">
             ${statusOpts.map(s=>`<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
-        <div>
-          <div style="font-size:9px;font-weight:800;color:#4B5563;letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase">PRIORIDADE</div>
-          <select class="sel" style="margin:0" onchange="salvarPrioridade('${id}',this.value)">
+        <div class="det-field">
+          <div class="det-field-label">Prioridade</div>
+          <select class="sel" style="margin:0;font-size:11px" onchange="salvarPrioridade('${id}',this.value)">
             ${priorOpts.map(s=>`<option value="${s}" ${t.prior===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
       </div>
 
-      <!-- TIMER -->
-      <div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px;border:1px solid var(--border)">
-        <div style="flex:1">
-          <div style="font-size:9px;font-weight:800;color:#4B5563;letter-spacing:.8px;margin-bottom:4px;text-transform:uppercase">TEMPO REGISTRADO</div>
-          <div style="font-size:16px;font-weight:700;font-family:var(--fh);color:var(--tx)" id="tempoDisplay">${fmtTempo(tempoGasto)}</div>
-        </div>
-        <button id="btnTimer" onclick="toggleTimer('${id}')" style="background:${isTimerOn?'rgba(239,68,68,0.2)':'rgba(34,197,94,0.2)'};border:1px solid ${isTimerOn?'#EF4444':'#22C55E'};color:${isTimerOn?'#EF4444':'#22C55E'};border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700">
-          ${isTimerOn?'⏹ PARAR':'▶ INICIAR'}
-        </button>
-      </div>
-
-      <!-- HISTÓRICO DE TRANSFERÊNCIAS -->
-      ${t.historico_resp ? `<div style="margin-bottom:12px">
-        <div style="font-size:9px;color:var(--tx3);margin-bottom:6px">HISTÓRICO DE RESPONSÁVEIS</div>
+      <!-- HISTÓRICO -->
+      ${t.historico_resp ? `<div>
+        <div class="det-section-title">🔄 Histórico</div>
         ${JSON.parse(t.historico_resp||'[]').slice(-3).map(h=>`
-          <div style="font-size:10px;color:var(--tx2);padding:4px 0;border-bottom:1px solid var(--br)">
-            <span style="color:var(--tx3)">${h.data}</span> — ${h.de} → <strong>${h.para}</strong>
-            ${h.motivo?`<span style="color:var(--tx3)"> · ${h.motivo}</span>`:''}
+          <div style="font-size:10px;color:#374151;padding:3px 0;border-bottom:1px solid #F3F4F6">
+            <span style="color:#9CA3AF">${h.data}</span> ${h.de} → <strong>${h.para}</strong>
           </div>`).join('')}
       </div>` : ''}
+    `;
 
-      <!-- COMENTÁRIOS -->
-      <div class="sl" style="margin-top:4px">💬 Comentários</div>
-      <div id="comsBox" style="max-height:200px;overflow-y:auto;margin-bottom:6px">${comsHtml}</div>
-      ${isLocal ? `<div style="font-size:11px;color:#F97316;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:8px 10px;margin-top:8px">
-        ⚠️ Tarefa local — salve-a no Supabase antes de comentar.
-      </div>` : `<div style="display:flex;gap:6px;margin-top:8px">
-        <input id="comInp" class="inp" style="margin:0;flex:1;font-size:12px;padding:8px 10px" placeholder="Escrever comentário... (Enter para enviar)"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario('${id}');}">
-        <button onclick="addComentario('${id}')" class="btnp" style="padding:8px 14px;font-size:13px;width:auto;min-width:42px">✉️</button>
-      </div>`}
-      <!-- ANEXOS DA TAREFA -->
-      <div class="sl" style="margin-top:4px">📎 Anexos</div>
-      <div id="anexosBox" style="margin-bottom:8px"></div>
-      <div style="display:flex;gap:6px;margin-bottom:12px">
-        <button onclick="triggerAnexoInput('${id}')" style="flex:1;background:var(--surface2);border:1.5px dashed var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--tx2);cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">
-          📎 Anexar arquivo
-        </button>
-      </div>
-
-      <div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-link" onclick="togTask('${id}');openDet('task','${id}')">${t.ok?'↩️ Reabrir':'✅ Concluir'}</button>
-        <button class="btn-link" onclick="openEditTask('${id}');closeDet()">✏️ Editar</button>
-        <button class="btn-link" style="color:var(--red)" onclick="delTask('${id}');closeDet()">🗑 Excluir</button>
+    // ── Comentários ────────────────────────────────────────────────
+    const { data: coms } = isLocal ? { data: [] } : await safeDb.from('comentarios').select('*').eq('tarefa_id', id).order('created_at');
+    const comsBox = document.getElementById('comsBox');
+    if (comsBox) {
+      const comsHtml = (coms||[]).map(c => {
+        const cm = memb.find(x => x.av===c.autor);
+        return `<div class="det-com-item">
+          <div class="det-com-av" style="background:${cm?.cor||'#4F46E5'}18;color:${cm?.cor||'#4F46E5'}">${c.autor}</div>
+          <div style="flex:1">
+            <div class="det-com-meta"><strong style="color:#374151">${cm?.nome||c.autor}</strong> · ${fmtDate(c.created_at)}</div>
+            <div class="det-com-body"><div class="det-com-txt">${c.texto}</div></div>
+          </div>
+        </div>`;
+      }).join('');
+      comsBox.innerHTML = comsHtml || `<div style="text-align:center;padding:24px;color:#9CA3AF">
+        <div style="font-size:28px;margin-bottom:6px">💬</div>
+        <div style="font-size:12px;font-weight:600">Nenhum comentário ainda</div>
+        <div style="font-size:11px;margin-top:3px">Seja o primeiro a comentar</div>
       </div>`;
+      comsBox.scrollTop = comsBox.scrollHeight;
+    }
+    // Input de comentário
+    const comInput = document.getElementById('detComInput');
+    if (comInput) comInput.style.display = isLocal ? 'none' : 'flex';
+
+    // ── Anexos ─────────────────────────────────────────────────────
+    const detAnexos = document.getElementById('detAnexos');
+    if (detAnexos) {
+      detAnexos.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:800;color:#6B7280;letter-spacing:.6px;text-transform:uppercase">📎 Anexos</div>
+          <button onclick="triggerAnexoInput('${id}')" style="font-size:10px;font-weight:700;color:#4F46E5;background:none;border:none;cursor:pointer">+ Anexar</button>
+        </div>
+        <div id="anexosBox"></div>
+      `;
+    }
+
+    // ── Barra de ações ─────────────────────────────────────────────
+    document.getElementById('detActionsBar').innerHTML = `
+      <button class="det-btn-concluir" onclick="togTask('${id}');openDet('task','${id}')">
+        ${t.ok ? '↩ Reabrir tarefa' : '✓ Concluir tarefa'}
+      </button>
+      <button class="det-btn-editar" onclick="openEditTask('${id}');closeDet()">✏ Editar</button>
+      <button class="det-btn-excluir" onclick="delTask('${id}');closeDet()">🗑</button>
+    `;
     // Carregar anexos da tarefa
     carregarAnexosTarefa(id);
     // Retomar display do timer se estiver ativo
