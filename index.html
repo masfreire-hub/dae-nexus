@@ -3246,10 +3246,17 @@ select.sel{
       <div class="det-right">
         <div class="det-right-header">💬 Comentários <span id="detComCount" style="color:#CBD5E1;font-weight:400"></span></div>
         <div class="det-coms" id="comsBox"></div>
-        <div class="det-com-input" id="detComInput" style="display:none">
-          <input class="det-com-inp" id="comInp" placeholder="Escrever um comentário... (Enter para enviar)"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}">
-          <button class="det-com-send" onclick="addComentario(window._detTarefaId)">➤</button>
+        <div class="det-com-input" id="detComInput" style="display:none;flex-direction:column;padding:8px 12px;gap:6px">
+          <div id="comPastePreview" style="display:none;position:relative;margin-bottom:4px">
+            <img id="comPasteImg" style="max-height:80px;max-width:200px;border-radius:8px;border:1.5px solid #E2E8F0;object-fit:cover">
+            <button onclick="limparImagemColada()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:#EF4444;color:#fff;border:none;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="det-com-inp" id="comInp" placeholder="Comentar ou cole uma imagem (Ctrl+V)..."
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}"
+              onpaste="handleComPaste(event)">
+            <button class="det-com-send" onclick="addComentario(window._detTarefaId)" title="Enviar (Enter)">➤</button>
+          </div>
         </div>
         <div class="det-anexos" id="detAnexos">
           <div class="det-anexos-header">
@@ -4205,6 +4212,8 @@ async function openDet(type, id) {
         comsBox.innerHTML = (coms||[]).map(c => {
           const cm = memb.find(x => x.av===c.autor);
           const isMine = c.autor === curUser?.av;
+          const temImg = !!c.imagem_url;
+          const textoReal = c.texto !== '[imagem]' ? c.texto : '';
           return `<div class="det-com-item" style="${isMine?'flex-direction:row-reverse;':''}">
             <div class="det-com-av" style="background:${cm?.cor||'#4F46E5'}20;color:${cm?.cor||'#4F46E5'}">${c.autor}</div>
             <div class="det-com-bubble" style="${isMine?'align-items:flex-end;':''}display:flex;flex-direction:column">
@@ -4213,7 +4222,9 @@ async function openDet(type, id) {
                 <span>${fmtDate(c.created_at)}</span>
               </div>
               <div class="det-com-body" style="${isMine?'background:#EEF2FF;border-radius:10px 3px 10px 10px;':''}">
-                <div class="det-com-txt">${c.texto}</div>
+                ${temImg ? `<img src="${c.imagem_url}" style="max-width:220px;max-height:160px;border-radius:8px;display:block;cursor:pointer;${textoReal?'margin-bottom:6px':''}" onclick="window.open('${c.imagem_url}','_blank')" title="Clique para ampliar">` : ''}
+                ${textoReal ? `<div class="det-com-txt">${textoReal}</div>` : ''}
+                ${!temImg && !textoReal ? `<div class="det-com-txt">${c.texto}</div>` : ''}
               </div>
             </div>
           </div>`;
@@ -4291,55 +4302,129 @@ async function openDet(type, id) {
   }
 }
 
+// Imagem colada no comentário
+let _comImagemColada = null;
+
+function handleComPaste(event) {
+  const items = event.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      event.preventDefault();
+      const file = item.getAsFile();
+      if (!file) return;
+      _comImagemColada = file;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const preview = document.getElementById('comPastePreview');
+        const img = document.getElementById('comPasteImg');
+        if (preview && img) { img.src = e.target.result; preview.style.display = 'block'; }
+      };
+      reader.readAsDataURL(file);
+      showToast('🖼️ Imagem colada! Clique em ➤ para enviar.');
+      return;
+    }
+  }
+}
+
+function limparImagemColada() {
+  _comImagemColada = null;
+  const preview = document.getElementById('comPastePreview');
+  if (preview) preview.style.display = 'none';
+}
+
 async function addComentario(tarefaId) {
   const inp = document.getElementById('comInp');
   const texto = inp?.value?.trim();
-  if (!texto) { inp?.focus(); return; }
+  const temImagem = !!_comImagemColada;
 
-  // Bloquear comentários em tarefas locais (não sincronizadas com Supabase)
+  if (!texto && !temImagem) { inp?.focus(); return; }
+
+  // Bloquear comentários em tarefas locais
   if (!tarefaId || String(tarefaId).startsWith('local_')) {
     showToast('⚠️ Esta tarefa ainda não foi sincronizada. Feche e reabra para comentar.');
     return;
   }
 
-  // Verificar se a tarefa realmente existe no Supabase antes de comentar
+  // Verificar se tarefa existe no Supabase
   const { data: tarefaExiste, error: errVerif } = await safeDb.from('tarefas').select('id').eq('id', tarefaId).single();
   if (errVerif || !tarefaExiste) {
     showToast('❌ Tarefa não encontrada no banco. Recarregue a página e tente novamente.');
     return;
   }
 
-  const btn = inp?.nextElementSibling;
-  if (btn) btn.disabled = true;
+  const sendBtn = document.querySelector('.det-com-send');
+  if (sendBtn) sendBtn.disabled = true;
+
   try {
-    const { data, error } = await safeDb.from('comentarios').insert([{ tarefa_id: tarefaId, autor: curUser?.av||'MA', texto }]).select().single();
-    if (error) {
-      if (error.message?.includes('foreign key')) {
-        showToast('❌ Esta tarefa não existe no banco. Recarregue a página.');
+    let textoFinal = texto || '';
+    let imagemUrl = null;
+
+    // Upload de imagem colada
+    if (_comImagemColada) {
+      const ext = _comImagemColada.type.split('/')[1] || 'png';
+      const nomeImg = `comentarios/${tarefaId}/${Date.now()}.${ext}`;
+      const { error: errUp } = await db.storage.from(ANEXOS_BUCKET).upload(nomeImg, _comImagemColada, { cacheControl:'3600', upsert:false });
+      if (!errUp) {
+        imagemUrl = db.storage.from(ANEXOS_BUCKET).getPublicUrl(nomeImg).data?.publicUrl;
+        if (!textoFinal) textoFinal = '[imagem]';
       } else {
-        showToast('❌ Erro ao salvar: ' + (error.message||'tente novamente'));
+        showToast('❌ Erro ao enviar imagem: ' + errUp.message);
+        if (sendBtn) sendBtn.disabled = false;
+        return;
       }
+    }
+
+    const payload = { tarefa_id: tarefaId, autor: curUser?.av||'MA', texto: textoFinal };
+    if (imagemUrl) payload.imagem_url = imagemUrl;
+
+    const { data, error } = await safeDb.from('comentarios').insert([payload]).select().single();
+    if (error) {
+      if (error.message?.includes('foreign key')) showToast('❌ Esta tarefa não existe no banco. Recarregue a página.');
+      else showToast('❌ Erro ao salvar: ' + (error.message||'tente novamente'));
       return;
     }
+
+    // Limpar input
     inp.value = '';
+    limparImagemColada();
+
+    // Adicionar comentário na UI imediatamente
     const m = memb.find(x => x.av===curUser?.av);
     const comsBox = document.getElementById('comsBox');
     if (comsBox) {
-      // Remover mensagem "nenhum comentário" se existir
-      const items = comsBox.querySelectorAll('div');
-      items.forEach(d => { if (d.textContent.includes('Nenhum comentário')) d.remove(); });
-      const novoHtml = `<div style="display:flex;gap:8px;margin-bottom:10px">
-        <div style="width:26px;height:26px;border-radius:8px;background:${m?.cor||'#C9920A'}22;color:${m?.cor||'#C9920A'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${curUser?.av||'MA'}</div>
-        <div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:2px">${m?.nome||'Você'} <span style="color:var(--tx3);font-weight:400">agora</span></div><div style="font-size:12px;color:var(--tx)">${texto}</div></div>
+      // Remover estado vazio se existir
+      const vazio = comsBox.querySelector('[data-vazio]');
+      if (vazio) vazio.remove();
+
+      const novoHtml = `<div class="det-com-item" style="flex-direction:row-reverse">
+        <div class="det-com-av" style="background:${m?.cor||'#4F46E5'}20;color:${m?.cor||'#4F46E5'}">${curUser?.av||'MA'}</div>
+        <div class="det-com-bubble" style="display:flex;flex-direction:column;align-items:flex-end">
+          <div class="det-com-meta" style="flex-direction:row-reverse">
+            <strong>Você</strong><span>agora</span>
+          </div>
+          <div class="det-com-body" style="background:#EEF2FF;border-radius:10px 3px 10px 10px">
+            ${imagemUrl ? `<img src="${imagemUrl}" style="max-width:220px;max-height:160px;border-radius:8px;display:block;margin-bottom:${textoFinal&&textoFinal!=='[imagem]'?'6px':'0'}">` : ''}
+            ${textoFinal && textoFinal !== '[imagem]' ? `<div class="det-com-txt">${textoFinal}</div>` : ''}
+          </div>
+        </div>
       </div>`;
       comsBox.innerHTML += novoHtml;
       comsBox.scrollTop = comsBox.scrollHeight;
+
+      // Atualizar contador
+      const countEl = document.getElementById('detComCount');
+      if (countEl) {
+        const atual = parseInt(countEl.textContent.replace(/\D/g,''))||0;
+        countEl.textContent = '(' + (atual+1) + ')';
+      }
     }
-    await logAtividade('comentario', 'Comentário adicionado', texto.slice(0,60), curUser?.av, null, tarefaId, '#3B82F6');
-    showToast('💬 Comentário enviado!');
+
+    await logAtividade('comentario', 'Comentário adicionado', textoFinal.slice(0,60), curUser?.av, null, tarefaId, '#3B82F6');
+    showToast(imagemUrl ? '🖼️ Imagem enviada!' : '💬 Comentário enviado!');
     inp?.focus();
   } finally {
-    if (btn) btn.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -5376,7 +5461,9 @@ let arqViewMode  = 'list';    // 'list' | 'grid'
 let arqFavs      = JSON.parse(localStorage.getItem('arqFavs')||'[]');
 let arqPastas    = JSON.parse(localStorage.getItem('arqPastas')||'["Processos","Financeiro","RH","Contratos","Relatórios"]');
 
-const ARQ_BUCKET = 'arquivos';
+const ARQ_BUCKET      = 'arquivos';  // documentos gerais
+const ANEXOS_BUCKET   = 'arquivos';  // mesmo bucket, pasta isolada tarefas/{id}/
+const ANEXOS_PREFIX   = 'tarefas/';  // prefixo que separa anexos de tarefas
 const ARQ_TIPOS  = {
   pdf:  { ico:'📄', cat:'doc',   cor:'#EF4444', label:'PDF'      },
   doc:  { ico:'📝', cat:'doc',   cor:'#3B82F6', label:'Word'     },
@@ -5545,7 +5632,7 @@ async function carregarArquivos() {
     const { data, error } = await db.storage.from(ARQ_BUCKET).list(pasta, { limit:300, sortBy:{ column:'name', order:'asc' } });
     if (error) throw error;
     // Filtrar subpastas que não são a pasta de tarefas
-    arquivosDb = (data||[]).filter(f => f.name !== 'tarefas' && !f.name.startsWith('.'));
+    arquivosDb = (data||[]).filter(f => f.name !== 'tarefas' && f.name !== '.emptyFolderPlaceholder' && !f.name.startsWith('.') && f.id !== null);
   } catch(e) { arquivosDb = []; }
 }
 
