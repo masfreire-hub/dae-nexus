@@ -3285,8 +3285,8 @@ select.sel{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 function sw(name, el) {
-  // Fechar painel de detalhes ao trocar de aba
-  try { document.getElementById('detPanel')?.classList.remove('on'); } catch(e) {}
+  const _dp = document.getElementById('detPanel');
+  if (_dp) { _dp.classList.remove('on'); _dp.style.display='none'; setTimeout(()=>{_dp.style.display='';},150); }
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tabEl = document.getElementById('t-' + name);
@@ -4566,7 +4566,12 @@ async function confirmarTransferencia(tarefaId, overlay) {
   showToast(`↔️ Transferida para ${novoNome}!`);
 }
 
-function closeDet() { document.getElementById('detPanel').classList.remove('on'); }
+function closeDet() {
+  const p = document.getElementById('detPanel');
+  p.classList.remove('on');
+  p.style.display = 'none';
+  setTimeout(() => { p.style.display = ''; }, 100);
+}
 document.getElementById('detPanel').addEventListener('click', function(e) { if(e.target===this) closeDet(); });
 
 // ══════════════════════════════════════════════════════════════════
