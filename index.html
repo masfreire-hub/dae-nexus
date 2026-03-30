@@ -3997,7 +3997,17 @@ function setView(v,b) { curView=v; document.querySelectorAll('#viewChips .chip')
 async function addTask() {
   const t = document.getElementById('ntT').value.trim();
   if (!t) { showToast('Digite o título'); return; }
-  const nova = { titulo:t, descricao:'', projeto_id:document.getElementById('ntPj').value||null, resp:document.getElementById('ntR').value||curUser?.av, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value||'to do', ok:false };
+  const projId = document.getElementById('ntPj').value || null;
+  // Validar se projeto existe no Supabase antes de inserir
+  if (projId) {
+    const { data: projCheck, error: projErr } = await safeDb.from('projetos').select('id').eq('id', projId).single();
+    if (projErr || !projCheck) {
+      showToast('⚠️ Projeto inválido. Selecione outro ou deixe sem projeto.');
+      document.getElementById('ntPj').value = '';
+      return;
+    }
+  }
+  const nova = { titulo:t, descricao:'', projeto_id:projId, resp:document.getElementById('ntR').value||curUser?.av, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value||'to do', ok:false };
   const { data, error } = await safeDb.from('tarefas').insert([nova]).select().single();
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   tar.unshift(data);
@@ -7905,14 +7915,14 @@ function closeM(id) {
 document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); }));
 
 function popSels() {
-  document.getElementById('ntPj').innerHTML = proj.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  // Filtrar apenas projetos com ID real (não local_xxx)
+  const projValidos = proj.filter(p => p.id && !String(p.id).startsWith('local_'));
+  document.getElementById('ntPj').innerHTML = '<option value="">Selecione o projeto...</option>' + projValidos.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
   document.getElementById('ntR').innerHTML = memb.map(m=>`<option value="${m.av}">${m.nome}</option>`).join('');
-  document.getElementById('nrP').innerHTML = proj.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  document.getElementById('nrP').innerHTML = '<option value="">Selecione o projeto...</option>' + projValidos.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
   document.getElementById('nrR').innerHTML = memb.map(m=>`<option value="${m.av}">${m.nome}</option>`).join('');
-  // Select de espaços no modal de projeto
   const espSel = document.getElementById('npEspaco');
   if (espSel) espSel.innerHTML = '<option value="">Selecione o espaço...</option>' + espacos.map(e=>`<option value="${e.id}">${e.estacao} › ${e.nome}</option>`).join('');
-  // Select de estação no modal de espaço
   const estSel = document.getElementById('mEspacoEstacao');
   if (estSel) estSel.innerHTML = '<option value="">Selecione a estação...</option>' + cadastros.estacao.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
