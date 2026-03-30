@@ -323,8 +323,6 @@ body{
 .content:has(#t-arquivos.on){
   padding:0;
   overflow:hidden;
-  display:flex;
-  flex-direction:column;
 }
 
 /* ── PAGE HEADER ────────────────────────────────────────────── */
@@ -2842,18 +2840,11 @@ select.sel{
 
 <div class="tab" id="t-arquivos">
 <style>
-#t-arquivos { display:none; flex-direction:column; padding:0; }
+#t-arquivos { display:none; flex-direction:column; padding:0; margin:-24px -24px -100px -24px; }
 #t-arquivos.on {
   display:flex !important;
-  position:fixed;
-  top:var(--topbar-h);
-  left:0;
-  right:0;
-  bottom:0;
-  z-index:5;
-  background:var(--bg);
+  min-height:calc(100dvh - var(--topbar-h));
   overflow:hidden;
-  padding-left:200px;
 }
 #t-arquivos #arq-wrap { flex:1; overflow:hidden; min-height:0; width:100%; }
 #arq-wrap { display:flex; flex:1; overflow:hidden; }
