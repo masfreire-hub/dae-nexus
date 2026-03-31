@@ -3615,7 +3615,7 @@ function renderAll() {
   document.getElementById('wdate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderDashInteligente();
   renderUrgent(); renderAct(); renderFeriasMini();
-  renderHierarquia(); renderProj(); renderTasks(); renderMeet(); renderMembers(); renderFerias(); renderCarga(); renderRiscos(); renderNova(); popSels();
+  try{renderHierarquia();}catch(e){} try{renderProj();}catch(e){} try{renderTasks();}catch(e){} try{renderMeet();}catch(e){} try{renderMembers();}catch(e){} try{renderFerias();}catch(e){} try{renderCarga();}catch(e){} try{renderRiscos();}catch(e){} try{renderNova();}catch(e){} try{popSels();}catch(e){}
 }
 
 function renderDashInteligente() {
@@ -3845,9 +3845,12 @@ function pcard(p) {
 }
 
 function renderProj() {
+  const projList = document.getElementById('projList');
+  const pcount = document.getElementById('pcount');
+  if (!projList) return;
   const l = curPF==='todos' ? proj : proj.filter(p => p.dept===curPF);
-  document.getElementById('projList').innerHTML = l.length ? l.map(pcard).join('') : '<div style="text-align:center;padding:40px;color:var(--tx3)">Nenhum projeto encontrado</div>';
-  document.getElementById('pcount').textContent = l.length + ' estações ativas';
+  projList.innerHTML = l.length ? l.map(pcard).join('') : '<div style="text-align:center;padding:40px;color:var(--tx3)">Nenhum projeto encontrado</div>';
+  if (pcount) pcount.textContent = l.length + ' estações ativas';
 }
 function filterP(f,b) { curPF=f; document.querySelectorAll('#pChips .chip').forEach(c=>c.classList.remove('on')); b.classList.add('on'); renderProj(); }
 
