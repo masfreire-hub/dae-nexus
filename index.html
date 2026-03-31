@@ -3563,6 +3563,9 @@ async function loadAll() {
       if (avm.data && avm.data.length) { ativs   = norm(avm.data); }
       if (espm.data && espm.data.length){ espacos = norm(espm.data);}
       // Sincronizar localStorage com dados do Supabase
+      // Filtrar tarefas cujo projeto existe no banco
+      const projIds = new Set(proj.map(p => p.id));
+      tar = tar.filter(t => !t.projeto_id || projIds.has(t.projeto_id));
       salvarLocal();
     } catch(e) {
       console.warn('Supabase indisponível, usando dados locais');
@@ -3995,8 +3998,9 @@ function filterT(f,b) { curTF=f; document.querySelectorAll('#tChips .chip').forE
 function setView(v,b) { curView=v; document.querySelectorAll('#viewChips .chip').forEach(c=>c.classList.remove('on')); b.classList.add('on'); renderTasks(); }
 
 async function addTask() {
-  const t = document.getElementById('ntT').value.trim();
-  if (!t) { showToast('Digite o título'); return; }
+  const tEl = document.getElementById('ntT');
+  const t = (tEl?.value||'').trim();
+  if (!t || t === 'undefined') { showToast('Digite o título da tarefa'); tEl?.focus(); return; }
   const projId = document.getElementById('ntPj').value || null;
   // Validar se projeto existe no Supabase antes de inserir
   if (projId) {
