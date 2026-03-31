@@ -3750,18 +3750,22 @@ function showLoading(on) {
 // ── NAVEGAÇÃO ─────────────────────────────────────────────────────
 
 function renderChart() {
+  const dChart = document.getElementById('dChart');
+  const dLabels = document.getElementById('dLabels');
+  if (!dChart || !dLabels) return;
   const d = proj.slice(0,6).map((p,i) => ({ l: p.nome.split(' ')[0], v: p.prog, c: CL[i] }));
-  document.getElementById('dChart').innerHTML = d.map(x => `<div class="bar" style="height:${x.v*.6}px;background:${x.c};opacity:.85;" onclick="showToast('${x.l}: ${x.v}%')"></div>`).join('');
-  document.getElementById('dLabels').innerHTML = d.map(x => `<div class="blab">${x.l.slice(0,6)}</div>`).join('');
+  dChart.innerHTML = d.map(x => `<div class="bar" style="height:${x.v*.6}px;background:${x.c};opacity:.85;" onclick="showToast('${x.l}: ${x.v}%')"></div>`).join('');
+  dLabels.innerHTML = d.map(x => `<div class="blab">${x.l.slice(0,6)}</div>`).join('');
 }
 
 // ── URGENTES HOME ─────────────────────────────────────────────────
 function renderUrgent() {
   const u = tar.filter(t => !t.ok && t.prior === 'urgente');
-  // Atualizar badge
   const cnt = document.getElementById('cntUrgentes');
   if (cnt) cnt.textContent = u.length;
-  document.getElementById('urgentList').innerHTML = u.length
+  const urgentList = document.getElementById('urgentList');
+  if (!urgentList) return;
+  urgentList.innerHTML = u.length
     ? u.slice(0,6).map(t => `<div class="urgent-item">
         <div class="urgent-dot"></div>
         <div class="urgent-txt">${t.titulo||t.tit}</div>
