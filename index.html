@@ -3869,14 +3869,20 @@ async function addProj() {
 }
 
 async function delProj(id) {
-  if (!db) { showToast('Sem banco conectado'); return; }
-  if (!confirm('Excluir este projeto e todas as tarefas vinculadas?')) return;
-  const { error } = await safeDb.from('projetos').delete().eq('id', id);
-  if (error) { showToast('❌ Erro: ' + error.message); return; }
+  if (!confirm('Excluir este projeto?')) return;
+  showToast('⏳ Excluindo...');
+  const res = await safeDb.from('projetos').delete().eq('id', id);
+  console.log('delProj:', id, res);
+  if (res.error) {
+    showToast('❌ ' + (res.error.message || res.error.code || 'Erro desconhecido'));
+    console.error('delProj error:', res.error);
+    return;
+  }
   proj = proj.filter(p => p.id !== id);
   tar = tar.filter(t => t.projeto_id !== id);
-  renderProj(); renderTasks(); renderUrgent(); renderChart();
-  showToast('🗑 Projeto excluído');
+  salvarLocal();
+  renderProj(); renderTasks(); renderUrgent();
+  showToast('✅ Projeto excluído!');
 }
 
 function openEditProj(id) {
