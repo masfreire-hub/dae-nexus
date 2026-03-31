@@ -3879,13 +3879,18 @@ async function delProj(id) {
   console.log('delProj:', id, res);
   if (res.error) {
     showToast('❌ ' + (res.error.message || res.error.code || 'Erro desconhecido'));
-    console.error('delProj error:', res.error);
     return;
   }
   proj = proj.filter(p => p.id !== id);
   tar = tar.filter(t => t.projeto_id !== id);
   salvarLocal();
-  renderProj(); renderTasks(); renderUrgent();
+  // Forçar re-render completo da hierarquia
+  try { renderHierarquia(); } catch(e) {}
+  try { renderProj(); } catch(e) {}
+  try { renderTasks(); } catch(e) {}
+  try { renderUrgent(); } catch(e) {}
+  try { renderDashInteligente(); } catch(e) {}
+  try { popSels(); } catch(e) {}
   showToast('✅ Projeto excluído!');
 }
 
