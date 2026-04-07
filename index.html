@@ -2056,9 +2056,33 @@ select.sel{
 <body>
 <div id="app">
 
+<!-- TELA DE LOGIN -->
+<div id="loginScreen" style="display:none">
+  <div style="width:100%;max-width:400px;z-index:1">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#4F46E5,#6366F1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 8px 24px rgba(79,70,229,0.4)">
+        <svg width="28" height="28" viewBox="0 0 96 100" fill="none"><path d="M48 3 L88 19 L88 52 Q88 76 48 97 Q8 76 8 52 L8 19 Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="3"/><text x="48" y="62" text-anchor="middle" font-family="sans-serif" font-size="34" fill="white" font-weight="800">D</text></svg>
+      </div>
+      <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px">DAE Nexus.AI</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px">Inteligência, Gestão e Resultado</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px">
+      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">E-mail</label>
+      <input id="lemail" type="email" placeholder="seu@email.com.br"
+        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:16px"
+        onkeydown="if(event.key==='Enter') doLogin()">
+      <input id="lpass" type="hidden" value="">
+      <button onclick="doLogin()" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px">
+        Entrar no sistema
+      </button>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:rgba(255,255,255,.3)">
+        Use o e-mail cadastrado pela gestora
+      </div>
+    </div>
+  </div>
+</div>
 
 
-<div id="mainApp">
   <!-- BOTTOM NAV MOBILE -->
   <nav id="bottom-nav">
     <div class="bni on" onclick="sw('home',document.querySelectorAll('#sidebar .ni')[0]);setBottomNav(this)">
@@ -3474,23 +3498,17 @@ async function doLogin() {
   if (!email) { showToast('Digite seu e-mail'); return; }
 
   showToast('Entrando...');
-  const { data, error } = await safeDb.from('membros').select('*').eq('email', email).single();
+  const { data: rows, error } = await safeDb.from('membros').select('*').eq('email', email);
+  const data = rows?.[0] || null;
 
   if (error || !data) {
-    showToast('Usuário não encontrado');
+    showToast('❌ Email não encontrado. Verifique o cadastro em Equipe.');
+    console.error('Login error:', error, 'email:', email);
     return;
   }
-  curUser = data;
   localStorage.setItem('dae_user_email', email);
-  // Atualizar avatar no topbar
-  const avEl = document.getElementById('userAv');
-  if (avEl) { avEl.textContent = data.av||'?'; avEl.style.background = (data.cor||'#4F46E5')+'33'; avEl.style.color = data.cor||'#4F46E5'; }
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('mainApp').style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
-  await loadAll();
-  renderAll();
-  sw('home', document.querySelector('.ni.on'));
-  showToast(`✅ Bem-vindo, ${curUser.nome.split(' ')[0]}!`);
+  await entrarNoApp(data);
+  showToast(`✅ Bem-vindo, ${data.nome.split(' ')[0]}!`);
 }
 
 function setBottomNav(el) {
@@ -8231,25 +8249,29 @@ async function autoLogin(){
   const _ma=document.getElementById('mainApp');_ma.style.cssText='display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
   showLoading(false);
 }
-document.addEventListener('DOMContentLoaded', async function(){
-  // Verificar se há sessão salva no localStorage
-  const sessaoSalva = localStorage.getItem('dae_user_email');
-  if (sessaoSalva) {
-    // Tentar relogar automaticamente
-    const { data } = await safeDb.from('membros').select('*').eq('email', sessaoSalva).single();
-    if (data) {
-      curUser = data;
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('mainApp').style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
-      try { await loadAll(); } catch(e) { console.error(e); }
-      showLoading(false);
-      renderAll();
-      sw('home', document.querySelector('.ni.on'));
-      return;
-    }
-  }
-  // Mostrar tela de login
+async function entrarNoApp(usuario) {
+  curUser = usuario;
+  const avEl = document.getElementById('userAv');
+  if (avEl) { avEl.textContent = usuario.av||'?'; avEl.style.background=(usuario.cor||'#4F46E5')+'33'; avEl.style.color=usuario.cor||'#4F46E5'; }
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
+  try { await loadAll(); } catch(e) { console.error(e); }
   showLoading(false);
+  renderAll();
+  sw('home', document.querySelector('.ni.on'));
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  const emailSalvo = localStorage.getItem('dae_user_email');
+  if (emailSalvo) {
+    const { data: rows } = await safeDb.from('membros').select('*').eq('email', emailSalvo);
+    const usuario = rows?.[0];
+    if (usuario) { await entrarNoApp(usuario); return; }
+    // Email salvo mas não encontrado — limpar e mostrar login
+    localStorage.removeItem('dae_user_email');
+  }
+  showLoading(false);
+  document.getElementById('loginScreen').style.display = 'flex';
 });
 
 // ══════════════════════════════════════════════════════════════════
