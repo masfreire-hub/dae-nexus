@@ -130,8 +130,8 @@ body{
 /* ══════════════════════════════════════════════════════════════
    LOGIN
 ══════════════════════════════════════════════════════════════ */
-#loginScreen{display:none!important;}
-#mainApp{display:flex!important;flex-direction:column;height:100vh;overflow:hidden;}
+#loginScreen{display:flex;flex-direction:column;min-height:100dvh;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);}
+#mainApp{display:none;flex-direction:column;height:100vh;overflow:hidden;}
   min-height:100dvh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;padding:32px;
   background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);
@@ -2117,7 +2117,7 @@ select.sel{
         <div class="gsearch-drop" id="gsearchDrop"></div>
       </div>
       <div class="ibtn" onclick="showAlerts()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="nbd" id="alertCount">2</div></div>
-      <div class="uav" onclick="showToast('Mabiane Andrade de Souza · PO/Gestora')">MA</div>
+      <div class="uav" id="userAv" onclick="menuUsuario()" title="Clique para sair">MA</div>
     </div>
   </div>
 
@@ -3481,10 +3481,16 @@ async function doLogin() {
     return;
   }
   curUser = data;
+  localStorage.setItem('dae_user_email', email);
+  // Atualizar avatar no topbar
+  const avEl = document.getElementById('userAv');
+  if (avEl) { avEl.textContent = data.av||'?'; avEl.style.background = (data.cor||'#4F46E5')+'33'; avEl.style.color = data.cor||'#4F46E5'; }
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('mainApp').style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
   await loadAll();
-  showToast(`✅ Bem-vinda, ${curUser.nome.split(' ')[0]}!`);
+  renderAll();
+  sw('home', document.querySelector('.ni.on'));
+  showToast(`✅ Bem-vindo, ${curUser.nome.split(' ')[0]}!`);
 }
 
 function setBottomNav(el) {
@@ -8027,6 +8033,21 @@ function popSels() {
   if (estSel) estSel.innerHTML = '<option value="">Selecione a estação...</option>' + cadastros.estacao.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
 
+function menuUsuario() {
+  if (confirm(`${curUser?.nome||'Usuário'}\n${curUser?.email||''}\n\nDeseja sair do sistema?`)) {
+    logout();
+  }
+}
+
+function logout() {
+  localStorage.removeItem('dae_user_email');
+  curUser = null;
+  // Cancelar realtime do chat
+  if (window._chatRealtime) { try { window._chatRealtime.unsubscribe(); } catch(e) {} }
+  // Recarregar a página para mostrar login limpo
+  window.location.reload();
+}
+
 function showToast(msg) {
   document.querySelector('.toast')?.remove();
   const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
@@ -8211,21 +8232,24 @@ async function autoLogin(){
   showLoading(false);
 }
 document.addEventListener('DOMContentLoaded', async function(){
-  // Entrar direto sem login
-  curUser = {av:'MA', nome:'Mabiane Andrade de Souza', cargo:'Gestora / PO', dept:'DAE', cor:'#4F46E5', online:true};
-  const ls = document.getElementById('loginScreen');
-  if(ls) ls.style.display = 'none';
-  const ma = document.getElementById('mainApp');
-  if(ma) ma.style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
-  // Carregar dados e renderizar
-  try {
-    await loadAll();
-  } catch(e) {
-    console.error('loadAll error:', e);
+  // Verificar se há sessão salva no localStorage
+  const sessaoSalva = localStorage.getItem('dae_user_email');
+  if (sessaoSalva) {
+    // Tentar relogar automaticamente
+    const { data } = await safeDb.from('membros').select('*').eq('email', sessaoSalva).single();
+    if (data) {
+      curUser = data;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
+      try { await loadAll(); } catch(e) { console.error(e); }
+      showLoading(false);
+      renderAll();
+      sw('home', document.querySelector('.ni.on'));
+      return;
+    }
   }
+  // Mostrar tela de login
   showLoading(false);
-  renderAll();
-  sw('home', document.querySelector('.ni.on'));
 });
 
 // ══════════════════════════════════════════════════════════════════
