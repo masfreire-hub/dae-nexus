@@ -4658,7 +4658,69 @@ function openCh(id, icon, name, tipo, cor) {
   const corReal = cor || info.cor || '#4F46E5';
   const tipoReal = tipo || info.tipo || 'projeto';
 
-  // Inicializar mensagens com demo se vazio
+  // Cancelar subscription anterior
+  if (window._chatRealtime) {
+    try { window._chatRealtime.unsubscribe(); } catch(e) {}
+    window._chatRealtime = null;
+  }
+
+  // Carregar mensagens do Supabase
+  chatMsgs[id] = [];
+  safeDb.from('chats').select('*').eq('canal_id', id).order('created_at', {ascending:true}).limit(100)
+    .then(({ data }) => {
+      if (data?.length) {
+        chatMsgs[id] = data.map(m => {
+          const mb = memb.find(x => x.av === m.autor);
+          const now = new Date(m.created_at);
+          const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+          return {
+            av: m.autor, cor: mb?.cor||'#4F46E5',
+            n: mb?.nome || m.autor,
+            t: m.texto || '', me: m.autor === curUser?.av,
+            h, data: 'Hoje',
+            tipo: m.tipo, anexoNome: m.anexo_nome, anexoUrl: m.anexo_url
+          };
+        });
+        if (curChId === id) renderChat();
+      }
+    });
+
+  // Subscrever realtime
+  window._chatRealtime = db.channel('chat-' + id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats', filter: 'canal_id=eq.' + id },
+      (payload) => {
+        const m = payload.new;
+        if (m.autor === curUser?.av) return; // já renderizou localmente via sendChat
+        const mb = memb.find(x => x.av === m.autor);
+        const now = new Date(m.created_at);
+        const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+        if (!chatMsgs[id]) chatMsgs[id] = [];
+        chatMsgs[id].push({
+          av: m.autor, cor: mb?.cor||'#4F46E5',
+          n: mb?.nome || m.autor,
+          t: m.texto || '', me: false, h, data:'Hoje',
+          tipo: m.tipo, anexoNome: m.anexo_nome, anexoUrl: m.anexo_url
+        });
+        if (curChId === id) {
+          renderChat();
+          // Notificar se não estiver no canal
+          showToast('💬 ' + (mb?.nome||m.autor) + ': ' + (m.texto||'').slice(0,40));
+        }
+        // Atualizar preview sidebar
+        const cEl = document.getElementById('canal-' + id);
+        if (cEl) {
+          const prev = cEl.querySelector('.chat-canal-preview');
+          if (prev) prev.textContent = (mb?.nome?.split(' ')[0]||m.autor) + ': ' + (m.texto||'📎').substring(0,35);
+          // Mostrar badge se não estiver no canal
+          if (curChId !== id) {
+            let badge = cEl.querySelector('.chat-badge');
+            if (!badge) { badge = document.createElement('div'); badge.className='chat-badge'; badge.textContent='1'; cEl.appendChild(badge); }
+            else badge.textContent = (parseInt(badge.textContent)||0)+1;
+          }
+        }
+      })
+    .subscribe();
+
   if (!chatMsgs[id]) chatMsgs[id] = [...(MSGS_DEMO[id] || [])];
 
   // Marcar canal ativo na sidebar
@@ -5264,7 +5326,7 @@ function baixarAnexo(url, nome) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function sendChat() {
+async function sendChat() {
   fecharSugestaoIA();
   const inp = document.getElementById('chatInp');
   const t = inp.value.trim();
@@ -5273,38 +5335,50 @@ function sendChat() {
 
   const now = new Date();
   const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
-  if (!chatMsgs[curChId]) chatMsgs[curChId] = [];
 
-  // Enviar anexo se houver
+  let textoFinal = t;
+  let extra = {};
+
   if (temAnexo) {
     const a = chatAnexoPendente;
-    chatMsgs[curChId].push({
-      av: curUser?.av||'MA', cor: curUser?.cor||'#4F46E5',
-      n: curUser?.nome||'Mabiane', me: true, h, data:'Hoje',
-      tipo: a.tipo, anexoNome: a.nome, anexoUrl: a.url,
-      anexoTamanho: a.tamanho, t: t || ''
-    });
+    extra = { tipo: a.tipo, anexo_nome: a.nome, anexo_url: a.url, anexo_tamanho: a.tamanho };
+    textoFinal = t || '';
     removerAnexo();
-  }
-
-  // Enviar texto se houver
-  if (t && !temAnexo) {
-    chatMsgs[curChId].push({
-      av: curUser?.av||'MA', cor: curUser?.cor||'#4F46E5',
-      n: curUser?.nome||'Mabiane', t, me:true, h, data:'Hoje'
-    });
   }
 
   inp.value = '';
   toggleSendMic(false);
+
+  // Mostrar mensagem localmente imediatamente (UX instantânea)
+  if (!chatMsgs[curChId]) chatMsgs[curChId] = [];
+  chatMsgs[curChId].push({
+    av: curUser?.av||'MA', cor: curUser?.cor||'#4F46E5',
+    n: curUser?.nome||'Você', t: textoFinal, me: true, h, data:'Hoje',
+    tipo: temAnexo ? extra.tipo : 'texto',
+    anexoNome: extra.anexo_nome, anexoUrl: extra.anexo_url
+  });
   renderChat();
+
+  // Salvar no Supabase
+  try {
+    const { error } = await safeDb.from('chats').insert([{
+      canal_id: curChId,
+      autor: curUser?.av || 'MA',
+      texto: textoFinal,
+      tipo: temAnexo ? 'anexo' : 'texto',
+      ...extra
+    }]);
+    if (error) showToast('⚠️ Erro ao salvar: ' + error.message);
+  } catch(e) {
+    console.error('sendChat error:', e);
+  }
 
   // Atualizar preview na sidebar
   const canalEl = document.getElementById('canal-' + curChId);
   if (canalEl) {
     const prev = canalEl.querySelector('.chat-canal-preview');
     const timEl = canalEl.querySelector('.chat-canal-time');
-    if (prev) prev.textContent = 'Você: ' + (t || (temAnexo ? '📎 Anexo' : '')).substring(0,40);
+    if (prev) prev.textContent = 'Você: ' + (textoFinal || '📎 Anexo').substring(0,40);
     if (timEl) timEl.textContent = h;
   }
 }
