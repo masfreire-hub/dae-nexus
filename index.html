@@ -191,7 +191,7 @@ body{
 /* ══════════════════════════════════════════════════════════════
    APP PRINCIPAL — DESKTOP LAYOUT
 ══════════════════════════════════════════════════════════════ */
-#mainApp{display:flex;min-height:100dvh;flex-direction:column;overflow:hidden;}
+#mainApp{min-height:100dvh;flex-direction:column;overflow:hidden;}
 
 /* ── TOPBAR ─────────────────────────────────────────────────── */
 .topbar{
@@ -8236,19 +8236,7 @@ async function salvarProgressoProj(projId, val) {
   showToast(`📊 Progresso atualizado: ${prog}%`);
 }
 
-async function autoLogin(){
-  showLoading(true);
-  try{
-    const {data}=await safeDb.from('membros').select('*').eq('av','MA').single();
-    curUser=data||{av:'MA',nome:'Mabiane Andrade de Souza',cargo:'Gestora / PO',dept:'DAE',cor:'#0EA5E9',online:true};
-    await loadAll();
-  }catch(e){
-    curUser={av:'MA',nome:'Mabiane Andrade de Souza',cargo:'Gestora / PO',dept:'DAE',cor:'#0EA5E9',online:true};
-  }
-  document.getElementById('loginScreen').style.display='none';
-  const _ma=document.getElementById('mainApp');_ma.style.cssText='display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
-  showLoading(false);
-}
+
 async function entrarNoApp(usuario) {
   curUser = usuario;
   const avEl = document.getElementById('userAv');
