@@ -2862,14 +2862,45 @@ select.sel{
   </div>
 
 
-<div class="tab" id="t-arquivos">
+<div class="tab" id="t-painel">
+  <div class="ph">
+    <div><div class="pt">PAINEL ESTRATÉGICO</div><div class="ps">Visão geral de desempenho e métricas</div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="periodoChips">
+      <span class="period-chip on" onclick="setPeriodo('tudo',this)">Tudo</span>
+      <span class="period-chip" onclick="setPeriodo('semana',this)">Semana</span>
+      <span class="period-chip" onclick="setPeriodo('mes',this)">Mês</span>
+      <span class="period-chip" onclick="setPeriodo('trimestre',this)">Trimestre</span>
+    </div>
+  </div>
+  <div id="painelKPIs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card">
+      <div class="sl">🏆 Top Colaboradores</div>
+      <div id="painelTop"></div>
+    </div>
+    <div class="card">
+      <div class="sl">📊 Por Setor</div>
+      <div id="painelSetor"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="sl">📈 Métricas de Execução</div>
+    <div id="painelMetricas"></div>
+  </div>
+  <div class="card">
+    <div class="sl">⚠️ Projetos em Risco</div>
+    <div id="painelRisco"></div>
+  </div>
+</div>
+
+
 <style>
 #t-arquivos { display:none; flex-direction:column; padding:0; }
 #t-arquivos.on {
   display:flex !important;
   height:calc(100dvh - var(--topbar-h));
   overflow:hidden;
-  margin:-24px -24px -24px -24px;
+  margin:-24px;
 }
 #t-arquivos #arq-wrap { flex:1; overflow:hidden; min-height:0; width:100%; }
 #arq-wrap { display:flex; flex:1; overflow:hidden; }
