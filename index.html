@@ -2436,24 +2436,7 @@ select.sel{
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             DIRETAS
           </div>
-          <div id="chatDMsList">
-            <div class="chat-dm" id="canal-djo" onclick="openCh('djo','JO','Jeferson Oliveira','dm','#f57c01')">
-              <div class="chat-dm-av" style="background:rgba(245,124,1,.15);color:#f57c01;">JO</div>
-              <div class="chat-canal-info">
-                <div class="chat-canal-nome">Jeferson Oliveira</div>
-                <div class="chat-canal-preview">Viu o levantamento das vistas técnicas?</div>
-              </div>
-              <div class="chat-canal-meta"><div class="chat-canal-time">hoje</div><div class="chat-badge">1</div></div>
-            </div>
-            <div class="chat-dm" id="canal-daa" onclick="openCh('daa','AA','Ana Carolina Almeida','dm','#c51162')">
-              <div class="chat-dm-av" style="background:rgba(197,17,98,.15);color:#c51162;">AA</div>
-              <div class="chat-canal-info">
-                <div class="chat-canal-nome">Ana Carolina Almeida</div>
-                <div class="chat-canal-preview">Podemos alinhar vistas técnicas amanhã?</div>
-              </div>
-              <div class="chat-canal-meta"><div class="chat-canal-time">2h</div></div>
-            </div>
-          </div>
+          <div id="chatDMsList"></div>
           <div id="chatDMsExtra"></div>
         </div>
 
@@ -2843,7 +2826,17 @@ select.sel{
 
 <div class="tab" id="t-config">
       <div class="ph"><div><div class="pt">CADASTROS</div><div class="ps">Gerencie estações, setores, cargos, tipos e status</div></div></div>
-      <div class="card" style="margin-bottom:14px;cursor:default;">
+
+      <!-- CARD BACKUP -->
+      <div class="card" style="margin-bottom:14px;cursor:default;border:1.5px solid #4F46E5;background:linear-gradient(135deg,#EEF2FF,#fff)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-family:var(--fh);font-size:14px;letter-spacing:.5px;color:#4F46E5">🛡️ BACKUP & RESTAURAÇÃO</div>
+        </div>
+        <div style="font-size:11px;color:#6B7280;margin-bottom:12px">Backups automáticos são criados diariamente. Use o botão abaixo para restaurar dados perdidos.</div>
+        <button onclick="listarBackups()" style="background:#4F46E5;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;width:100%">
+          🔄 Ver backups e restaurar dados
+        </button>
+      </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div style="font-family:var(--fh);font-size:15px;letter-spacing:1px;">📌 ESTAÇÕES</div><button class="btnadd" onclick="openAddCadastro('estacao')">+ NOVA</button></div>
         <div id="estacaoList"></div>
       </div>
@@ -3593,10 +3586,22 @@ async function loadAll() {
       if (avm.data && avm.data.length) { ativs   = norm(avm.data); }
       if (espm.data && espm.data.length){ espacos = norm(espm.data);}
       // Sincronizar localStorage com dados do Supabase
-      // Filtrar tarefas cujo projeto existe no banco
       const projIds = new Set(proj.map(p => p.id));
       tar = tar.filter(t => !t.projeto_id || projIds.has(t.projeto_id));
       salvarLocal();
+      // BACKUP AUTOMÁTICO com timestamp
+      try {
+        const backupKey = 'dae_backup_' + new Date().toISOString().slice(0,10);
+        const backup = JSON.stringify({
+          ts: new Date().toISOString(),
+          membros: memb, projetos: proj, tarefas: tar,
+          espacos, reunioes: reun, ferias, riscos
+        });
+        localStorage.setItem(backupKey, backup);
+        // Manter apenas os 3 backups mais recentes
+        const allKeys = Object.keys(localStorage).filter(k => k.startsWith('dae_backup_')).sort();
+        if (allKeys.length > 3) allKeys.slice(0, allKeys.length-3).forEach(k => localStorage.removeItem(k));
+      } catch(e) { console.warn('Backup falhou:', e); }
     } catch(e) {
       console.warn('Supabase indisponível, usando dados locais');
     }
@@ -3633,13 +3638,35 @@ function renderAll() {
     const th = document.getElementById('t-home');
     if (th) th.classList.add('on');
   }
-  const h = new Date().getHours();
+  const now = new Date();
+  const h = parseInt(now.toLocaleString('pt-BR', {hour:'numeric', hour12:false, timeZone:'America/Bahia'}));
   const nome = curUser?.nome?.split(' ')[0] || 'Mabiane';
   document.getElementById('wname').textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome.toUpperCase()}`;
   document.getElementById('wdate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderDashInteligente();
   renderUrgent(); renderAct(); renderFeriasMini();
   try{renderHierarquia();}catch(e){} try{renderProj();}catch(e){} try{renderTasks();}catch(e){} try{renderMeet();}catch(e){} try{renderMembers();}catch(e){} try{renderFerias();}catch(e){} try{renderCarga();}catch(e){} try{renderRiscos();}catch(e){} try{renderNova();}catch(e){} try{popSels();}catch(e){}
+  try{renderChatDMs();}catch(e){}
+}
+
+function renderChatDMs() {
+  const lista = document.getElementById('chatDMsList');
+  if (!lista) return;
+  // Mostrar todos os membros exceto o usuário logado
+  const outros = memb.filter(m => m.av !== curUser?.av);
+  if (!outros.length) { lista.innerHTML = '<div style="font-size:11px;color:var(--tx3);padding:8px">Nenhum membro cadastrado</div>'; return; }
+  lista.innerHTML = outros.map(m => {
+    const cor = m.cor || '#4F46E5';
+    const canalId = 'dm_' + [curUser?.av, m.av].sort().join('_');
+    return `<div class="chat-dm" id="canal-${canalId}" onclick="openCh('${canalId}','${m.av}','${m.nome}','dm','${cor}')">
+      <div class="chat-dm-av" style="background:${cor}22;color:${cor}">${m.av}</div>
+      <div class="chat-canal-info">
+        <div class="chat-canal-nome">${m.nome}</div>
+        <div class="chat-canal-preview" id="prev-${canalId}">${m.cargo||'Membro da equipe'}</div>
+      </div>
+      <div class="chat-canal-meta"><div class="chat-canal-time" id="time-${canalId}"></div></div>
+    </div>`;
+  }).join('');
 }
 
 function renderDashInteligente() {
@@ -8055,6 +8082,43 @@ function menuUsuario() {
   if (confirm(`${curUser?.nome||'Usuário'}\n${curUser?.email||''}\n\nDeseja sair do sistema?`)) {
     logout();
   }
+}
+
+function listarBackups() {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('dae_backup_')).sort().reverse();
+  if (!keys.length) { showToast('⚠️ Nenhum backup encontrado ainda. Os backups são criados automaticamente ao usar o sistema.'); return; }
+  const lista = keys.map((k,i) => {
+    try {
+      const b = JSON.parse(localStorage.getItem(k));
+      return `${i+1}. ${k.replace('dae_backup_','')} — ${b.membros?.length||0} membros, ${b.projetos?.length||0} projetos, ${b.tarefas?.length||0} tarefas`;
+    } catch(e) { return `${i+1}. ${k} — corrompido`; }
+  }).join('\n');
+  const escolha = prompt('BACKUPS DISPONÍVEIS:\n\n' + lista + '\n\nDigite o número para restaurar (ou Cancelar):');
+  if (!escolha) return;
+  const idx = parseInt(escolha) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= keys.length) { showToast('❌ Opção inválida'); return; }
+  restaurarBackup(keys[idx]);
+}
+
+async function restaurarBackup(key) {
+  if (!confirm('Restaurar backup ' + key.replace('dae_backup_','') + '?\nIsso vai substituir os dados atuais no Supabase.')) return;
+  try {
+    const b = JSON.parse(localStorage.getItem(key));
+    if (!b) { showToast('❌ Backup inválido'); return; }
+    showToast('⏳ Restaurando dados...');
+    const p = (b.projetos||[]).filter(x=>x.id&&!String(x.id).startsWith('local_'));
+    const t = (b.tarefas||[]).filter(x=>x.id&&!String(x.id).startsWith('local_'));
+    const m = (b.membros||[]).filter(x=>x.id&&!String(x.id).startsWith('local_'));
+    const e = (b.espacos||[]).filter(x=>x.id&&!String(x.id).startsWith('local_'));
+    const r = (b.reunioes||[]).filter(x=>x.id&&!String(x.id).startsWith('local_'));
+    if(m.length){const res=await db.from('membros').upsert(m);if(res.error)console.error('membros:',res.error);}
+    if(e.length){const res=await db.from('espacos').upsert(e);if(res.error)console.error('espacos:',res.error);}
+    if(p.length){const res=await db.from('projetos').upsert(p);if(res.error)console.error('projetos:',res.error);}
+    if(t.length){const res=await db.from('tarefas').upsert(t);if(res.error)console.error('tarefas:',res.error);}
+    if(r.length){const res=await db.from('reunioes').upsert(r);if(res.error)console.error('reunioes:',res.error);}
+    showToast('✅ Backup restaurado com sucesso! Recarregando...');
+    setTimeout(() => window.location.reload(), 2000);
+  } catch(e) { showToast('❌ Erro ao restaurar: ' + e.message); }
 }
 
 function logout() {
