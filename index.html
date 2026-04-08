@@ -321,7 +321,6 @@ body{
   overflow-y:auto;
 }
 .content:has(#t-arquivos.on){
-  padding:0;
   overflow:hidden;
 }
 
@@ -2898,9 +2897,16 @@ select.sel{
 #t-arquivos { display:none; flex-direction:column; padding:0; }
 #t-arquivos.on {
   display:flex !important;
-  height:calc(100dvh - var(--topbar-h));
+  position:fixed;
+  top:var(--topbar-h);
+  left:var(--sidebar-w);
+  right:0;
+  bottom:0;
+  z-index:10;
+  background:var(--bg);
   overflow:hidden;
-  margin:-24px;
+  margin:0;
+  padding:0;
 }
 #t-arquivos #arq-wrap { flex:1; overflow:hidden; min-height:0; width:100%; }
 #arq-wrap { display:flex; flex:1; overflow:hidden; }
