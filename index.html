@@ -2587,7 +2587,7 @@ select.sel{
 
     <!-- EQUIPE + FÉRIAS -->
     <div class="tab" id="t-team">
-      <div class="ph"><div><div class="pt">EQUIPE</div><div class="ps">13 membros · ClickUp real</div></div><button class="btnadd" onclick="openM('mMember')">+ ADD</button></div>
+      <div class="ph"><div><div class="pt">EQUIPE</div><div class="ps" id="teamSubtitle">Carregando...</div></div><button class="btnadd" onclick="openM('mMember')">+ ADD</button></div>
       <div class="chips" id="teamViewChips">
         <button class="chip on" onclick="setTeamView('membros',this)">👥 Membros</button>
         <button class="chip" onclick="setTeamView('ferias',this)">🏖️ Férias</button>
@@ -3547,10 +3547,7 @@ function carregarLocal() {
 async function loadAll() {
   showLoading(true);
 
-  // SEMPRE carregar localStorage primeiro (garante dados ao atualizar)
-  carregarLocal();
-
-  // Tentar Supabase — só substitui se retornar dados reais
+  // Tentar Supabase primeiro — tem prioridade absoluta
   if (db) {
     try {
       const [pm,tm,mm,fm,rm,rem,am,avm,espm] = await Promise.all([
@@ -3604,7 +3601,10 @@ async function loadAll() {
       } catch(e) { console.warn('Backup falhou:', e); }
     } catch(e) {
       console.warn('Supabase indisponível, usando dados locais');
+      carregarLocal();
     }
+  } else {
+    carregarLocal();
   }
 
   await loadNotifs();
@@ -6764,7 +6764,15 @@ async function delAgenda(id) {
 // EQUIPE — CRUD
 // ══════════════════════════════════════════════════════════════════
 function renderMembers(l=memb) {
-  document.getElementById('memberList').innerHTML = l.map(m => {
+  const sub = document.getElementById('teamSubtitle');
+  if (sub) sub.textContent = memb.length + ' membro' + (memb.length !== 1 ? 's' : '') + ' · DAE Nexus';
+  const el = document.getElementById('memberList');
+  if (!el) return;
+  if (!l.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx3)"><div style="font-size:32px;margin-bottom:8px">👥</div><div>Nenhum membro cadastrado</div><div style="font-size:11px;margin-top:4px">Clique em + ADD para adicionar</div></div>';
+    return;
+  }
+  el.innerHTML = l.map(m => {
     const temEmail = !!(m.email);
     const temWpp = !!(m.whatsapp);
     const cobertura = (temEmail && temWpp) ? 'all' : (temEmail || temWpp) ? 'partial' : 'none';
