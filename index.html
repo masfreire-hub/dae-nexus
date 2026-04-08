@@ -2864,11 +2864,12 @@ select.sel{
 
 <div class="tab" id="t-arquivos">
 <style>
-#t-arquivos { display:none; flex-direction:column; padding:0; margin:-24px -24px -100px -24px; }
+#t-arquivos { display:none; flex-direction:column; padding:0; }
 #t-arquivos.on {
   display:flex !important;
-  min-height:calc(100dvh - var(--topbar-h));
+  height:calc(100dvh - var(--topbar-h));
   overflow:hidden;
+  margin:-24px -24px -24px -24px;
 }
 #t-arquivos #arq-wrap { flex:1; overflow:hidden; min-height:0; width:100%; }
 #arq-wrap { display:flex; flex:1; overflow:hidden; }
