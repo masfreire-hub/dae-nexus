@@ -2862,32 +2862,37 @@ select.sel{
 
 
 <div class="tab" id="t-painel">
-  <div class="ph">
-    <div><div class="pt">PAINEL ESTRATÉGICO</div><div class="ps">Visão geral de desempenho e métricas</div></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap" id="periodoChips">
-      <span class="period-chip on" onclick="setPeriodo('tudo',this)">Tudo</span>
-      <span class="period-chip" onclick="setPeriodo('semana',this)">Semana</span>
-      <span class="period-chip" onclick="setPeriodo('mes',this)">Mês</span>
-      <span class="period-chip" onclick="setPeriodo('trimestre',this)">Trimestre</span>
+  <div class="page-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="page-title">Painel Estratégico</div>
+        <div class="page-sub">Visão geral de desempenho e métricas</div>
+      </div>
+      <div style="display:flex;gap:6px" id="periodoChips">
+        <span class="period-chip on" onclick="setPeriodo('tudo',this)">Tudo</span>
+        <span class="period-chip" onclick="setPeriodo('semana',this)">Semana</span>
+        <span class="period-chip" onclick="setPeriodo('mes',this)">Mês</span>
+        <span class="period-chip" onclick="setPeriodo('trimestre',this)">Trimestre</span>
+      </div>
     </div>
   </div>
-  <div id="painelKPIs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px"></div>
+  <div id="painelKPIs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-    <div class="card">
-      <div class="sl">🏆 Top Colaboradores</div>
+    <div class="section-card">
+      <div class="sec-header"><span class="sec-title">🏆 Top Colaboradores</span></div>
       <div id="painelTop"></div>
     </div>
-    <div class="card">
-      <div class="sl">📊 Por Setor</div>
+    <div class="section-card">
+      <div class="sec-header"><span class="sec-title">📊 Por Setor</span></div>
       <div id="painelSetor"></div>
     </div>
   </div>
-  <div class="card" style="margin-bottom:14px">
-    <div class="sl">📈 Métricas de Execução</div>
+  <div class="section-card" style="margin-bottom:14px">
+    <div class="sec-header"><span class="sec-title">📈 Métricas de Execução</span></div>
     <div id="painelMetricas"></div>
   </div>
-  <div class="card">
-    <div class="sl">⚠️ Projetos em Risco</div>
+  <div class="section-card">
+    <div class="sec-header"><span class="sec-title">⚠️ Projetos em Risco</span></div>
     <div id="painelRisco"></div>
   </div>
 </div>
@@ -7974,7 +7979,7 @@ function renderPainel() {
   const kpisEl = document.getElementById('painelKPIs');
   if (kpisEl) kpisEl.innerHTML = `
     <div class="sc g"><div style="font-size:18px">📊</div><div class="sv">${mediaProgresso}%</div><div class="sl2">Progresso Médio</div><div class="str">${projAtivos.length} estações ativas</div></div>
-    <div class="sc gr"><div style="font-size:18px">✅</div><div class="sv">${tarConcluidas}</div><div class="sl2">Tarefas Concluídas</div><div class="str">${periodoLabel}</div></div>
+    <div class="sc re"><div style="font-size:18px">✅</div><div class="sv">${tarConcluidas}</div><div class="sl2">Tarefas Concluídas</div><div class="str">${periodoLabel}</div></div>
     <div class="sc ye"><div style="font-size:18px">🔴</div><div class="sv">${projAtrasados.length}</div><div class="sl2">Atrasados</div><div class="str">${projConcluidos.length} concluídos</div></div>
     <div class="sc bl"><div style="font-size:18px">⚡</div><div class="sv">${tarTotal>0?Math.round(tarConcluidas/tarTotal*100):0}%</div><div class="sl2">Taxa Conclusão</div><div class="str">${periodoLabel}</div></div>
   `;
