@@ -6917,17 +6917,18 @@ async function addMember() {
     salvarLocal();
     showToast('✅ Membro atualizado!');
   } else {
-    // Novo membro
-    const novo = { ...dados, cor: CL[memb.length%CL.length], id: 'local_' + Date.now() };
-    const { data, error } = await safeDb.from('membros').insert([novo]).select().single();
+    // Novo membro — não passar id, deixar Supabase gerar UUID
+    const { id: _ignorar, ...dadosSemId } = dados;
+    const novoPayload = { ...dadosSemId, cor: CL[memb.length%CL.length] };
+    const { data, error } = await safeDb.from('membros').insert([novoPayload]).select().single();
     if (error || !data) {
-      // Supabase indisponível — salvar localmente
-      memb.push(novo);
-    } else {
-      memb.push(data);
+      showToast('❌ Erro ao salvar: ' + (error?.message || 'tente novamente'));
+      console.error('saveMember error:', error);
+      return;
     }
+    memb.push(data);
     salvarLocal();
-    showToast('👥 Membro adicionado!');
+    showToast('👥 Membro adicionado com sucesso!');
   }
   closeM('mMember'); renderMembers(); popSels();
     salvarLocal();
