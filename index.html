@@ -3703,13 +3703,23 @@ async function loadNotifs() {
 }
 
 function renderAll() {
+  // Atualizar avatar do usuário logado
+  if (curUser) {
+    const avEl = document.getElementById('userAv');
+    if (avEl) {
+      avEl.textContent = curUser.av || '?';
+      avEl.style.background = (curUser.cor||'#4F46E5') + '33';
+      avEl.style.color = curUser.cor || '#4F46E5';
+    }
+  }
   // Garantir tab home visível
   if (!document.querySelector('.tab.on')) {
     const th = document.getElementById('t-home');
     if (th) th.classList.add('on');
   }
   const now = new Date();
-  const h = parseInt(now.toLocaleString('pt-BR', {hour:'numeric', hour12:false, timeZone:'America/Bahia'}));
+  const hStr = now.toLocaleString('pt-BR', {hour:'numeric', hour12:false, timeZone:'America/Bahia'});
+  const h = parseInt(hStr) || new Date().getHours();
   const nome = curUser?.nome?.split(' ')[0] || 'Mabiane';
   document.getElementById('wname').textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome.toUpperCase()}`;
   document.getElementById('wdate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -6930,8 +6940,7 @@ async function addMember() {
     salvarLocal();
     showToast('👥 Membro adicionado com sucesso!');
   }
-  closeM('mMember'); renderMembers(); popSels();
-    salvarLocal();
+  closeM('mMember'); renderMembers(); popSels(); renderChatDMs(); salvarLocal();
   // Limpar
   ['mmN','mmE','mmW','mmId'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('mMemberTitle').textContent = 'NOVO MEMBRO';
@@ -7188,7 +7197,7 @@ async function addRisk() {
   const novo = { descricao:d, projeto_id:p?.id||null, sev:document.getElementById('nrS').value, resp:document.getElementById('nrR').value||curUser?.av, status:'aberto' };
   const { data, error } = await safeDb.from('riscos').insert([novo]).select().single();
   if (error || !data) {
-    riscos.unshift({...novo, id: 'local_' + Date.now()});
+    showToast('❌ Erro ao salvar risco');
   } else {
     riscos.unshift(data);
   }
@@ -8390,6 +8399,8 @@ async function entrarNoApp(usuario) {
   showLoading(false);
   renderAll();
   sw('home', document.querySelector('.ni.on'));
+  // Inicializar Nova IA
+  try { renderNova(); } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
@@ -8790,9 +8801,8 @@ async function saveEspaco() {
       espacos.push(data);
     }
   } catch(err) {
-    console.warn('Salvando espaço localmente:', err);
-    dados.id = 'local_' + Date.now();
-    espacos.push(dados);
+    console.error('Erro ao salvar espaço:', err);
+    showToast('❌ Erro ao salvar espaço: ' + (err?.message || err));
   }
   closeM('mEspaco'); renderHierarquia(); popSels();
   showToast('✅ Espaço "' + nome + '" salvo!');
