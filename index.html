@@ -3230,10 +3230,19 @@ select.sel{
   <div class="mtitle" id="mMemberTitle">NOVO MEMBRO</div>
   <input type="hidden" id="mmId">
   <label class="lbl">Nome completo</label>
-  <input class="inp" placeholder="Nome completo" id="mmN">
+  <input class="inp" placeholder="Nome completo" id="mmN" oninput="gerarIniciais(this.value)">
+  <div style="display:flex;gap:8px">
+    <div style="flex:1">
+      <label class="lbl">Iniciais (avatar) <span style="color:var(--tx3);font-weight:400">ex: MA, AF, YS</span></label>
+      <input class="inp" placeholder="2 letras" id="mmAv" maxlength="3" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <div style="flex:1">
+      <label class="lbl">Setor</label>
+      <input class="inp" placeholder="DAE" id="mmD" value="DAE">
+    </div>
+  </div>
   <label class="lbl">Cargo</label>
   <select class="sel" id="mmC"><option value="">Cargo...</option></select>
-  <input type="hidden" id="mmD" value="DAE">
 
   <!-- CONTATOS — campos essenciais para notificação -->
   <div style="background:linear-gradient(135deg,rgba(14,165,233,.06),rgba(56,189,248,.02));border:1px solid rgba(14,165,233,.18);border-radius:10px;padding:12px;margin-bottom:12px">
@@ -3396,7 +3405,13 @@ function sw(name, el) {
     tasks:   () => { try{renderTasks();}catch(e){console.error('renderTasks',e)} },
     proj:    () => { try{renderHierarquia();}catch(e){} },
     meet:    () => { try{renderMeet();}catch(e){} },
-    team:    () => { try{renderMembers();}catch(e){} },
+    team:    () => { 
+      try{renderMembers();}catch(e){}
+      // Recarregar membros do Supabase ao abrir aba
+      safeDb.from('membros').select('*').order('nome').then(({data}) => {
+        if(data?.length) { memb = data; renderMembers(); renderChatDMs(); }
+      });
+    },
     risk:    () => { try{renderRiscos();}catch(e){} },
     gantt:   () => { try{renderGantt();}catch(e){} },
     painel:  () => { try{renderPainel();}catch(e){} },
@@ -6890,12 +6905,24 @@ async function addMember() {
   const n = document.getElementById('mmN').value.trim();
   if (!n) { showToast('Digite o nome'); return; }
   const id = document.getElementById('mmId').value;
+
+  // Iniciais — usa campo manual ou gera automaticamente
+  const avInput = document.getElementById('mmAv')?.value?.trim().toUpperCase();
   const w = n.split(' ');
-  const av = (w[0][0]+(w[1]?w[1][0]:w[0][1]||'')).toUpperCase();
+  const avAuto = (w[0][0]+(w[1]?w[1][0]:w[0][1]||'')).toUpperCase();
+  const av = avInput || avAuto;
+
+  // Verificar se av já existe (apenas para novo membro)
+  if (!id && memb.find(m => m.av === av)) {
+    showToast(`❌ Iniciais "${av}" já estão em uso. Escolha outras iniciais.`);
+    document.getElementById('mmAv')?.focus();
+    return;
+  }
+
   const dados = {
     nome: n,
     cargo: document.getElementById('mmC').value||'Colaborador',
-    dept: document.getElementById('mmD').value||'DAE',
+    dept: document.getElementById('mmD')?.value||'DAE',
     av,
     email: document.getElementById('mmE').value||'',
     whatsapp: document.getElementById('mmW').value||'',
@@ -6942,9 +6969,18 @@ async function addMember() {
   }
   closeM('mMember'); renderMembers(); popSels(); renderChatDMs(); salvarLocal();
   // Limpar
-  ['mmN','mmE','mmW','mmId'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['mmN','mmE','mmW','mmId','mmAv'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.dataset.manual=''; } });
+  document.getElementById('mmD').value = 'DAE';
   document.getElementById('mMemberTitle').textContent = 'NOVO MEMBRO';
   document.getElementById('btnSaveMember').textContent = 'ADICIONAR MEMBRO';
+}
+
+function gerarIniciais(nome) {
+  const avEl = document.getElementById('mmAv');
+  if (!avEl || avEl.dataset.manual === 'true') return;
+  const w = nome.trim().split(' ').filter(Boolean);
+  const av = (w[0]?.[0]||'') + (w[1]?.[0]||w[0]?.[1]||'');
+  avEl.value = av.toUpperCase();
 }
 
 function editarMembro(membId) {
