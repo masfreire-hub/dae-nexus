@@ -8168,22 +8168,30 @@ function openM(id) {
     }
   }
   if (id === 'mMember') {
-    // Só resetar se NÃO estiver em modo edição (mmId vazio)
-    const mmId = document.getElementById('mmId');
-    if (!mmId?.value) {
-      document.getElementById('mMemberTitle').textContent = 'NOVO MEMBRO';
-      document.getElementById('btnSaveMember').textContent = 'ADICIONAR MEMBRO';
-      ['mmN','mmE','mmW'].forEach(fid => { const el=document.getElementById(fid); if(el) el.value=''; });
-    }
+    // SEMPRE resetar ao abrir modal de novo membro
+    document.getElementById('mMemberTitle').textContent = 'NOVO MEMBRO';
+    document.getElementById('btnSaveMember').textContent = 'ADICIONAR MEMBRO';
+    document.getElementById('btnSaveMember').onclick = addMember;
+    ['mmN','mmE','mmW','mmId','mmAv'].forEach(fid => { 
+      const el = document.getElementById(fid); 
+      if(el) { el.value = ''; if(el.dataset) el.dataset.manual = ''; }
+    });
+    const mmD = document.getElementById('mmD');
+    if(mmD) mmD.value = 'DAE';
   }
 }
 function closeM(id) {
   document.getElementById(id).classList.remove('on');
   if (id === 'mMember') {
-    const mmId = document.getElementById('mmId');
-    if (mmId) mmId.value = '';
+    ['mmN','mmE','mmW','mmId','mmAv'].forEach(fid => { 
+      const el = document.getElementById(fid); 
+      if(el) { el.value = ''; if(el.dataset) el.dataset.manual = ''; }
+    });
+    const mmD = document.getElementById('mmD');
+    if(mmD) mmD.value = 'DAE';
     document.getElementById('mMemberTitle').textContent = 'NOVO MEMBRO';
     document.getElementById('btnSaveMember').textContent = 'ADICIONAR MEMBRO';
+    document.getElementById('btnSaveMember').onclick = addMember;
   }
 }
 
