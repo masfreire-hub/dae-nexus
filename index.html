@@ -3735,8 +3735,9 @@ function renderAll() {
   const now = new Date();
   const hStr = now.toLocaleString('pt-BR', {hour:'numeric', hour12:false, timeZone:'America/Bahia'});
   const h = parseInt(hStr) || new Date().getHours();
-  const nome = curUser?.nome?.split(' ')[0] || curUser?.av || 'Usuário';
-  document.getElementById('wname').textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome.toUpperCase()}`;
+  const nome = (curUser?.nome?.split(' ')[0] || curUser?.av || 'Você').toUpperCase();
+  const wname = document.getElementById('wname');
+  if (wname) wname.textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome}`;
   document.getElementById('wdate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderDashInteligente();
   renderUrgent(); renderAct(); renderFeriasMini();
@@ -8448,15 +8449,29 @@ async function salvarProgressoProj(projId, val) {
 
 async function entrarNoApp(usuario) {
   curUser = usuario;
+  // Atualizar avatar
   const avEl = document.getElementById('userAv');
-  if (avEl) { avEl.textContent = usuario.av||'?'; avEl.style.background=(usuario.cor||'#4F46E5')+'33'; avEl.style.color=usuario.cor||'#4F46E5'; }
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('mainApp').style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
+  if (avEl) { 
+    avEl.textContent = usuario.av||'?'; 
+    avEl.style.background = (usuario.cor||'#4F46E5')+'33'; 
+    avEl.style.color = usuario.cor||'#4F46E5'; 
+  }
+  // Esconder login e mostrar app
+  const ls = document.getElementById('loginScreen');
+  const ma = document.getElementById('mainApp');
+  if (ls) ls.style.display = 'none';
+  if (ma) ma.style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
   try { await loadAll(); } catch(e) { console.error(e); }
   showLoading(false);
+  // Garantir nome correto no dashboard
+  const wname = document.getElementById('wname');
+  if (wname) {
+    const h = new Date().getHours();
+    const saud = h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE';
+    wname.textContent = saud + ', ' + (usuario.nome?.split(' ')[0]||usuario.av||'Você').toUpperCase();
+  }
   renderAll();
   sw('home', document.querySelector('.ni.on'));
-  // Inicializar Nova IA
   try { renderNova(); } catch(e) {}
 }
 
