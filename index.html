@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DAE Nexus.AI — Inteligência, Gestão e Resultado</title>
+<title>DAE Nexus.AI v11 — Inteligência, Gestão e Resultado</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -130,13 +130,8 @@ body{
 /* ══════════════════════════════════════════════════════════════
    LOGIN
 ══════════════════════════════════════════════════════════════ */
-#loginScreen{display:flex;flex-direction:column;min-height:100dvh;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);}
+#loginScreen{display:flex;flex-direction:column;min-height:100dvh;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);animation:fadeUp .5s var(--ease) both;}
 #mainApp{display:none;flex-direction:column;height:100vh;overflow:hidden;}
-  min-height:100dvh;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:32px;
-  background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);
-  animation:fadeUp .5s var(--ease) both;
-}
 #loginScreen::before{
   content:'';position:fixed;inset:0;pointer-events:none;
   background:
@@ -2358,10 +2353,15 @@ select.sel{
       </div>
       <div class="chips" id="tChips">
         <button class="chip on" onclick="filterT('todas',this)">Todas</button>
-        <button class="chip" onclick="filterT('minhas',this)">Minhas (MA)</button>
+        <button class="chip" onclick="filterT('minhas',this)" id="chipMinhas">Minhas</button>
         <button class="chip" onclick="filterT('urgente',this)">Urgentes</button>
         <button class="chip" onclick="filterT('andamento',this)">Em Andamento</button>
         <button class="chip" onclick="filterT('concluidas',this)">✅ Concluídas</button>
+      </div>
+      <!-- FILTRO POR RESPONSÁVEL -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:11px;font-weight:700;color:var(--tx3);letter-spacing:.5px;text-transform:uppercase;">👤 Responsável:</span>
+        <div id="taskRespChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
       </div>
       <div id="taskList"></div>
       <div id="kanbanBoard" style="display:none"></div>
@@ -3663,6 +3663,17 @@ async function loadAll() {
       if (am.data  && am.data.length)  { agenda  = norm(am.data);  }
       if (avm.data && avm.data.length) { ativs   = norm(avm.data); }
       if (espm.data && espm.data.length){ espacos = norm(espm.data);}
+      // Carregar membros por espaço para o cache (avatares na hierarquia)
+      try {
+        const { data: emData } = await safeDb.from('espaco_membros').select('espaco_id,membro_av');
+        if (emData) {
+          espacoMembrosCache = {};
+          emData.forEach(r => {
+            if (!espacoMembrosCache[r.espaco_id]) espacoMembrosCache[r.espaco_id] = [];
+            espacoMembrosCache[r.espaco_id].push(r.membro_av);
+          });
+        }
+      } catch(e) { console.warn('espaco_membros cache failed:', e); }
       // Sincronizar localStorage com dados do Supabase
       const projIds = new Set(proj.map(p => p.id));
       tar = tar.filter(t => !t.projeto_id || projIds.has(t.projeto_id));
@@ -3714,13 +3725,22 @@ async function loadNotifs() {
 }
 
 function renderAll() {
-  // Atualizar avatar do usuário logado
+  // Atualizar avatar do usuário logado (com suporte a foto)
   if (curUser) {
+    // Sincronizar foto do curUser com dados atualizados em memb[]
+    const membAtualizado = memb.find(m => m.av === curUser.av);
+    if (membAtualizado?.foto && !curUser.foto) curUser.foto = membAtualizado.foto;
     const avEl = document.getElementById('userAv');
     if (avEl) {
-      avEl.textContent = curUser.av || '?';
-      avEl.style.background = (curUser.cor||'#4F46E5') + '33';
-      avEl.style.color = curUser.cor || '#4F46E5';
+      if (curUser.foto) {
+        avEl.innerHTML = `<img src="${curUser.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+        avEl.style.background = 'transparent';
+        avEl.style.color = 'transparent';
+      } else {
+        avEl.textContent = curUser.av || '?';
+        avEl.style.background = (curUser.cor||'#4F46E5') + '33';
+        avEl.style.color = curUser.cor || '#4F46E5';
+      }
     }
   }
   // Garantir tab home visível
@@ -3791,25 +3811,29 @@ function renderDashInteligente() {
   const projAtivos = proj.filter(p => p.status !== 'concluido' && p.status !== 'cancelado');
   const projAtrasados = projAtivos.filter(p => p.fim && new Date(p.fim) < hoje);
   const projRisco = projAtivos.filter(p => p.fim && new Date(p.fim) - hoje < 7*24*60*60*1000 && new Date(p.fim) >= hoje);
+  const tarAbertas = tar.filter(t => !t.ok);
   const tarUrgentes = tar.filter(t => !t.ok && t.prior === 'urgente');
+  const tarConcluidas = tar.filter(t => t.ok);
   const riscosAtivos = riscos.filter(r => r.status !== 'resolvido');
   const riscosAltos = riscosAtivos.filter(r => r.sev === 'Alta');
+  const progMedio = projAtivos.length ? Math.round(projAtivos.reduce((a,p) => a+(p.prog||0),0)/projAtivos.length) : 0;
+  const taxaConclusao = tar.length ? Math.round((tarConcluidas.length/tar.length)*100) : 0;
 
-  // Badges
+  // Badges do welcome banner
   const bp = document.getElementById('badgeProj'); if(bp) bp.textContent = projAtivos.length + ' estações ativas';
   const bu = document.getElementById('badgeUrgente'); if(bu) bu.textContent = tarUrgentes.length + ' urgentes';
   const bm = document.getElementById('badgeMembros'); if(bm) bm.textContent = memb.length + ' membros';
 
-  // Stats (sem emoji)
+  // KPI Cards — com dados reais
   const el = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
   el('statProjAtivos', projAtivos.length);
-  el('statProjNomes', projAtivos.slice(0,3).map(p=>p.nome.split(' ')[0]).join('·')||'—');
+  el('statProjNomes', projAtivos.length ? `${progMedio}% médio · ${projAtrasados.length} atrasado${projAtrasados.length!==1?'s':''}` : '— nenhum ativo');
   el('statAtrasados', projAtrasados.length);
-  el('statAtrasadosNomes', projAtrasados.length ? projAtrasados.slice(0,2).map(p=>p.nome.split(' ')[0]).join(', ') : 'Nenhum');
+  el('statAtrasadosNomes', projAtrasados.length ? projAtrasados.slice(0,2).map(p=>p.nome.split(' ')[0]).join(', ') + (projAtrasados.length>2?'…':'') : '✅ Todos no prazo');
   el('statUrgentes', tarUrgentes.length);
-  el('statUrgentesNomes', tarUrgentes.length ? tarUrgentes.slice(0,2).map(t=>t.titulo||(t.titulo||t.tit)||'').join(', ') : 'Tudo ok');
+  el('statUrgentesNomes', tarUrgentes.length ? `${tarAbertas.length} abertas · ${taxaConclusao}% concluídas` : `✅ ${taxaConclusao}% tarefas concluídas`);
   el('statRiscos', riscosAtivos.length);
-  el('statRiscosStr', riscosAltos.length ? riscosAltos.length + ' de alta severidade' : 'Sem riscos altos');
+  el('statRiscosStr', riscosAltos.length ? `🔴 ${riscosAltos.length} alta severidade` : riscosAtivos.length ? `${riscosAtivos.length} em monitoramento` : '✅ Sem riscos ativos');
 
   // Alertas inteligentes — SVG icons, sem emoji
   const SVG_ALERTA_RED = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
@@ -3819,7 +3843,7 @@ function renderDashInteligente() {
   const alertas = [];
   projAtrasados.forEach(p => {
     const dias = Math.floor((hoje - new Date(p.fim)) / 86400000);
-    alertas.push({ tipo:'red', svg:SVG_ALERTA_RED, titulo:`${p.nome} — atrasado ${dias} dia${dias>1?'s':''}`, sub:`Prazo era ${new Date(p.fim).toLocaleDateString('pt-BR')} · Setor: ${p.dept||'—'}` });
+    alertas.push({ tipo:'red', svg:SVG_ALERTA_RED, titulo:`${p.nome} — atrasado ${dias} dia${dias>1?'s':''}`, sub:`Prazo era ${new Date(p.fim).toLocaleDateString('pt-BR')} · Setor: ${p.dept||'—'} · Progresso: ${p.prog||0}%` });
   });
   projRisco.forEach(p => {
     const dias = Math.ceil((new Date(p.fim) - hoje) / 86400000);
@@ -3829,30 +3853,41 @@ function renderDashInteligente() {
     alertas.push({ tipo:'red', svg:SVG_ALERTA_RED, titulo:`Risco ALTO: ${(r.descricao||r.desc||'').slice(0,50)}`, sub:`Projeto: ${proj.find(p=>p.id===r.projeto_id)?.nome||'—'} · Responsável: ${memb.find(m=>m.av===r.resp)?.nome||r.resp||'—'}` });
   });
   if (tarUrgentes.length) {
-    alertas.push({ tipo:'yellow', svg:SVG_ALERTA_FIRE, titulo:`${tarUrgentes.length} tarefa${tarUrgentes.length>1?'s':''} urgente${tarUrgentes.length>1?'s':''}`, sub:tarUrgentes.slice(0,3).map(t=>t.titulo||(t.titulo||t.tit)||'').join(' · ') });
+    alertas.push({ tipo:'yellow', svg:SVG_ALERTA_FIRE, titulo:`${tarUrgentes.length} tarefa${tarUrgentes.length>1?'s':''} urgente${tarUrgentes.length>1?'s':''}`, sub:tarUrgentes.slice(0,3).map(t=>t.titulo||'').join(' · ') });
+  }
+  // Alertas de tarefas atrasadas do usuário
+  const minhasAtrasadas = tar.filter(t => !t.ok && t.prazo && new Date(t.prazo) < hoje && t.resp === curUser?.av);
+  if (minhasAtrasadas.length) {
+    alertas.push({ tipo:'red', svg:SVG_ALERTA_RED, titulo:`Você tem ${minhasAtrasadas.length} tarefa${minhasAtrasadas.length>1?'s':''} em atraso`, sub:minhasAtrasadas.slice(0,2).map(t=>t.titulo||'').join(' · ') });
   }
   const adEl = document.getElementById('alertasDash');
   if (adEl) {
     if (alertas.length === 0) {
-      adEl.innerHTML = `<div class="alerta-card alerta-blue"><div class="alerta-ico">${SVG_ALERTA_OK}</div><div><div class="alerta-title">Tudo nos trilhos!</div><div class="alerta-sub">Nenhum alerta crítico no momento.</div></div></div>`;
+      adEl.innerHTML = `<div class="alerta-card alerta-blue"><div class="alerta-ico">${SVG_ALERTA_OK}</div><div><div class="alerta-title">Tudo nos trilhos!</div><div class="alerta-sub">Nenhum alerta crítico no momento. Taxa de conclusão: ${taxaConclusao}%.</div></div></div>`;
     } else {
       adEl.innerHTML = alertas.slice(0,5).map(a => `<div class="alerta-card alerta-${a.tipo}"><div class="alerta-ico">${a.svg}</div><div><div class="alerta-title">${a.titulo}</div><div class="alerta-sub">${a.sub}</div></div></div>`).join('');
     }
   }
 
-  // Progresso por sistema (barras horizontais)
+  // Progresso por sistema (barras horizontais) com contagem de tarefas
   const sistemas = [...new Set(projAtivos.map(p => p.dept).filter(Boolean))];
   const psEl = document.getElementById('progSistemas');
   if (psEl) {
-    if (!sistemas.length) { psEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px">Nenhum projeto ativo</div>'; }
+    if (!sistemas.length) { psEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px">Nenhum projeto ativo cadastrado</div>'; }
     else {
       psEl.innerHTML = sistemas.map((s, i) => {
         const ps = projAtivos.filter(p => p.dept === s);
         const media = Math.round(ps.reduce((a,p) => a + (p.prog||0), 0) / ps.length);
+        const tarSistema = tar.filter(t => ps.some(p => p.id === t.projeto_id));
+        const tarAbSistema = tarSistema.filter(t => !t.ok).length;
         const cor = CL[i % CL.length];
-        return `<div class="prog-row">
-          <div class="prog-label"><span>${s} <span style="color:var(--tx3);font-size:10px">(${ps.length} proj)</span></span><span style="font-weight:700;color:${cor}">${media}%</span></div>
-          <div class="prog-bar"><div class="prog-fill" style="width:${media}%;background:${cor}"></div></div>
+        const barColor = media < 30 ? '#EF4444' : media < 70 ? '#F59E0B' : '#10B981';
+        return `<div class="prog-row" onclick="filtrarEstacao('${s}',null);sw('proj',document.querySelectorAll('#sidebar .ni')[1])" style="cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div class="prog-label">
+            <span>${s} <span style="color:var(--tx3);font-size:10px">${ps.length} proj · ${tarAbSistema} tarefa${tarAbSistema!==1?'s':''} abertas</span></span>
+            <span style="font-weight:700;color:${barColor}">${media}%</span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${media}%;background:${barColor};transition:width 1s ease"></div></div>
         </div>`;
       }).join('');
     }
@@ -3871,10 +3906,10 @@ function renderDashInteligente() {
       else if (projRisco.includes(p) && (p.prog||0) < 50) radarItens.push({ sev:'medio', texto:`${p.nome}`, sub:`Prazo próximo com ${p.prog||0}% de progresso` });
     });
     if (!radarItens.length) {
-      radarEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Nenhum risco detectado automaticamente</div>';
+      radarEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">✅ Nenhum risco detectado automaticamente</div>';
     } else {
       radarEl.innerHTML = radarItens.slice(0,5).map(r => `
-        <div class="radar-item">
+        <div class="radar-item" style="cursor:pointer;" onclick="sw('risk',document.querySelectorAll('#sidebar .ni')[5])">
           <span class="radar-sev sev-${r.sev}">${r.sev.toUpperCase()}</span>
           <div><div class="radar-nome">${r.texto}</div><div class="radar-sub">${r.sub}</div></div>
         </div>`).join('');
@@ -3893,16 +3928,16 @@ function renderDashInteligente() {
       const dotTarefas = atrasadas === 0 ? '#22C55E' : atrasadas <= 2 ? '#EAB308' : '#EF4444';
       const dotRisco = rp === 0 ? '#22C55E' : rp <= 1 ? '#EAB308' : '#EF4444';
       const prog = p.prog || 0;
-      const cor = CL[projAtivos.indexOf(p) % CL.length];
-      return `<div class="saude-row">
-        <div style="width:36px;height:36px;border-radius:50%;background:conic-gradient(${cor} ${prog*3.6}deg,var(--surface2) 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px">
-          <div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">${prog}%</div>
+      const cor = prog < 30 ? '#EF4444' : prog < 70 ? '#F59E0B' : '#10B981';
+      return `<div class="saude-row" onclick="openDet('proj','${p.id}')" style="cursor:pointer;">
+        <div style="width:36px;height:36px;border-radius:50%;background:conic-gradient(${cor} ${prog*3.6}deg,var(--surface3) 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${cor}">${prog}%</div>
         </div>
-        <div class="saude-nome">${p.nome}<div style="font-size:10px;color:var(--tx3);font-weight:400">${p.dept||''}</div></div>
+        <div class="saude-nome">${p.nome}<div style="font-size:10px;color:var(--tx3);font-weight:400">${p.dept||''} · ${tf.length} tarefas</div></div>
         <div class="saude-dots">
-          <div class="saude-dot" style="background:${dotPrazo}" title="Prazo"></div><span style="font-size:9px;color:var(--tx3)">Prazo</span>
-          <div class="saude-dot" style="background:${dotTarefas};margin-left:6px" title="Tarefas"></div><span style="font-size:9px;color:var(--tx3)">Tarefas</span>
-          <div class="saude-dot" style="background:${dotRisco};margin-left:6px" title="Riscos"></div><span style="font-size:9px;color:var(--tx3)">Riscos</span>
+          <div class="saude-dot" style="background:${dotPrazo}" title="Prazo ${prazoOk?'ok':'atrasado'}"></div><span style="font-size:9px;color:var(--tx3)">Prazo</span>
+          <div class="saude-dot" style="background:${dotTarefas};margin-left:6px" title="${atrasadas} tarefas atrasadas"></div><span style="font-size:9px;color:var(--tx3)">Tasks</span>
+          <div class="saude-dot" style="background:${dotRisco};margin-left:6px" title="${rp} riscos"></div><span style="font-size:9px;color:var(--tx3)">Riscos</span>
         </div>
       </div>`;
     }).join('') || '<div style="color:var(--tx3);font-size:12px;padding:8px">Nenhum projeto ativo</div>';
@@ -4116,18 +4151,54 @@ function trow(t) {
   </div>`;
 }
 
+let curRespF = ''; // filtro de responsável em Tarefas
+
+function renderRespChips() {
+  const el = document.getElementById('taskRespChips');
+  if (!el) return;
+  // Responsáveis únicos que têm tarefas
+  const avs = [...new Set(tar.map(t => t.resp).filter(Boolean))];
+  if (!avs.length) { el.innerHTML = ''; return; }
+  const allBtn = `<div class="chip ${!curRespF?'on':''}" onclick="filtrarRespTarefa('',this)" style="font-size:11px;padding:4px 10px;">Todos</div>`;
+  const chips = avs.map(av => {
+    const m = memb.find(x => x.av === av);
+    const cor = m?.cor || '#4F46E5';
+    const ativo = curRespF === av;
+    return `<div class="chip ${ativo?'on':''}" onclick="filtrarRespTarefa('${av}',this)" 
+      style="font-size:11px;padding:4px 10px;display:flex;align-items:center;gap:5px;${ativo?'':'border-color:'+cor+'44'}">
+      <div style="width:16px;height:16px;border-radius:5px;background:${cor}22;color:${cor};font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">${m?.foto?`<img src="${m.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`:av}</div>
+      ${m?.nome?.split(' ')[0]||av}
+    </div>`;
+  }).join('');
+  el.innerHTML = allBtn + chips;
+}
+
+function filtrarRespTarefa(av, el) {
+  curRespF = av;
+  document.querySelectorAll('#taskRespChips .chip').forEach(c => c.classList.remove('on'));
+  if (el) el.classList.add('on');
+  renderTasks();
+}
+
 function renderTasks() {
   let l = [...tar];
   if (curTF==='minhas') l = l.filter(t => t.resp===curUser?.av);
   if (curTF==='urgente') l = l.filter(t => t.prior==='urgente' && !t.ok);
   if (curTF==='andamento') l = l.filter(t => !t.ok && ((t.status||'').includes('andamento')||(t.status||'').includes('desenvolv')));
   if (curTF==='concluidas') l = l.filter(t => t.ok);
+  // Filtro por responsável
+  if (curRespF) l = l.filter(t => t.resp === curRespF);
+  // Atualizar chip "Minhas" com nome real
+  const chipMinhas = document.getElementById('chipMinhas');
+  if (chipMinhas && curUser?.av) chipMinhas.textContent = `Minhas (${curUser.av})`;
+  // Renderizar chips de responsável
+  renderRespChips();
   if (curView==='kanban') { renderKanban(l); return; }
   const ab = l.filter(t => !t.ok), dn = l.filter(t => t.ok);
   let h = '';
   if (ab.length) { h += `<div class="sl">Abertas (${ab.length})</div>`; h += ab.map(trow).join(''); }
   if (dn.length) { h += `<div class="sl">Concluídas (${dn.length})</div>`; h += dn.map(trow).join(''); }
-  if (!l.length) h = '<div style="text-align:center;padding:40px;color:var(--tx3)">Nenhuma tarefa</div>';
+  if (!l.length) h = '<div style="text-align:center;padding:40px;color:var(--tx3)">Nenhuma tarefa encontrada</div>';
   document.getElementById('taskList').innerHTML = h;
   document.getElementById('kanbanBoard').style.display = 'none';
   document.getElementById('taskList').style.display = 'block';
@@ -4213,10 +4284,21 @@ async function addTask() {
   const newProg = pTasks.length ? Math.round((pOk/pTasks.length)*100) : 0;
   const p = proj.find(x => x.id===data.projeto_id);
   if (p) p.prog = newProg;
-  // Notificar responsável
+  // Notificar responsável se for diferente do criador
   if (data.resp && data.resp !== curUser?.av) {
-    await safeDb.from('notificacoes').insert([{ destinatario:data.resp, titulo:'Nova tarefa atribuída', texto:`"${t}" foi atribuída a você`, tipo:'info', tarefa_id:data.id }]);
+    const prazoStr = nova.prazo ? ` · Prazo: ${new Date(nova.prazo+'T12:00').toLocaleDateString('pt-BR')}` : '';
+    const priorStr = {urgente:'🔴 Urgente',alta:'🟠 Alta',media:'🟡 Média',baixa:'🟢 Baixa'}[nova.prior] || nova.prior;
+    await safeDb.from('notificacoes').insert([{
+      destinatario: data.resp,
+      titulo: `📋 Nova tarefa: ${t}`,
+      mensagem: `Atribuída por ${curUser?.nome?.split(' ')[0]||curUser?.av||'alguém'} · ${priorStr}${prazoStr}`,
+      tipo: nova.prior === 'urgente' ? 'urgente' : 'info',
+      tarefa_id: data.id
+    }]);
+    await loadNotifs();
   }
+  // Log de atividade
+  await logAtividade('tarefa_criada', 'Tarefa criada', t, curUser?.av, nova.projeto_id, data.id, '#4F46E5');
   closeM('mTask'); renderTasks(); renderUrgent(); renderChart(); popSels();
   document.getElementById('ntT').value = '';
   await calcularProgressoAuto(nova.projeto_id);
@@ -4257,11 +4339,25 @@ function openEditTask(id) {
 }
 
 async function saveEditTask(id) {
+  const tarefaAnterior = tar.find(t => t.id === id);
   const upd = { titulo:document.getElementById('ntT').value.trim(), projeto_id:document.getElementById('ntPj').value||null, resp:document.getElementById('ntR').value||null, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value, updated_at: new Date().toISOString() };
   const { error } = await safeDb.from('tarefas').update(upd).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   const idx = tar.findIndex(t => t.id===id);
   if (idx >= 0) tar[idx] = { ...tar[idx], ...upd };
+  // Notificar novo responsável se mudou
+  if (upd.resp && upd.resp !== curUser?.av && upd.resp !== tarefaAnterior?.resp) {
+    const prazoStr = upd.prazo ? ` · Prazo: ${new Date(upd.prazo+'T12:00').toLocaleDateString('pt-BR')}` : '';
+    const priorStr = {urgente:'🔴 Urgente',alta:'🟠 Alta',media:'🟡 Média',baixa:'🟢 Baixa'}[upd.prior] || upd.prior;
+    await safeDb.from('notificacoes').insert([{
+      destinatario: upd.resp,
+      titulo: `📋 Tarefa atribuída a você: ${upd.titulo}`,
+      mensagem: `Atribuída por ${curUser?.nome?.split(' ')[0]||curUser?.av||'alguém'} · ${priorStr}${prazoStr}`,
+      tipo: upd.prior === 'urgente' ? 'urgente' : 'info',
+      tarefa_id: id
+    }]);
+    await loadNotifs();
+  }
   const btn = document.querySelector('#mTask .btnp');
   btn.textContent = 'CRIAR TAREFA'; btn.onclick = addTask;
   closeM('mTask'); renderTasks();
@@ -7353,15 +7449,15 @@ async function showAlerts() {
   const panel = document.getElementById('detPanel');
   panel.classList.add('on');
   document.getElementById('detTitle').textContent = '🔔 Notificações';
-  document.getElementById('detContent').innerHTML = notifs.length ? notifs.map(n => `<div style="padding:10px 0;border-bottom:1px solid var(--br);display:flex;gap:8px;align-items:flex-start">
-    <div style="font-size:18px">${n.tipo==='urgente'?'🔴':n.tipo==='alerta'?'🟡':'🔵'}</div>
+  document.getElementById('detContent').innerHTML = notifs.length ? notifs.map(n => `<div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">
+    <div style="width:36px;height:36px;border-radius:10px;background:${n.tipo==='urgente'?'rgba(239,68,68,.15)':n.tipo==='alerta'?'rgba(245,158,11,.15)':'rgba(79,70,229,.12)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${n.tipo==='urgente'?'🔴':n.tipo==='alerta'?'🟡':'🔵'}</div>
     <div style="flex:1">
-      <div style="font-size:12px;font-weight:700;margin-bottom:2px">${n.titulo}</div>
-      <div style="font-size:11px;color:var(--tx3)">${n.texto||''}</div>
-      <div style="font-size:9px;color:var(--tx3);margin-top:3px">${fmtDate(n.created_at)}</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:3px;color:var(--tx)">${n.titulo||''}</div>
+      <div style="font-size:11px;color:var(--tx3);line-height:1.4">${n.mensagem||n.texto||''}</div>
+      <div style="font-size:10px;color:var(--tx4);margin-top:4px">${fmtDate(n.created_at)}</div>
     </div>
-    <button onclick="marcarLida('${n.id}')" style="background:var(--surface3);border:none;border-radius:6px;padding:4px 7px;font-size:10px;color:var(--tx2);cursor:pointer">✓</button>
-  </div>`).join('') : '<div style="text-align:center;padding:30px;color:var(--tx3)">✅ Nenhuma notificação</div>';
+    <button onclick="marcarLida('${n.id}')" title="Marcar como lida" style="background:var(--surface3);border:none;border-radius:7px;padding:5px 9px;font-size:11px;color:var(--tx2);cursor:pointer;flex-shrink:0;">✓</button>
+  </div>`).join('') : '<div style="text-align:center;padding:40px;color:var(--tx3)"><div style="font-size:32px;margin-bottom:8px">🔔</div>Nenhuma notificação</div>';
 }
 
 async function marcarLida(id) {
@@ -7374,7 +7470,7 @@ async function marcarLida(id) {
 async function notificarEquipe(titulo, texto, tipo, tarefaId, projetoId) {
   const todos = memb.filter(m => m.av !== curUser?.av).slice(0,5);
   if (!todos.length) return;
-  await safeDb.from('notificacoes').insert(todos.map(m => ({ destinatario:m.av, titulo, texto, tipo:tipo||'info', tarefa_id:tarefaId||null, projeto_id:projetoId||null })));
+  await safeDb.from('notificacoes').insert(todos.map(m => ({ destinatario:m.av, titulo, mensagem:texto, tipo:tipo||'info', tarefa_id:tarefaId||null, projeto_id:projetoId||null })));
 }
 
 // ── ATIVIDADE LOG ─────────────────────────────────────────────────
@@ -7657,14 +7753,22 @@ function renderHierarquia() {
     espacosEstacao.forEach(esp => {
       const projEspaco = proj.filter(p => p.espaco_id === esp.id);
       const espProg = projEspaco.length ? Math.round(projEspaco.reduce((a,p)=>a+(p.prog||0),0)/projEspaco.length) : 0;
+      // Membros do espaço via cache
+      const membsEspaco = (espacoMembrosCache[esp.id] || []).map(av => memb.find(m => m.av === av)).filter(Boolean);
+      const avataresMembros = membsEspaco.length ? `
+        <div style="display:flex;align-items:center;gap:2px;margin-right:4px;" title="${membsEspaco.map(m=>m.nome.split(' ')[0]).join(', ')}">
+          ${membsEspaco.slice(0,5).map(m => `<div style="width:22px;height:22px;border-radius:6px;background:${m.cor||'#4F46E5'}22;color:${m.cor||'#4F46E5'};font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1.5px solid var(--surface);margin-left:-4px;flex-shrink:0;">${m.foto?`<img src="${m.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`:m.av}</div>`).join('')}
+          ${membsEspaco.length > 5 ? `<div style="width:22px;height:22px;border-radius:6px;background:var(--surface3);color:var(--tx3);font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-left:-4px;">+${membsEspaco.length-5}</div>` : ''}
+        </div>` : '';
       html += `<div class="espaco-bloco">
         <div class="espaco-header">
           <span class="espaco-icone">${esp.icone||'📁'}</span>
           <div class="espaco-nome">${esp.nome}</div>
           <span class="espaco-badge">${projEspaco.length} proj · ${espProg}%</span>
+          ${avataresMembros}
           <div class="espaco-actions">
             <button class="btnadd" style="font-size:10px;padding:3px 8px" onclick="abrirNovoProjEspaco('${esp.id}','${estacao.replace(/'/g,"\\'")}')">+ Projeto</button>
-            <span onclick="gerenciarMembrosEspaco('${esp.id}','${esp.nome.replace(/'/g,"\\'")}'')" style="cursor:pointer;font-size:13px;color:var(--brand);margin-left:4px" title="Membros do espaço">👥</span>
+            <span onclick="gerenciarMembrosEspaco('${esp.id}','${esp.nome.replace(/'/g,"\\'")}'')" style="cursor:pointer;font-size:13px;color:var(--brand);margin-left:4px" title="Gerenciar membros do espaço">👥${membsEspaco.length?` <span style="background:var(--brand);color:#fff;border-radius:10px;font-size:8px;padding:0 4px;font-weight:700;">${membsEspaco.length}</span>`:''}</span>
             <span onclick="editarEspaco('${esp.id}')" style="cursor:pointer;font-size:13px;color:var(--tx2);margin-left:4px">✏️</span>
             <span onclick="deletarEspaco('${esp.id}')" style="cursor:pointer;font-size:13px;color:#EF4444">🗑️</span>
           </div>
@@ -7781,22 +7885,41 @@ let espacoMembrosCache = {};
 async function gerenciarMembrosEspaco(espacoId, nomeEspaco) {
   document.getElementById('mMembrosEspacoId').value = espacoId;
   document.getElementById('mMembrosEspacoTitle').textContent = '👥 ' + nomeEspaco.toUpperCase();
+
+  // Mostrar loading enquanto carrega
+  const lista = document.getElementById('mMembrosEspacoLista');
+  lista.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tx3);font-size:12px">⏳ Carregando membros...</div>';
+  openM('mMembrosEspaco');
+
   const { data } = await safeDb.from('espaco_membros').select('membro_av').eq('espaco_id', espacoId);
   const membrosAtuais = new Set((data||[]).map(x => x.membro_av));
-  const lista = document.getElementById('mMembrosEspacoLista');
-  lista.innerHTML = memb.map(m => {
+
+  // Cabeçalho com resumo dos membros já no espaço
+  const membrosDentro = memb.filter(m => membrosAtuais.has(m.av));
+  const resumoHtml = membrosDentro.length ? `
+    <div style="background:var(--brand-light);border:1px solid var(--brand);border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;font-weight:700;color:var(--brand);">✅ Já no espaço:</span>
+      ${membrosDentro.map(m => `<div title="${m.nome}" style="width:26px;height:26px;border-radius:7px;background:${m.cor||'#4F46E5'}22;color:${m.cor||'#4F46E5'};font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1.5px solid ${m.cor||'#4F46E5'}44;">${m.foto?`<img src="${m.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`:m.av}</div>`).join('')}
+      <span style="font-size:11px;color:var(--brand);font-weight:600;">${membrosDentro.length} membro${membrosDentro.length!==1?'s':''}</span>
+    </div>` : `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:11px;color:var(--tx3);">
+      Nenhum membro neste espaço ainda. Selecione abaixo para adicionar.
+    </div>`;
+
+  lista.innerHTML = resumoHtml + memb.map(m => {
     const checked = membrosAtuais.has(m.av);
     const cor = m.cor || '#4F46E5';
-    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1.5px solid ${checked?'var(--brand)':'var(--border)'};background:${checked?'rgba(79,70,229,.08)':'var(--surface2)'};cursor:pointer;transition:all .15s">
-      <input type="checkbox" value="${m.av}" ${checked?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand)" onchange="this.closest('label').style.borderColor=this.checked?'var(--brand)':'var(--border)';this.closest('label').style.background=this.checked?'rgba(79,70,229,.08)':'var(--surface2)'">
-      <div style="width:30px;height:30px;border-radius:8px;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;overflow:hidden">${m.foto?`<img src="${m.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`:m.av}</div>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:var(--tx)">${m.nome}</div>
-        <div style="font-size:10px;color:var(--tx3)">${m.cargo||''}</div>
+    const tarMembro = tar.filter(t => t.resp === m.av && !t.ok).length;
+    return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1.5px solid ${checked?'var(--brand)':'var(--border)'};background:${checked?'rgba(79,70,229,.06)':'var(--surface2)'};cursor:pointer;transition:all .15s;margin-bottom:7px;">
+      <input type="checkbox" value="${m.av}" ${checked?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand);flex-shrink:0;" onchange="this.closest('label').style.borderColor=this.checked?'var(--brand)':'var(--border)';this.closest('label').style.background=this.checked?'rgba(79,70,229,.06)':'var(--surface2)'">
+      <div style="width:34px;height:34px;border-radius:9px;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;overflow:hidden;">${m.foto?`<img src="${m.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`:m.av}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.nome}</div>
+        <div style="font-size:10px;color:var(--tx3);">${m.cargo||'Membro'} · ${tarMembro ? `<span style="color:#F59E0B;font-weight:600;">${tarMembro} tarefa${tarMembro!==1?'s':''} abertas</span>` : '<span style="color:var(--green)">sem tarefas abertas</span>'}</div>
       </div>
+      ${checked ? '<span style="font-size:14px;flex-shrink:0;">✅</span>' : ''}
     </label>`;
   }).join('');
-  openM('mMembrosEspaco');
 }
 
 async function salvarMembrosEspaco() {
@@ -7807,7 +7930,10 @@ async function salvarMembrosEspaco() {
     const { error } = await safeDb.from('espaco_membros').insert(selecionados.map(av => ({ espaco_id: espacoId, membro_av: av })));
     if (error) { showToast('❌ Erro: ' + error.message); return; }
   }
+  // Atualizar cache local
+  espacoMembrosCache[espacoId] = selecionados;
   closeM('mMembrosEspaco');
+  renderHierarquia();
   renderChatCanais();
   showToast(`✅ ${selecionados.length} membro(s) salvos no espaço!`);
 }
@@ -8673,12 +8799,18 @@ function pedirPermissaoNotif() {
 
 async function entrarNoApp(usuario) {
   curUser = usuario;
-  // Atualizar avatar
+  // Atualizar avatar (com suporte a foto)
   const avEl = document.getElementById('userAv');
-  if (avEl) { 
-    avEl.textContent = usuario.av||'?'; 
-    avEl.style.background = (usuario.cor||'#4F46E5')+'33'; 
-    avEl.style.color = usuario.cor||'#4F46E5'; 
+  if (avEl) {
+    if (usuario.foto) {
+      avEl.innerHTML = `<img src="${usuario.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+      avEl.style.background = 'transparent';
+      avEl.style.color = 'transparent';
+    } else {
+      avEl.textContent = usuario.av||'?';
+      avEl.style.background = (usuario.cor||'#4F46E5')+'33';
+      avEl.style.color = usuario.cor||'#4F46E5';
+    }
   }
   // Esconder login e mostrar app
   const ls = document.getElementById('loginScreen');
@@ -8698,7 +8830,34 @@ async function entrarNoApp(usuario) {
   sw('home', document.querySelector('.ni.on'));
   try { renderNova(); } catch(e) {}
   // Iniciar listener global de mensagens
-  setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); }, 1000);
+  setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); iniciarRealtimeNotifs(); }, 1000);
+}
+
+// ══ REALTIME NOTIFICAÇÕES ════════════════════════════════════════
+let _notifRealtime = null;
+function iniciarRealtimeNotifs() {
+  if (!db || !curUser) return;
+  if (_notifRealtime) { try { _notifRealtime.unsubscribe(); } catch(e) {} }
+  _notifRealtime = db.channel('notifs-' + curUser.av)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes',
+      filter: `destinatario=eq.${curUser.av}` },
+      (payload) => {
+        const n = payload.new;
+        if (!n) return;
+        // Adicionar à lista local
+        notifs.unshift(n);
+        // Atualizar badge
+        const cnt = document.getElementById('alertCount');
+        if (cnt) { cnt.textContent = notifs.length; cnt.style.display = 'flex'; }
+        // Popup toast
+        const emoji = n.tipo === 'urgente' ? '🔴' : n.tipo === 'alerta' ? '⚠️' : '🔔';
+        showToast(`${emoji} ${n.titulo}`);
+        // Notificação do sistema
+        if (Notification.permission === 'granted') {
+          new Notification(`${emoji} DAE Nexus`, { body: n.mensagem || n.titulo, icon: '/favicon.ico', tag: 'notif-' + n.id });
+        }
+      })
+    .subscribe();
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
