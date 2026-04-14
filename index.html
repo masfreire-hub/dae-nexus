@@ -2389,48 +2389,7 @@ select.sel{
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
             ESPAÇOS
           </div>
-          <div id="chatCanaisList">
-            <div class="chat-canal" id="canal-arrecada" onclick="openCh('arrecada','💰','ARRECADA+','projeto')">
-              <div class="chat-canal-ic" style="background:rgba(16,185,129,0.15);">💰</div>
-              <div class="chat-canal-info">
-                <div class="chat-canal-nome">ARRECADA+</div>
-                <div class="chat-canal-preview">Ana Claudia: Setores Fiscais aprovado!</div>
-              </div>
-              <div class="chat-canal-meta"><div class="chat-canal-time">2h</div><div class="chat-badge">3</div></div>
-            </div>
-            <div class="chat-canal" id="canal-siafic" onclick="openCh('siafic','📊','SIAFIC.AI','projeto')">
-              <div class="chat-canal-ic" style="background:rgba(59,130,246,0.15);">📊</div>
-              <div class="chat-canal-info">
-                <div class="chat-canal-nome">SIAFIC.AI</div>
-                <div class="chat-canal-preview">Mariana: Liquidação em desenvolvimento</div>
-              </div>
-              <div class="chat-canal-meta"><div class="chat-canal-time">3h</div><div class="chat-badge">2</div></div>
-            </div>
-            <div class="chat-canal" id="canal-folha" onclick="openCh('folha','👥','FOLHA.AI','projeto')">
-              <div class="chat-canal-ic" style="background:rgba(139,92,246,0.15);">👥</div>
-              <div class="chat-canal-info">
-                <div class="chat-canal-nome">FOLHA.AI</div>
-                <div class="chat-canal-preview">Luciano: Cadastro Servidor pronto p/ teste</div>
-              </div>
-              <div class="chat-canal-meta"><div class="chat-canal-time">ontem</div></div>
-            </div>
-            <div class="chat-canal" id="canal-zapflow" onclick="openCh('zapflow','⚡','ZapFlow 2.0','projeto')">
-              <div class="chat-canal-ic" style="background:rgba(245,158,11,0.15);">⚡</div>
-              <div class="chat-canal-info">
-                <div class="chat-canal-nome">ZapFlow 2.0</div>
-                <div class="chat-canal-preview">Alexandre: Upload múltiplo: feito!</div>
-              </div>
-              <div class="chat-canal-meta"><div class="chat-canal-time">hoje</div></div>
-            </div>
-            <div class="chat-canal" id="canal-mktg" onclick="openCh('mktg','🎨','Marketing','projeto')">
-              <div class="chat-canal-ic" style="background:rgba(236,72,153,0.15);">🎨</div>
-              <div class="chat-canal-info">
-                <div class="chat-canal-nome">Marketing</div>
-                <div class="chat-canal-preview">Yuri: Material gráfica DAE em andamento</div>
-              </div>
-              <div class="chat-canal-meta"><div class="chat-canal-time">hoje</div></div>
-            </div>
-          </div>
+          <div id="chatCanaisList"></div>
 
           <!-- GERAL -->
           <div class="chat-section-label">
@@ -2441,7 +2400,7 @@ select.sel{
             <div class="chat-canal-ic" style="background:rgba(99,102,241,0.15);">💬</div>
             <div class="chat-canal-info">
               <div class="chat-canal-nome">geral</div>
-              <div class="chat-canal-preview">Jeferson: Sprint review hoje às 15h</div>
+              <div class="chat-canal-preview" id="prev-canal-geral">Canal geral da equipe</div>
             </div>
             <div class="chat-canal-meta"><div class="chat-canal-time">agora</div><div class="chat-badge">1</div></div>
           </div>
@@ -3245,8 +3204,18 @@ select.sel{
   <div class="mhandle"></div>
   <div class="mtitle" id="mMemberTitle">NOVO MEMBRO</div>
   <input type="hidden" id="mmId">
-  <label class="lbl">Nome completo</label>
-  <input class="inp" placeholder="Nome completo" id="mmN" oninput="gerarIniciais(this.value)">
+  <!-- FOTO DE PERFIL -->
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+    <div id="mmFotoPreview" onclick="document.getElementById('mmFotoInput').click()" style="width:60px;height:60px;border-radius:14px;background:var(--surface2);border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0">
+      <span style="font-size:20px">📷</span>
+      <span style="font-size:9px;color:var(--tx3);margin-top:2px">Foto</span>
+    </div>
+    <input type="file" id="mmFotoInput" accept="image/*" style="display:none" onchange="previewFotoMembro(this)">
+    <div style="flex:1">
+      <label class="lbl">Nome completo</label>
+      <input class="inp" style="margin:0" placeholder="Nome completo" id="mmN" oninput="gerarIniciais(this.value)">
+    </div>
+  </div>
   <div style="display:flex;gap:8px">
     <div style="flex:1">
       <label class="lbl">Iniciais (avatar) <span style="color:var(--tx3);font-weight:400">ex: MA, AF, YS</span></label>
@@ -3758,7 +3727,30 @@ function renderAll() {
   renderDashInteligente();
   renderUrgent(); renderAct(); renderFeriasMini();
   try{renderHierarquia();}catch(e){} try{renderProj();}catch(e){} try{renderTasks();}catch(e){} try{renderMeet();}catch(e){} try{renderMembers();}catch(e){} try{renderFerias();}catch(e){} try{renderCarga();}catch(e){} try{renderRiscos();}catch(e){} try{renderNova();}catch(e){} try{popSels();}catch(e){}
-  try{renderChatDMs();}catch(e){}
+  try{renderChatDMs();}catch(e){} try{renderChatCanais();}catch(e){}
+}
+
+function renderChatCanais() {
+  const lista = document.getElementById('chatCanaisList');
+  if (!lista) return;
+  if (!espacos.length) {
+    lista.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.3);padding:6px 8px">Nenhum espaço criado</div>';
+    return;
+  }
+  const cores = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(139,92,246,0.15)','rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(239,68,68,0.15)'];
+  lista.innerHTML = espacos.map((e, i) => {
+    const canalId = 'espaco_' + e.id;
+    const cor = cores[i % cores.length];
+    const ic = e.icone || '📁';
+    return `<div class="chat-canal" id="canal-${canalId}" onclick="openCh('${canalId}','${ic}','${e.nome}','projeto','','${e.id}')">
+      <div class="chat-canal-ic" style="background:${cor}">${ic}</div>
+      <div class="chat-canal-info">
+        <div class="chat-canal-nome">${e.nome}</div>
+        <div class="chat-canal-preview" id="prev-${canalId}">${e.estacao} · Canal do espaço</div>
+      </div>
+      <div class="chat-canal-meta"><div class="chat-canal-time" id="time-${canalId}"></div></div>
+    </div>`;
+  }).join('');
 }
 
 function renderChatDMs() {
@@ -6923,7 +6915,10 @@ function renderMembers(l=memb) {
     const coberturaTitle = {all:'E-mail e WhatsApp cadastrados', partial:'Contato parcial — falta '+(temEmail?'WhatsApp':'e-mail'), none:'Sem e-mail nem WhatsApp'}[cobertura];
     return `<div class="mc">
       <div style="position:relative">
-        <div class="mav" style="background:${m.cor}22;color:${m.cor}">${m.av}</div>
+        ${m.foto 
+          ? `<div class="mav" style="padding:0;overflow:hidden"><img src="${m.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></div>`
+          : `<div class="mav" style="background:${m.cor}22;color:${m.cor}">${m.av}</div>`
+        }
         <div class="mstat" style="position:absolute;bottom:2px;right:2px;background:${m.online?'#22C55E':'#555'}"></div>
       </div>
       <div style="flex:1">
@@ -7012,6 +7007,12 @@ async function addMember() {
       console.error('saveMember error:', error);
       return;
     }
+    // Upload da foto se houver
+    const fotoUrl = await uploadFotoMembro(data.id);
+    if (fotoUrl) {
+      await safeDb.from('membros').update({ foto: fotoUrl }).eq('id', data.id);
+      data.foto = fotoUrl;
+    }
     memb.push(data);
     salvarLocal();
     showToast('👥 Membro adicionado com sucesso!');
@@ -7022,6 +7023,27 @@ async function addMember() {
   document.getElementById('mmD').value = 'DAE';
   document.getElementById('mMemberTitle').textContent = 'NOVO MEMBRO';
   document.getElementById('btnSaveMember').textContent = 'ADICIONAR MEMBRO';
+}
+
+function previewFotoMembro(input) {
+  if (!input.files?.[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('mmFotoPreview');
+    if (preview) preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function uploadFotoMembro(membId) {
+  const input = document.getElementById('mmFotoInput');
+  if (!input?.files?.[0]) return null;
+  const file = input.files[0];
+  const ext = file.type.split('/')[1] || 'jpg';
+  const path = `fotos/${membId}.${ext}`;
+  const { error } = await db.storage.from('arquivos').upload(path, file, { cacheControl:'3600', upsert:true });
+  if (error) { console.error('Foto upload error:', error); return null; }
+  return db.storage.from('arquivos').getPublicUrl(path).data?.publicUrl;
 }
 
 function gerarIniciais(nome) {
