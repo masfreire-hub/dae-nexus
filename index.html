@@ -3735,7 +3735,7 @@ function renderAll() {
   const now = new Date();
   const hStr = now.toLocaleString('pt-BR', {hour:'numeric', hour12:false, timeZone:'America/Bahia'});
   const h = parseInt(hStr) || new Date().getHours();
-  const nome = curUser?.nome?.split(' ')[0] || 'Mabiane';
+  const nome = curUser?.nome?.split(' ')[0] || curUser?.av || 'Usuário';
   document.getElementById('wname').textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome.toUpperCase()}`;
   document.getElementById('wdate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderDashInteligente();
@@ -4007,12 +4007,12 @@ function filterP(f,b) { curPF=f; document.querySelectorAll('#pChips .chip').forE
 async function addProj() {
   const n = document.getElementById('npN').value.trim();
   if (!n) { showToast('Digite o nome'); return; }
-  const novo = { nome:n, descricao:document.getElementById('npD').value||'', dept:document.getElementById('npDp').value, espaco_id:espacoId||null, prior:document.getElementById('npPr').value, prog:0, fim:document.getElementById('npF').value||null, status:'planejamento', eq:[curUser?.av||'MA'] };
+  const novo = { nome:n, descricao:document.getElementById('npD').value||'', dept:document.getElementById('npDp').value, espaco_id:espacoId||null, prior:document.getElementById('npPr').value, prog:0, fim:document.getElementById('npF').value||null, status:'planejamento', eq:[curUser?.av||curUser?.av||'?'] };
   const { data, error } = await safeDb.from('projetos').insert([novo]).select().single();
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   proj.unshift(data);
   await logAtividade('projeto_criado', 'Projeto criado', n, curUser?.av, data.id, null, '#C9920A');
-  await notificarEquipe(`🚀 Novo projeto: ${n}`, `Criado por ${curUser?.nome||'MA'}`, 'info', null, data.id);
+  await notificarEquipe(`🚀 Novo projeto: ${n}`, `Criado por ${curUser?.nome||curUser?.av||'?'}`, 'info', null, data.id);
   closeM('mProj'); renderProj(); popSels();
   document.getElementById('npN').value = '';
   showToast('🚀 Projeto criado!');
@@ -4552,7 +4552,7 @@ async function addComentario(tarefaId) {
       }
     }
 
-    const payload = { tarefa_id: tarefaId, autor: curUser?.av||'MA', texto: textoFinal };
+    const payload = { tarefa_id: tarefaId, autor: curUser?.av||curUser?.av||'?', texto: textoFinal };
     if (imagemUrl) payload.imagem_url = imagemUrl;
 
     const { data, error } = await safeDb.from('comentarios').insert([payload]).select().single();
@@ -4575,7 +4575,7 @@ async function addComentario(tarefaId) {
       if (vazio) vazio.remove();
 
       const novoHtml = `<div class="det-com-item" style="flex-direction:row-reverse">
-        <div class="det-com-av" style="background:${m?.cor||'#4F46E5'}20;color:${m?.cor||'#4F46E5'}">${curUser?.av||'MA'}</div>
+        <div class="det-com-av" style="background:${m?.cor||'#4F46E5'}20;color:${m?.cor||'#4F46E5'}">${curUser?.av||curUser?.av||'?'}</div>
         <div class="det-com-bubble" style="display:flex;flex-direction:column;align-items:flex-end">
           <div class="det-com-meta" style="flex-direction:row-reverse">
             <strong>Você</strong><span>agora</span>
@@ -4937,7 +4937,7 @@ function abrirNovoDM() {
     {nome:'Alexandre Silva',av:'AS',cor:'#F59E0B'},
     {nome:'Yuri Santos',av:'YS',cor:'#EC4899'},
   ];
-  lista.innerHTML = todosMembros.filter(m => m.av !== (curUser?.av||'MA')).map((m,i) => {
+  lista.innerHTML = todosMembros.filter(m => m.av !== (curUser?.av||curUser?.av||'?')).map((m,i) => {
     const cor = m.cor || cores[i % cores.length];
     const dmId = 'd' + m.av.toLowerCase();
     return `<div class="chat-dm" style="margin:2px 0;" onclick="iniciarDM('${dmId}','${m.av}','${m.nome}','${cor}');closeM('mNovoDM')">
@@ -5023,8 +5023,8 @@ function renderChat() {
     
     const isMe = m.me;
     const cor = isMe ? (curUser?.cor||'#4F46E5') : (m.cor||'#6366F1');
-    const av = isMe ? (curUser?.av||'MA') : (m.av||'?');
-    const nome = isMe ? (curUser?.nome||'Mabiane') : (m.n||m.av);
+    const av = isMe ? (curUser?.av||curUser?.av||'?') : (m.av||'?');
+    const nome = isMe ? (curUser?.nome||curUser?.av||'Você') : (m.n||m.av);
     
     // Verificar se é continuação do mesmo autor
     const prev = msgs[i-1];
@@ -5410,8 +5410,8 @@ function enviarAudio() {
 
     if (!chatMsgs[curChId]) chatMsgs[curChId] = [];
     chatMsgs[curChId].push({
-      av: curUser?.av||'MA', cor: curUser?.cor||'#4F46E5',
-      n: curUser?.nome||'Mabiane', me: true, h, data:'Hoje',
+      av: curUser?.av||curUser?.av||'?', cor: curUser?.cor||'#4F46E5',
+      n: curUser?.nome||curUser?.av||'Você', me: true, h, data:'Hoje',
       tipo: 'audio', audioUrl: url, duracao: durStr, waveHtml
     });
     renderChat();
@@ -5498,7 +5498,7 @@ async function sendChat() {
   // Mostrar mensagem localmente imediatamente (UX instantânea)
   if (!chatMsgs[curChId]) chatMsgs[curChId] = [];
   chatMsgs[curChId].push({
-    av: curUser?.av||'MA', cor: curUser?.cor||'#4F46E5',
+    av: curUser?.av||curUser?.av||'?', cor: curUser?.cor||'#4F46E5',
     n: curUser?.nome||'Você', t: textoFinal, me: true, h, data:'Hoje',
     tipo: temAnexo ? extra.tipo : 'texto',
     anexoNome: extra.anexo_nome, anexoUrl: extra.anexo_url
@@ -6676,7 +6676,7 @@ DAE Nexus — Sudoeste Informática`);
 
 Participantes: ${participantes.map(m=>m.nome.split(' ')[0]).join(', ')}
 
-_Enviado por ${curUser?.nome?.split(' ')[0]||'Mabiane'} via DAE Nexus_ ✨`);
+_Enviado por ${curUser?.nome?.split(' ')[0]||curUser?.av||'Você'} via DAE Nexus_ ✨`);
 
     const comWpp = participantes.filter(m => m.whatsapp);
     if (comWpp.length) {
@@ -6765,7 +6765,7 @@ DAE Nexus — Sudoeste Informática`);
 
 👥 Participantes: ${nomes}
 
-_Enviado por ${curUser?.nome?.split(' ')[0]||'Mabiane'} via DAE Nexus ✨_`);
+_Enviado por ${curUser?.nome?.split(' ')[0]||curUser?.av||'Você'} via DAE Nexus ✨_`);
 
       const comWpp = mParts.filter(m => m.whatsapp);
       if (comWpp.length) {
@@ -6788,7 +6788,7 @@ async function addMeet() {
   const ps = d.split('-');
   const ms = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
-  const todos = [curUser?.av||'MA', ...conviteParticipantes].filter((v,i,a) => a.indexOf(v)===i);
+  const todos = [curUser?.av||curUser?.av||'?', ...conviteParticipantes].filter((v,i,a) => a.indexOf(v)===i);
 
   const nova = {
     tit: t,
@@ -7305,7 +7305,7 @@ function renderNova() {
   document.getElementById('novaMsgs').innerHTML = novaM.map(m => `<div class="nmsg ${m.r==='user'?'u':''}">
     ${m.r==='ai'?'<div class="naai">✨</div>':''}
     <div class="nbub ${m.r==='ai'?'ai':'u'}">${m.t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}</div>
-    ${m.r==='user'?`<div class="nau">${curUser?.av||'MA'}</div>`:''}
+    ${m.r==='user'?`<div class="nau">${curUser?.av||curUser?.av||'?'}</div>`:''}
   </div>`).join('');
   document.getElementById('novaMsgs').scrollTop = 9999;
 }
@@ -7343,7 +7343,7 @@ ${ferias.map(f=>`• ${f.membro_av}: ${f.inicio} → ${f.fim}`).join('\n')||'Nen
 === REUNIÕES ===
 ${reun.map(r=>`• ${r.tit} | ${r.dia}/${r.mes} às ${r.hora}`).join('\n')||'Nenhuma agendada'}
 
-Usuário atual: ${curUser?.nome||'Mabiane'} (${curUser?.cargo||'Gestora/PO'})`;
+Usuário atual: ${curUser?.nome||curUser?.av||'Você'} (${curUser?.cargo||'Colaborador'})`;
 }
 
 function askNova(q) { document.getElementById('novaInp').value=q; sendNova(); }
@@ -7440,7 +7440,7 @@ Só inclua ACTION se o usuário explicitamente pedir para criar algo.`,
 async function executarAcaoNova(action) {
   if (action.tipo === 'criar_tarefa') {
     const p = proj.find(x => x.id === action.proj_id) || proj[0];
-    const novo = { titulo: action.titulo, projeto_id: p?.id||null, resp: action.resp||curUser?.av||'MA', prior: action.prior||'media', status:'to do', ok:false };
+    const novo = { titulo: action.titulo, projeto_id: p?.id||null, resp: action.resp||curUser?.av||curUser?.av||'?', prior: action.prior||'media', status:'to do', ok:false };
     const { data, error } = await safeDb.from('tarefas').insert([novo]).select().single();
     if (!error && data) {
       tar.unshift(data);
@@ -7450,7 +7450,7 @@ async function executarAcaoNova(action) {
     }
   } else if (action.tipo === 'criar_risco') {
     const p = proj.find(x => x.id === action.proj_id) || proj[0];
-    const novo = { descricao: action.desc, projeto_id: p?.id||null, sev: action.sev||'Média', resp: curUser?.av||'MA', status:'aberto' };
+    const novo = { descricao: action.desc, projeto_id: p?.id||null, sev: action.sev||'Média', resp: curUser?.av||curUser?.av||'?', status:'aberto' };
     const { data, error } = await safeDb.from('riscos').insert([novo]).select().single();
     if (!error && data) {
       riscos.unshift(data);
@@ -8174,7 +8174,7 @@ function openM(id) {
     document.getElementById('btnSaveTask').onclick = addTask;
   }
   if (id === 'mMeet') {
-    conviteParticipantes = [curUser?.av||'MA'];
+    conviteParticipantes = [curUser?.av||curUser?.av||'?'];
     renderParticipantesNovo();
     if (!document.getElementById('nmD').value) {
       document.getElementById('nmD').value = new Date().toISOString().split('T')[0];
@@ -8933,7 +8933,7 @@ function abrirNovoProjEspaco(espacoId, estacao) {
   document.getElementById('mProjTitle').textContent = 'NOVO PROJETO';
   document.getElementById('btnSaveProj').textContent = 'CRIAR PROJETO';
   document.getElementById('btnSaveProj').onclick = addProj;
-  projResponsaveisSel = [curUser?.av||'MA'];
+  projResponsaveisSel = [curUser?.av||curUser?.av||'?'];
   renderProjResponsaveis();
   openM('mProj');
 }
@@ -9034,7 +9034,7 @@ addProj = async function() {
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   proj.unshift(data);
   await logAtividade('projeto_criado', 'Projeto criado', n, curUser?.av, data.id, null, '#C9920A');
-  await notificarEquipe(`🚀 Novo projeto: ${n}`, `Criado por ${curUser?.nome||'MA'}`, 'info', null, data.id);
+  await notificarEquipe(`🚀 Novo projeto: ${n}`, `Criado por ${curUser?.nome||curUser?.av||'?'}`, 'info', null, data.id);
   closeM('mProj'); renderHierarquia(); renderDashInteligente(); popSels();
   projResponsaveisSel = [];
   showToast('🚀 Projeto criado!');
