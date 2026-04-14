@@ -6890,6 +6890,7 @@ function renderMembers(l=memb) {
         <span class="badge" style="background:${DC[m.dept]||'#C9920A'}18;color:${DC[m.dept]||'#C9920A'};font-size:8px">${(m.dept||'').length>10?(m.dept||'').slice(0,10)+'…':m.dept||''}</span>
         <span style="font-size:12px" title="${coberturaTitle}">${coberturaIcon}</span>
         <button onclick="editarMembro('${m.id}')" style="background:var(--surface3);border:none;border-radius:6px;padding:3px 8px;font-size:10px;color:var(--tx2);cursor:pointer">✏️ Editar</button>
+        <button onclick="excluirMembro('${m.id}','${m.nome}')" style="background:rgba(239,68,68,.1);border:none;border-radius:6px;padding:3px 8px;font-size:10px;color:#EF4444;cursor:pointer">🗑</button>
       </div>
     </div>`;
   }).join('') || '<div style="text-align:center;padding:20px;color:var(--tx3)">Nenhum membro</div>';
@@ -6981,6 +6982,18 @@ function gerarIniciais(nome) {
   const w = nome.trim().split(' ').filter(Boolean);
   const av = (w[0]?.[0]||'') + (w[1]?.[0]||w[0]?.[1]||'');
   avEl.value = av.toUpperCase();
+}
+
+async function excluirMembro(id, nome) {
+  if (!confirm(`Excluir "${nome}"?\n\nIsso não pode ser desfeito.`)) return;
+  const { error } = await safeDb.from('membros').delete().eq('id', id);
+  if (error) { showToast('❌ Erro: ' + error.message); return; }
+  memb = memb.filter(m => m.id !== id);
+  salvarLocal();
+  renderMembers();
+  renderChatDMs();
+  popSels();
+  showToast('🗑 Membro excluído!');
 }
 
 function editarMembro(membId) {
