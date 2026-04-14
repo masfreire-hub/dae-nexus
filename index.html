@@ -4841,7 +4841,12 @@ function openCh(id, icon, name, tipo, cor) {
             n: mb?.nome || m.autor,
             t: m.texto || '', me: m.autor === curUser?.av,
             h, data: 'Hoje',
-            tipo: m.tipo, anexoNome: m.anexo_nome, anexoUrl: m.anexo_url
+            tipo: m.tipo, 
+            anexoNome: m.anexo_nome, 
+            anexoUrl: m.anexo_url,
+            audioUrl: m.tipo === 'audio' ? m.anexo_url : undefined,
+            duracao: m.tipo === 'audio' ? m.anexo_nome : undefined,
+            waveHtml: m.tipo === 'audio' ? Array.from({length:22}, () => `<span style="height:${4+Math.floor(Math.random()*18)}px;"></span>`).join('') : undefined
           };
         });
         if (curChId === id) renderChat();
@@ -4862,7 +4867,12 @@ function openCh(id, icon, name, tipo, cor) {
           av: m.autor, cor: mb?.cor||'#4F46E5',
           n: mb?.nome || m.autor,
           t: m.texto || '', me: false, h, data:'Hoje',
-          tipo: m.tipo, anexoNome: m.anexo_nome, anexoUrl: m.anexo_url
+          tipo: m.tipo, 
+            anexoNome: m.anexo_nome, 
+            anexoUrl: m.anexo_url,
+            audioUrl: m.tipo === 'audio' ? m.anexo_url : undefined,
+            duracao: m.tipo === 'audio' ? m.anexo_nome : undefined,
+            waveHtml: m.tipo === 'audio' ? Array.from({length:22}, () => `<span style="height:${4+Math.floor(Math.random()*18)}px;"></span>`).join('') : undefined
         });
         if (curChId === id) {
           renderChat();
@@ -5407,32 +5417,53 @@ function pararGravacao() {
   document.getElementById('chatAudioBtn').classList.remove('recording');
   recordSeconds = 0;
 }
-function enviarAudio() {
+async function enviarAudio() {
   if (!audioChunks.length) { cancelarGravacao(); return; }
   if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
 
-  setTimeout(() => {
-    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-    const url = URL.createObjectURL(blob);
-    const dur = recordSeconds;
-    pararGravacao();
-    audioChunks = [];
+  await new Promise(r => setTimeout(r, 300));
 
-    // Montar mensagem de áudio
-    const now = new Date();
-    const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
-    const bars = Array.from({length:22}, () => 4 + Math.floor(Math.random()*18));
-    const waveHtml = bars.map(h2 => `<span style="height:${h2}px;"></span>`).join('');
-    const durStr = Math.floor(dur/60)+':'+String(dur%60).padStart(2,'0');
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const dur = recordSeconds;
+  pararGravacao();
+  audioChunks = [];
 
-    if (!chatMsgs[curChId]) chatMsgs[curChId] = [];
-    chatMsgs[curChId].push({
-      av: curUser?.av||curUser?.av||'?', cor: curUser?.cor||'#4F46E5',
-      n: curUser?.nome||curUser?.av||'Você', me: true, h, data:'Hoje',
-      tipo: 'audio', audioUrl: url, duracao: durStr, waveHtml
-    });
-    renderChat();
-  }, 200);
+  const now = new Date();
+  const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const bars = Array.from({length:22}, () => 4 + Math.floor(Math.random()*18));
+  const waveHtml = bars.map(h2 => `<span style="height:${h2}px;"></span>`).join('');
+  const durStr = Math.floor(dur/60)+':'+String(dur%60).padStart(2,'0');
+
+  // Mostrar áudio localmente imediatamente com URL temporária
+  const urlTemp = URL.createObjectURL(blob);
+  if (!chatMsgs[curChId]) chatMsgs[curChId] = [];
+  chatMsgs[curChId].push({
+    av: curUser?.av||'?', cor: curUser?.cor||'#4F46E5',
+    n: curUser?.nome||curUser?.av||'Você', me: true, h, data:'Hoje',
+    tipo: 'audio', audioUrl: urlTemp, duracao: durStr, waveHtml
+  });
+  renderChat();
+
+  // Upload para Supabase Storage
+  try {
+    const nomeArq = `audios/${curChId}/${Date.now()}_${curUser?.av||'?'}.webm`;
+    const { error: errUp } = await db.storage.from('arquivos').upload(nomeArq, blob, { cacheControl:'3600', upsert:false, contentType:'audio/webm' });
+    if (errUp) { showToast('⚠️ Áudio enviado só localmente'); return; }
+    const audioUrl = db.storage.from('arquivos').getPublicUrl(nomeArq).data?.publicUrl;
+
+    // Salvar no banco de chats
+    await safeDb.from('chats').insert([{
+      canal_id: curChId,
+      autor: curUser?.av||'?',
+      texto: '🎤 Áudio ' + durStr,
+      tipo: 'audio',
+      anexo_url: audioUrl,
+      anexo_nome: durStr
+    }]);
+    showToast('🎤 Áudio enviado!');
+  } catch(e) {
+    showToast('⚠️ Áudio enviado localmente');
+  }
 }
 
 // ── EMOJI PICKER ──────────────────────────────────────────────
