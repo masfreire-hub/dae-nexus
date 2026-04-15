@@ -7950,6 +7950,7 @@ function renderHierarquia() {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
   const todasEstacoes = [...new Set([
+    ...(cadastros?.estacao || []),
     ...proj.map(p => p.dept).filter(Boolean),
     ...espacos.map(e => e.estacao).filter(Boolean)
   ])].sort();
@@ -8094,7 +8095,7 @@ function renderHierarquia() {
   });
 
   el.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:13px">Nenhuma estação configurada ainda.</div>';
-  document.getElementById('pcount').textContent = espacos.length + ' espaços';
+  document.getElementById('pcount').textContent = todasEstacoes.length + ' estações · ' + espacos.length + ' espaços';
   renderEstacaoChips();
 }
 
@@ -9599,77 +9600,8 @@ function abrirNovoProjEspaco(espacoId, estacao) {
   openM('mProj');
 }
 
-// ══ HIERARQUIA: usar cadastros.estacao ════════════════════════════
+// ══ HIERARQUIA: override de chips para usar cadastros.estacao ════
 const _origRenderHierarquia = typeof renderHierarquia === 'function' ? renderHierarquia : null;
-
-// Override renderHierarquia para usar cadastros.estacao como nível 1
-const _origRH = renderHierarquia;
-renderHierarquia = function() {
-  const el = document.getElementById('hierarquiaView');
-  if (!el) return;
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-
-  const todasEstacoes = [...new Set([
-    ...cadastros.estacao,
-    ...espacos.map(e => e.estacao).filter(Boolean)
-  ])].sort();
-
-  const filtradas = estacaoFiltroAtual === 'todas' ? todasEstacoes : [estacaoFiltroAtual];
-
-  let html = '';
-  filtradas.forEach((estacao, idx) => {
-    const espacosDaEstacao = espacos.filter(e => e.estacao === estacao);
-    const idsEspacos = espacosDaEstacao.map(e => e.id);
-    const projDosEspacos = proj.filter(p => idsEspacos.includes(p.espaco_id));
-    const nomesEspacos = espacosDaEstacao.map(e => e.nome);
-    const projLegados = proj.filter(p => !p.espaco_id && (p.dept === estacao || nomesEspacos.includes(p.dept)));
-    const totalProj = projDosEspacos.length + projLegados.length;
-    const mediaProg = totalProj > 0 ? Math.round([...projDosEspacos, ...projLegados].reduce((a,p)=>a+(p.prog||0),0)/totalProj) : 0;
-    const cor = CL[idx % CL.length];
-
-    html += `<div class="estacao-bloco" data-estacao="${estacao}">
-      <div class="estacao-header" onclick="toggleEstacao('${estacao.replace(/'/g,"\\'")}')">
-        <div style="width:10px;height:10px;border-radius:50%;background:${cor};flex-shrink:0"></div>
-        <div class="estacao-nome">${estacao}</div>
-        <span class="estacao-badge">${espacosDaEstacao.length} espaços · ${totalProj} proj · ${mediaProg}%</span>
-        <div style="display:flex;gap:6px">
-          <button class="btnadd" style="font-size:10px;padding:4px 10px" onclick="event.stopPropagation();abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}')">+ Espaço</button>
-        </div>
-        <span style="color:var(--tx3);font-size:12px;margin-left:4px" id="toggle-${safeId(estacao)}">▼</span>
-      </div>
-      <div id="body-${safeId(estacao)}">`;
-
-    espacosDaEstacao.forEach(esp => {
-      const projEsp = proj.filter(p => p.espaco_id === esp.id || (!p.espaco_id && p.dept === esp.nome));
-      const eprog = projEsp.length ? Math.round(projEsp.reduce((a,p)=>a+(p.prog||0),0)/projEsp.length) : 0;
-      html += `<div class="espaco-bloco"><div class="espaco-header">
-        <span class="espaco-icone">${esp.icone||'📁'}</span>
-        <div class="espaco-nome">${esp.nome}</div>
-        <span class="espaco-badge">${projEsp.length} proj · ${eprog}%</span>
-        <div class="espaco-actions">
-          <button class="btnadd" style="font-size:10px;padding:3px 8px" onclick="abrirNovoProjEspaco('${esp.id}','${estacao.replace(/'/g,"\\'")}')">+ Projeto</button>
-          <span onclick="editarEspaco('${esp.id}')" style="cursor:pointer;font-size:13px;color:var(--tx2);margin-left:4px">✏️</span>
-          <span onclick="deletarEspaco('${esp.id}')" style="cursor:pointer;font-size:13px;color:#EF4444">🗑️</span>
-        </div></div>
-        <div class="espaco-projetos">
-          ${projEsp.map(p => cardProjMini(p, hoje)).join('')}
-          <div onclick="abrirNovoProjEspaco('${esp.id}','${estacao.replace(/'/g,"\\'")}')" style="border:1px dashed var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx3);font-size:12px">+ Novo projeto</div>
-        </div></div>`;
-    });
-
-    if (espacosDaEstacao.length === 0) {
-      html += `<div style="text-align:center;padding:24px 16px;color:var(--tx3);font-size:12px;border:1px dashed var(--border);border-radius:10px;margin:8px 0 8px 18px">
-        Nenhum espaço ainda nesta estação.<br>
-        <button class="btnadd" style="margin-top:10px;font-size:11px;padding:6px 14px" onclick="abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}')">+ Adicionar Espaço</button>
-      </div>`;
-    }
-    html += `</div></div>`;
-  });
-
-  el.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:13px">Nenhuma estação configurada.<br>Clique em <strong>+ ESTAÇÃO</strong> para começar.</div>';
-  document.getElementById('pcount').textContent = todasEstacoes.length + ' estações · ' + espacos.length + ' espaços';
-  renderEstacaoChips();
-};
 
 // Override renderEstacaoChips para usar cadastros.estacao
 const _origChips = renderEstacaoChips;
