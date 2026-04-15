@@ -662,6 +662,7 @@ body{
 /* ═══════════════════════════════════════════════════════════════
    ESTAÇÕES / HIERARQUIA
 ═══════════════════════════════════════════════════════════════ */
+/* ══ BOARD DE SETORES ══ */
 .estacao-header{
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--rl);padding:14px 16px;margin-bottom:10px;
@@ -669,6 +670,108 @@ body{
   transition:all .2s ease;box-shadow:var(--sh1);
 }
 .estacao-header:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:var(--sh2);}
+
+/* Card do setor */
+.setor-card{
+  background:#fff;border-radius:18px;
+  box-shadow:0 2px 12px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.05);
+  overflow:hidden;margin-bottom:24px;border:1px solid #EAEFF6;
+}
+.setor-banner{
+  padding:18px 20px 14px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:10px;
+}
+.setor-banner::after{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='0.06'%3E%3Cpath d='M20 0L0 20L20 40L40 20z'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events:none;
+}
+.setor-banner-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:1;}
+.setor-titulo{font-size:18px;font-weight:800;color:#fff;line-height:1.2;}
+.setor-sub{font-size:11px;color:rgba(255,255,255,.7);font-weight:500;position:relative;z-index:1;}
+.setor-chips{display:flex;gap:6px;flex-wrap:wrap;position:relative;z-index:1;}
+.setor-chip{
+  padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;
+  background:rgba(255,255,255,.18);color:#fff;
+  border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(4px);
+  display:flex;align-items:center;gap:4px;
+}
+.setor-btn-add{
+  padding:6px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.35);
+  background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;
+  cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;
+  transition:all .15s;white-space:nowrap;flex-shrink:0;
+}
+.setor-btn-add:hover{background:rgba(255,255,255,.3);}
+.setor-membros{
+  display:flex;align-items:center;gap:-4px;position:relative;z-index:1;
+}
+.setor-av{
+  width:26px;height:26px;border-radius:8px;border:2px solid rgba(255,255,255,.6);
+  display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;
+  color:#fff;margin-right:-6px;flex-shrink:0;
+}
+
+/* Métricas do setor */
+.setor-metricas{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid #F1F5F9;
+}
+.setor-metrica{
+  padding:12px 16px;display:flex;flex-direction:column;gap:2px;
+  border-right:1px solid #F1F5F9;
+}
+.setor-metrica:last-child{border-right:none;}
+.setor-metrica-val{font-size:20px;font-weight:800;color:#1E293B;line-height:1;}
+.setor-metrica-lbl{font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;}
+
+/* Projetos grid dentro do setor */
+.setor-body{padding:16px 20px 20px;}
+.setor-body-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.setor-body-title{font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.7px;}
+.setor-projetos-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;
+}
+
+/* Card de projeto novo */
+.proj-card{
+  background:#F8FAFC;border:1.5px solid #EAEFF6;border-radius:14px;
+  padding:14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.proj-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:var(--proj-cor,#4F46E5);border-radius:14px 14px 0 0;
+}
+.proj-card:hover{border-color:#4F46E5;transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,70,229,.12);}
+.proj-card-nome{font-size:13px;font-weight:700;color:#1E293B;line-height:1.3;margin-bottom:5px;padding-top:4px;}
+.proj-card-desc{font-size:11px;color:#64748B;line-height:1.5;margin-bottom:10px;}
+.proj-card-stats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.proj-card-stat{
+  font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;
+  display:flex;align-items:center;gap:3px;
+}
+.proj-card-prog{margin-bottom:6px;}
+.proj-card-bar{height:5px;background:#E9EEF4;border-radius:10px;overflow:hidden;margin-bottom:3px;}
+.proj-card-fill{height:100%;border-radius:10px;transition:width .6s ease;}
+.proj-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.proj-card-date{font-size:10px;color:#94A3B8;font-weight:600;}
+.proj-card-acoes{display:flex;gap:4px;opacity:0;transition:opacity .15s;}
+.proj-card:hover .proj-card-acoes{opacity:1;}
+.proj-card-acao{width:22px;height:22px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.proj-card-acao:hover{background:#E9EEF4;}
+
+/* Card + novo projeto */
+.proj-card-novo{
+  background:transparent;border:1.5px dashed #CBD5E1;border-radius:14px;
+  padding:14px;cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;min-height:100px;color:#94A3B8;
+}
+.proj-card-novo:hover{border-color:#4F46E5;color:#4F46E5;background:#F5F3FF;}
+
 .proj-mini{
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r);padding:13px;cursor:pointer;
@@ -1506,20 +1609,16 @@ select,input[type="checkbox"]{accent-color:var(--brand);}
 .skel-row.w60{width:60%;}.skel-row.w40{width:40%;}
 
 /* ── Hierarquia estações ── */
-.estacao-bloco{margin-bottom:28px;}
+.estacao-bloco{margin-bottom:8px;}
 .estacao-nome{font-size:15px;font-weight:800;flex:1;color:var(--tx);}
 .estacao-badge{font-size:10px;background:var(--brand-light);color:var(--brand);padding:3px 10px;border-radius:20px;border:1px solid rgba(79,70,229,0.2);}
-.espaco-bloco{margin-left:18px;margin-bottom:14px;}
-.espaco-header{
-  display:flex;align-items:center;gap:9px;padding:9px 13px;
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:11px;margin-bottom:8px;cursor:pointer;transition:all var(--dur) ease;
-}
+.espaco-bloco{margin-left:0;margin-bottom:0;}
+.espaco-header{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:11px;margin-bottom:8px;cursor:pointer;transition:all var(--dur) ease;}
 .espaco-header:hover{background:var(--brand-light);border-color:var(--brand);}
 .espaco-nome{font-size:13px;font-weight:700;flex:1;color:var(--tx);}
 .espaco-icone{font-size:16px;}
 .espaco-badge{font-size:10px;color:var(--tx3);font-weight:600;}
-.espaco-projetos{margin-left:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:8px;}
+.espaco-projetos{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:8px;}
 .espaco-actions{display:flex;gap:6px;opacity:0;transition:opacity var(--dur) ease;}
 .espaco-header:hover .espaco-actions{opacity:1;}
 .icone-opt{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;font-size:16px;border:2px solid transparent;background:var(--surface3);transition:all var(--dur) ease;}
@@ -7850,121 +7949,197 @@ function renderHierarquia() {
   if (!el) return;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
-  // Estações = derivadas dos projetos existentes + espaços cadastrados
   const todasEstacoes = [...new Set([
     ...proj.map(p => p.dept).filter(Boolean),
     ...espacos.map(e => e.estacao).filter(Boolean)
   ])].sort();
 
-  const estacoesFiltradas = estacaoFiltroAtual === 'todas'
-    ? todasEstacoes
-    : [estacaoFiltroAtual];
+  const estacoesFiltradas = estacaoFiltroAtual === 'todas' ? todasEstacoes : [estacaoFiltroAtual];
+
+  // Paleta de gradientes para os setores
+  const GRADIENTS = [
+    'linear-gradient(135deg,#4F46E5,#7C3AED)',
+    'linear-gradient(135deg,#0891B2,#0E7490)',
+    'linear-gradient(135deg,#059669,#0D9488)',
+    'linear-gradient(135deg,#DC2626,#EA580C)',
+    'linear-gradient(135deg,#D97706,#CA8A04)',
+    'linear-gradient(135deg,#7C3AED,#A855F7)',
+    'linear-gradient(135deg,#0F172A,#334155)',
+    'linear-gradient(135deg,#BE185D,#E11D48)',
+  ];
 
   let html = '';
 
   estacoesFiltradas.forEach((estacao, idx) => {
-    // Espaços desta estação (da tabela espacos)
     const espacosEstacao = espacos.filter(e => e.estacao === estacao);
-    
-    // Projetos que pertencem a espaços desta estação
     const idsEspacos = espacosEstacao.map(e => e.id);
     const projDosEspacos = proj.filter(p => idsEspacos.includes(p.espaco_id));
-    
-    // Projetos legados com dept = estacao (tratados como espaço próprio)
-    // Agrupados por: se o dept do projeto bate com o nome de um espaço → vai pro espaço
-    // se não → mostrado como "espaço" implícito com nome = dept
-    
-    // Agrupar projetos legados (sem espaco_id) pelo dept
     const projLegados = proj.filter(p => !p.espaco_id && p.dept === estacao);
-    
-    // Total de projetos nesta estação
-    const totalProj = projDosEspacos.length + projLegados.length;
-    if (totalProj === 0 && espacosEstacao.length === 0) return;
-    
-    const mediaProgresso = totalProj > 0
-      ? Math.round([...projDosEspacos, ...projLegados].reduce((a,p) => a+(p.prog||0), 0) / totalProj)
-      : 0;
-    const cor = CL[idx % CL.length];
+    const todosProj = [...projDosEspacos, ...projLegados];
+    const totalProj = todosProj.length;
 
-    html += `<div class="estacao-bloco" data-estacao="${estacao}">
-      <div class="estacao-header" onclick="toggleEstacao('${estacao.replace(/'/g,"\'")}')">
-        <div style="width:10px;height:10px;border-radius:50%;background:${cor};flex-shrink:0"></div>
-        <div class="estacao-nome">${estacao}</div>
-        <span class="estacao-badge">${totalProj} projetos · ${mediaProgresso}%</span>
-        <div style="display:flex;gap:6px">
-          <button class="btnadd" style="font-size:10px;padding:4px 10px" onclick="event.stopPropagation();abrirNovoEspaco(this.closest('.estacao-bloco').dataset.estacao)">+ Espaço</button>
-        </div>
-        <span style="color:var(--tx3);font-size:12px;margin-left:4px" id="toggle-${safeId(estacao)}">▼</span>
-      </div>
-      <div id="body-${safeId(estacao)}">`;
+    // Métricas
+    const todasTarefas = tar.filter(t => todosProj.some(p => p.id === t.projeto_id));
+    const tarefasAbertas = todasTarefas.filter(t => !t.ok);
+    const tarefasConcluidas = todasTarefas.filter(t => t.ok);
+    const tarefasVencidas = tarefasAbertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+    const mediaProgress = totalProj > 0 ? Math.round(todosProj.reduce((a,p)=>a+(p.prog||0),0)/totalProj) : 0;
 
-    // Espaços cadastrados desta estação
-    espacosEstacao.forEach(esp => {
-      const projEspaco = proj.filter(p => p.espaco_id === esp.id);
-      const espProg = projEspaco.length ? Math.round(projEspaco.reduce((a,p)=>a+(p.prog||0),0)/projEspaco.length) : 0;
-      html += `<div class="espaco-bloco">
-        <div class="espaco-header">
-          <span class="espaco-icone">${esp.icone||'📁'}</span>
-          <div class="espaco-nome">${esp.nome}</div>
-          <span class="espaco-badge">${projEspaco.length} proj · ${espProg}%</span>
-          <div class="espaco-actions">
-            <button class="btnadd" style="font-size:10px;padding:3px 8px" onclick="abrirNovoProjEspaco('${esp.id}','${estacao.replace(/'/g,"\\'")}')">+ Projeto</button>
-            <span onclick="gerenciarMembrosEspaco('${esp.id}','${esp.nome.replace(/'/g,"\\'")}'')" style="cursor:pointer;font-size:13px;color:var(--brand);margin-left:4px" title="Membros do espaço">👥</span>
-            <span onclick="editarEspaco('${esp.id}')" style="cursor:pointer;font-size:13px;color:var(--tx2);margin-left:4px">✏️</span>
-            <span onclick="deletarEspaco('${esp.id}')" style="cursor:pointer;font-size:13px;color:#EF4444">🗑️</span>
+    // Membros dos espaços
+    const membrosIds = [...new Set(
+      espacosEstacao.flatMap(esp => (esp._membros || []))
+        .concat(todosProj.flatMap(p => p.eq || []))
+    )].slice(0,5);
+    const membrosCards = membrosIds.map(av => {
+      const m = memb.find(x => x.av === av);
+      return m ? `<div class="setor-av" style="background:${m.cor||'#4F46E5'}" title="${m.nome}">${m.av}</div>` : '';
+    }).join('');
+
+    const grad = GRADIENTS[idx % GRADIENTS.length];
+
+    html += `<div class="setor-card">
+      <!-- BANNER DO SETOR -->
+      <div class="setor-banner" style="background:${grad}">
+        <div class="setor-banner-top">
+          <div>
+            <div class="setor-titulo">${estacao}</div>
+            <div class="setor-sub">${espacosEstacao.length} setor${espacosEstacao.length!==1?'es':''} · ${totalProj} projeto${totalProj!==1?'s':''}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;">
+            <button class="setor-btn-add" onclick="abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}')">+ Setor</button>
           </div>
         </div>
-        <div class="espaco-projetos">
-          ${projEspaco.length ? projEspaco.map(p => cardProjMini(p, hoje)).join('') : ''}
-          <div onclick="abrirNovoProjEspaco('${esp.id}','${estacao.replace(/'/g,"\'")}'')" style="border:1px dashed rgba(14,165,233,0.20);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx3);font-size:12px;transition:all .2s" onmouseover="this.style.borderColor='rgba(14,165,233,0.5)'" onmouseout="this.style.borderColor='rgba(14,165,233,0.20)'">+ Novo projeto</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;">
+          <div class="setor-membros">${membrosCards}${membrosIds.length?'<span style="font-size:10px;color:rgba(255,255,255,.7);margin-left:10px;font-weight:600;">'+(membrosIds.length)+' membro'+( membrosIds.length!==1?'s':'')+'</span>':''}</div>
+          <div style="text-align:right">
+            <div style="font-size:22px;font-weight:800;color:#fff;line-height:1;">${mediaProgress}%</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">progresso geral</div>
+          </div>
         </div>
-      </div>`;
+      </div>
+
+      <!-- MÉTRICAS -->
+      <div class="setor-metricas">
+        <div class="setor-metrica">
+          <div class="setor-metrica-val">${totalProj}</div>
+          <div class="setor-metrica-lbl">Projetos</div>
+        </div>
+        <div class="setor-metrica">
+          <div class="setor-metrica-val" style="color:#3B82F6">${tarefasAbertas.length}</div>
+          <div class="setor-metrica-lbl">Em aberto</div>
+        </div>
+        <div class="setor-metrica">
+          <div class="setor-metrica-val" style="color:#10B981">${tarefasConcluidas.length}</div>
+          <div class="setor-metrica-lbl">Concluídas</div>
+        </div>
+        <div class="setor-metrica">
+          <div class="setor-metrica-val" style="color:${tarefasVencidas.length>0?'#EF4444':'#94A3B8'}">${tarefasVencidas.length}</div>
+          <div class="setor-metrica-lbl">Vencidas</div>
+        </div>
+      </div>
+
+      <!-- SETORES E PROJETOS -->
+      <div class="setor-body">`;
+
+    // Espaços cadastrados
+    espacosEstacao.forEach(esp => {
+      const projEsp = proj.filter(p => p.espaco_id === esp.id);
+      html += `
+        <div class="setor-body-header" style="margin-top:${espacosEstacao.indexOf(esp)>0?'20px':'0'}">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px">${esp.icone||'📁'}</span>
+            <span class="setor-body-title">${esp.nome}</span>
+            <span style="font-size:10px;color:#94A3B8;font-weight:600;">${projEsp.length} proj</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span onclick="gerenciarMembrosEspaco('${esp.id}','${esp.nome.replace(/'/g,"\\'")}'')" style="cursor:pointer;font-size:13px;color:#94A3B8;padding:3px 6px;border-radius:6px;transition:all .15s" title="Membros" onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='transparent'">👥</span>
+            <span onclick="editarEspaco('${esp.id}')" style="cursor:pointer;font-size:12px;color:#94A3B8;padding:3px 6px;border-radius:6px;transition:all .15s" onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='transparent'">✏️</span>
+            <span onclick="deletarEspaco('${esp.id}')" style="cursor:pointer;font-size:12px;color:#94A3B8;padding:3px 6px;border-radius:6px;transition:all .15s" onmouseover="this.style.background='#FEE2E2';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#94A3B8'">🗑️</span>
+          </div>
+        </div>
+        <div class="setor-projetos-grid">
+          ${projEsp.map(p => cardProjNovo(p, hoje, grad)).join('')}
+          <div class="proj-card-novo" onclick="abrirNovoProjEspaco('${esp.id}','${estacao.replace(/'/g,"\\'")}')">
+            <div style="font-size:24px;opacity:.4">+</div>
+            <div style="font-size:12px;font-weight:700;">Novo projeto</div>
+          </div>
+        </div>`;
     });
 
-    // Projetos legados (dept = estacao, sem espaco_id) agrupados como espaço implícito
+    // Projetos legados
     if (projLegados.length) {
-      html += `<div class="espaco-bloco">
-        <div class="espaco-header" style="border-style:dashed">
-          <span class="espaco-icone">📂</span>
-          <div class="espaco-nome" style="color:var(--tx2)">${estacao} — geral</div>
-          <span class="espaco-badge">${projLegados.length} proj · mover para um espaço</span>
-          <button class="btnadd" style="font-size:10px;padding:3px 8px;margin-left:auto" onclick="abrirNovoEspaco(this.closest('.estacao-bloco').dataset.estacao)">+ Criar espaço</button>
+      html += `
+        <div class="setor-body-header" style="margin-top:${espacosEstacao.length>0?'20px':'0'}">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px">📂</span>
+            <span class="setor-body-title">${estacao} — geral</span>
+            <span style="font-size:10px;color:#F59E0B;font-weight:600;background:#FEF3C7;padding:2px 8px;border-radius:20px;">sem setor</span>
+          </div>
+          <button onclick="abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}'')" style="padding:4px 10px;border-radius:7px;border:1.5px solid #E2E8F0;background:#fff;color:#64748B;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">+ Criar setor</button>
         </div>
-        <div class="espaco-projetos">${projLegados.map(p => cardProjMini(p, hoje)).join('')}</div>
+        <div class="setor-projetos-grid">
+          ${projLegados.map(p => cardProjNovo(p, hoje, grad)).join('')}
+        </div>`;
+    }
+
+    if (espacosEstacao.length === 0 && projLegados.length === 0) {
+      html += `<div style="text-align:center;padding:32px;color:#94A3B8;">
+        <div style="font-size:32px;margin-bottom:8px;opacity:.4">📭</div>
+        <div style="font-size:13px;font-weight:600;">Nenhum setor ainda</div>
+        <div style="font-size:11px;margin-top:4px;">Clique em "+ Setor" para começar</div>
       </div>`;
     }
 
     html += `</div></div>`;
   });
 
-  el.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:13px">Nenhuma estação configurada ainda.<br>Vá em <strong>Cadastros</strong> e adicione setores.</div>';
-  document.getElementById('pcount').textContent = espacos.length + ' espaços cadastrados';
+  el.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:13px">Nenhuma estação configurada ainda.</div>';
+  document.getElementById('pcount').textContent = espacos.length + ' espaços';
   renderEstacaoChips();
 }
 
-
-function cardProjMini(p, hoje) {
+function cardProjNovo(p, hoje, grad) {
   const tf = tar.filter(t => t.projeto_id === p.id);
   const abertas = tf.filter(t => !t.ok).length;
+  const concluidas = tf.filter(t => t.ok).length;
+  const vencidas = tf.filter(t => !t.ok && t.prazo && new Date(t.prazo) < hoje).length;
   const atrasado = p.fim && new Date(p.fim) < hoje && p.status !== 'concluido';
-  const priorCor = {alta:'#EF4444',urgente:'#EF4444',media:'#EAB308',baixa:'#22C55E'}[p.prior?.toLowerCase()]||'#3B82F6';
-  const barCor = atrasado ? '#EF4444' : CL[proj.indexOf(p)%CL.length];
-  const prog = p.prog||0;
-  return `<div class="proj-mini" onclick="openDet('proj','${p.id}')">
-    <div class="proj-mini-topo">
-      <div class="proj-mini-nome">${p.nome}</div>
-      <div style="display:flex;gap:4px;align-items:center">
-        <span class="proj-mini-prior" style="background:${priorCor}22;color:${priorCor}">${(p.prior||'').toUpperCase()}</span>
-        <span onclick="event.stopPropagation();openEditProj('${p.id}')" style="cursor:pointer;color:var(--tx3);font-size:11px">✏️</span>
-        <span onclick="event.stopPropagation();delProj('${p.id}')" style="cursor:pointer;color:#EF4444;font-size:11px">🗑️</span>
+  const prog = p.prog || 0;
+  const priorCores = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'};
+  const priorCor = priorCores[p.prior?.toLowerCase()] || '#6366F1';
+  const barCor = atrasado ? '#EF4444' : priorCor;
+  const eqAvatars = (p.eq||[]).slice(0,3).map(av => {
+    const m = memb.find(x => x.av === av);
+    return m ? `<div style="width:20px;height:20px;border-radius:6px;background:${m.cor||'#4F46E5'}22;color:${m.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1.5px solid #fff;margin-right:-4px;" title="${m.nome}">${m.av}</div>` : '';
+  }).join('');
+
+  return `<div class="proj-card" style="--proj-cor:${barCor}" onclick="openDet('proj','${p.id}')">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding-top:6px;">
+      <div class="proj-card-nome">${p.nome}</div>
+      <div class="proj-card-acoes">
+        <button class="proj-card-acao" onclick="event.stopPropagation();openEditProj('${p.id}')" title="Editar">✏️</button>
+        <button class="proj-card-acao" onclick="event.stopPropagation();delProj('${p.id}')" title="Excluir">🗑️</button>
       </div>
     </div>
-    ${p.descricao ? `<div class="proj-mini-desc">${p.descricao.slice(0,60)}${p.descricao.length>60?'…':''}</div>` : ''}
-    <div class="proj-mini-bar"><div class="proj-mini-fill" style="width:${prog}%;background:${barCor}"></div></div>
-    <div class="proj-mini-foot">
-      <span>${atrasado?'🔴':'📅'} ${p.fim||'—'}</span>
-      <span>✅ ${abertas} abertas</span>
-      <span style="font-weight:700;color:${barCor}">${prog}%</span>
+    ${p.descricao ? `<div class="proj-card-desc">${p.descricao.slice(0,55)}${p.descricao.length>55?'…':''}</div>` : ''}
+    <div class="proj-card-stats">
+      <span class="proj-card-stat" style="background:${priorCor}14;color:${priorCor}">${p.prior?.toUpperCase()||'—'}</span>
+      ${abertas>0?`<span class="proj-card-stat" style="background:#EFF6FF;color:#3B82F6">📋 ${abertas} abertas</span>`:''}
+      ${vencidas>0?`<span class="proj-card-stat" style="background:#FEF2F2;color:#EF4444">⚠ ${vencidas} vencida${vencidas>1?'s':''}</span>`:''}
+      ${concluidas>0?`<span class="proj-card-stat" style="background:#F0FDF4;color:#10B981">✅ ${concluidas}</span>`:''}
+    </div>
+    <div class="proj-card-prog">
+      <div class="proj-card-bar">
+        <div class="proj-card-fill" style="width:${prog}%;background:${barCor}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;color:#94A3B8;">${p.fim ? (atrasado?'🔴 ':'📅 ')+new Date(p.fim+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '—'}</span>
+        <span style="font-size:11px;font-weight:800;color:${barCor}">${prog}%</span>
+      </div>
+    </div>
+    <div class="proj-card-foot">
+      <div style="display:flex;align-items:center;">${eqAvatars}</div>
+      ${p.status?`<span style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.3px;">${p.status}</span>`:''}
     </div>
   </div>`;
 }
