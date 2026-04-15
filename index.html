@@ -3892,37 +3892,38 @@ let curChName = '', curTeamView = 'cards', curUser = null;
 // ── LOGIN ─────────────────────────────────────────────────────────
 async function doLogin() {
   const emailEl = document.getElementById('lemail');
-  const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
-  if (!email) { showToast('⚠️ Digite seu e-mail'); return; }
+  const emailDigitado = emailEl ? emailEl.value.trim() : '';
+  if (!emailDigitado) { showToast('⚠️ Digite seu e-mail'); return; }
 
   const btnLogin = document.querySelector('#loginScreen button');
   if (btnLogin) { btnLogin.textContent = 'Entrando...'; btnLogin.disabled = true; }
 
   try {
-    // Buscar membro pelo email (case-insensitive)
-    const { data: rows, error } = await safeDb.from('membros').select('*').eq('email', email);
+    // Buscar todos os membros e comparar email ignorando case
+    const { data: todos, error } = await safeDb.from('membros').select('*');
     
-    // Tentar também com email original (sem toLowerCase)
-    let usuario = rows?.[0] || null;
-    if (!usuario) {
-      const emailOrig = emailEl.value.trim();
-      const { data: rows2 } = await safeDb.from('membros').select('*').eq('email', emailOrig);
-      usuario = rows2?.[0] || null;
-    }
+    if (error) throw error;
+    
+    const usuario = (todos||[]).find(m => 
+      m.email && m.email.trim().toLowerCase() === emailDigitado.toLowerCase()
+    );
 
     if (!usuario) {
+      // Mostrar quais emails existem para debug
+      const emails = (todos||[]).map(m => m.email).filter(Boolean);
+      console.log('Emails cadastrados:', emails);
+      console.log('Email digitado:', emailDigitado);
       showToast('❌ Email não encontrado. Verifique o cadastro.');
-      console.error('Login: email não encontrado:', email, '| erro:', error);
       if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
       return;
     }
 
     localStorage.setItem('dae_user_email', usuario.email);
     await entrarNoApp(usuario);
-    showToast('✅ Bem-vindo, ' + usuario.nome.split(' ')[0] + '!');
+    showToast('✅ Bem-vindo, ' + (usuario.nome||'').split(' ')[0] + '!');
   } catch(err) {
     console.error('Erro no login:', err);
-    showToast('❌ Erro de conexão. Tente novamente.');
+    showToast('❌ Erro: ' + (err.message || 'Verifique a conexão'));
     if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
   }
 }
@@ -9405,8 +9406,8 @@ document.addEventListener('DOMContentLoaded', async function(){
   const emailSalvo = localStorage.getItem('dae_user_email');
   if (emailSalvo) {
     try {
-      const { data: rows } = await safeDb.from('membros').select('*').eq('email', emailSalvo);
-      const usuario = rows?.[0];
+      const { data: todos } = await safeDb.from('membros').select('*');
+      const usuario = (todos||[]).find(m => m.email && m.email.trim().toLowerCase() === emailSalvo.toLowerCase());
       if (usuario) { await entrarNoApp(usuario); return; }
     } catch(e) { console.warn('Auto-login falhou:', e); }
     localStorage.removeItem('dae_user_email');
