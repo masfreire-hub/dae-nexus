@@ -3180,7 +3180,7 @@ select.sel{
     <div><label class="lbl">Responsável</label><select class="sel" id="ntR"></select></div>
     <div><label class="lbl">Prioridade</label><select class="sel" id="ntPr"><option>urgente</option><option>alta</option><option>media</option><option>baixa</option></select></div>
   </div>
-  <label class="lbl">Status</label><select class="sel" id="ntSt"><option>to do</option><option>em andamento</option><option>pronto p/ testar</option><option>feito</option></select>
+  <label class="lbl">Status</label><select class="sel" id="ntSt"><option>to do</option><option>em andamento</option><option>em revisão</option><option>pronto p/ testar</option><option>aguardando</option><option>bloqueado</option><option>feito</option></select>
   <label class="lbl">Prazo</label><input class="inp" type="date" id="ntD">
   <button class="btnp" id="btnSaveTask" onclick="addTask()">CRIAR TAREFA</button>
   <button class="btncanc" onclick="closeM('mTask')">Cancelar</button>
@@ -4201,7 +4201,7 @@ function renderKanban(l) {
     {key:'testar',label:'P/ Testar',c:'#3B82F6'},
     {key:'feito',label:'Feito',c:'#22C55E'},
   ];
-  const kmap = {'to do':'to do','em andamento':'andamento','em desenvolvimento':'andamento','especif. em análise':'andamento','pronto p/ testar':'testar','liberado versão':'feito','feito':'feito','complete':'feito','concluido':'feito','backlog':'to do'};
+  const kmap = {'to do':'to do','em andamento':'andamento','em desenvolvimento':'andamento','em revisão':'andamento','especif. em análise':'andamento','pronto p/ testar':'testar','aguardando':'testar','liberado versão':'feito','feito':'feito','complete':'feito','concluido':'feito','backlog':'to do','bloqueado':'to do'};
   document.getElementById('taskList').style.display = 'none';
   const kb = document.getElementById('kanbanBoard'); kb.style.display = 'block';
   kb.innerHTML = `<div class="kb">${cols.map(col => {
@@ -4444,121 +4444,111 @@ async function openDet(type, id) {
         </div>
       </div>
 
-      <!-- STATUS & PRIORIDADE -->
+      <!-- STATUS -->
       <div class="det-block" style="padding:0;overflow:hidden;">
         <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
-          <div class="det-block-title" style="margin-bottom:0">⚙ Configurações</div>
+          <div style="font-size:10px;font-weight:800;color:#334155;letter-spacing:.5px;text-transform:uppercase;">🔁 Status da Tarefa</div>
         </div>
-        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px;">
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:5px;">
+          ${[
+            {s:'to do',           icon:'📋', label:'A Fazer',             cor:'#64748B'},
+            {s:'em andamento',    icon:'⚡', label:'Em Andamento',        cor:'#3B82F6'},
+            {s:'em revisão',      icon:'🔎', label:'Em Revisão',          cor:'#8B5CF6'},
+            {s:'pronto p/ testar',icon:'🧪', label:'Pronto p/ Testar',    cor:'#F59E0B'},
+            {s:'aguardando',      icon:'⏳', label:'Aguardando',          cor:'#F97316'},
+            {s:'bloqueado',       icon:'🚫', label:'Bloqueado',           cor:'#EF4444'},
+            {s:'feito',           icon:'✅', label:'Feito',               cor:'#10B981'},
+          ].map(({s, icon, label, cor}) => {
+            const isActive = t.status === s;
+            return '<button onclick="salvarStatus(\'' + id + '\',\'' + s + '\')" style="width:100%;padding:7px 10px;border-radius:9px;border:1.5px solid ' + (isActive?cor:'#EAEFF6') + ';background:' + (isActive?cor+'14':'#fff') + ';color:' + (isActive?cor:'#475569') + ';font-size:11px;font-weight:' + (isActive?'800':'600') + ';cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;transition:all .15s;text-align:left;box-shadow:' + (isActive?'0 0 0 1px '+cor+'40':'none') + ';"><span style="font-size:13px">' + icon + '</span>' + label + (isActive?'<span style="margin-left:auto;font-size:10px;opacity:.7">✓</span>':'') + '</button>';
+          }).join('')}
+        </div>
+      </div>
 
-          <div>
-            <div class="det-lbl" style="margin-bottom:5px">Status</div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px;">
-              ${statusOpts.map(s => {
-                const statusIcons = {'to do':'📋','em andamento':'⚡','pronto p/ testar':'🔍','feito':'✅','bloqueado':'🚫'};
-                const statusColors = {'to do':'#64748B','em andamento':'#3B82F6','pronto p/ testar':'#8B5CF6','feito':'#10B981','bloqueado':'#EF4444'};
-                const sc = statusColors[s]||'#64748B';
-                const isActive = t.status===s;
-                return `<button onclick="salvarStatus('${id}','${s}');openDet('task','${id}')" style="
-                  padding:5px 9px;border-radius:20px;border:1.5px solid ${isActive?sc:'#E2E8F0'};
-                  background:${isActive?sc+'18':'#fff'};color:${isActive?sc:'#94A3B8'};
-                  font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;
-                  display:flex;align-items:center;gap:4px;transition:all .15s;letter-spacing:.2px;
-                ">${statusIcons[s]||''} ${s}</button>`;
-              }).join('')}
-            </div>
-          </div>
-
-          <div>
-            <div class="det-lbl" style="margin-bottom:5px">Prioridade</div>
-            <div style="display:flex;gap:5px;">
-              ${priorOpts.map(s => {
-                const priorColors = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'};
-                const priorIcons = {urgente:'🔴',alta:'🟠',media:'🔵',baixa:'🟢'};
-                const pc = priorColors[s]||'#64748B';
-                const isActive = t.prior===s;
-                return `<button onclick="salvarPrioridade('${id}','${s}');openDet('task','${id}')" style="
-                  flex:1;padding:5px 4px;border-radius:8px;border:1.5px solid ${isActive?pc:'#E2E8F0'};
-                  background:${isActive?pc:'#fff'};color:${isActive?'#fff':'#94A3B8'};
-                  font-size:9px;font-weight:800;cursor:pointer;font-family:inherit;
-                  display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .15s;
-                ">${priorIcons[s]}<span>${s}</span></button>`;
-              }).join('')}
-            </div>
-          </div>
-
+      <!-- PRIORIDADE -->
+      <div class="det-block" style="padding:0;overflow:hidden;">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
+          <div style="font-size:10px;font-weight:800;color:#334155;letter-spacing:.5px;text-transform:uppercase;">🎯 Prioridade</div>
+        </div>
+        <div style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          ${[
+            {s:'urgente', icon:'🔴', cor:'#EF4444'},
+            {s:'alta',    icon:'🟠', cor:'#F97316'},
+            {s:'media',   icon:'🔵', cor:'#3B82F6'},
+            {s:'baixa',   icon:'🟢', cor:'#10B981'},
+          ].map(({s, icon, cor}) => {
+            const isActive = t.prior === s;
+            return '<button onclick="salvarPrioridade(\'' + id + '\',\'' + s + '\')" style="padding:8px 6px;border-radius:9px;border:1.5px solid ' + (isActive?cor:'#EAEFF6') + ';background:' + (isActive?cor:'#fff') + ';color:' + (isActive?'#fff':'#475569') + ';font-size:10px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s;text-transform:capitalize;box-shadow:' + (isActive?'0 3px 10px '+cor+'40':'none') + ';"><span style="font-size:16px">' + icon + '</span>' + s + '</button>';
+          }).join('')}
         </div>
       </div>
 
       <!-- DATAS -->
       <div class="det-block" style="padding:0;overflow:hidden;">
         <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
-          <div class="det-block-title" style="margin-bottom:0">📅 Datas</div>
+          <div style="font-size:10px;font-weight:800;color:#334155;letter-spacing:.5px;text-transform:uppercase;">📅 Datas</div>
         </div>
-        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <div class="det-lbl">Início</div>
-            <div style="position:relative;">
-              <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none;">🗓</span>
-              <input type="date" style="background:#F8FAFC;border:1.5px solid #E9EEF4;border-radius:9px;color:${t.data_inicio?'#1E293B':'#94A3B8'};font-size:11px;font-weight:600;width:100%;padding:7px 8px 7px 28px;cursor:pointer;font-family:inherit;outline:none;" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)" onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='#E9EEF4'">
-            </div>
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:5px;">🗓 Data de Início</div>
+            <input type="date" style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:9px;color:${t.data_inicio?'#1E293B':'#94A3B8'};font-size:11px;font-weight:600;width:100%;padding:8px 10px;cursor:pointer;font-family:inherit;outline:none;" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)" onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='#E2E8F0'">
           </div>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <div class="det-lbl" style="color:${isVencida?'#EF4444':'#CBD5E1'}">Prazo ${isVencida?'⚠ VENCIDO':''}</div>
-            <div style="position:relative;">
-              <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none;">${isVencida?'🔴':'📌'}</span>
-              <input type="date" style="background:${isVencida?'#FFF5F5':'#F8FAFC'};border:1.5px solid ${isVencida?'#FCA5A5':'#E9EEF4'};border-radius:9px;color:${isVencida?'#DC2626':'#1E293B'};font-size:11px;font-weight:${isVencida?'700':'600'};width:100%;padding:7px 8px 7px 28px;cursor:pointer;font-family:inherit;outline:none;" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)" onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='${isVencida?'#FCA5A5':'#E9EEF4'}'">
-            </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:${isVencida?'#EF4444':'#475569'};margin-bottom:5px;">${isVencida?'🔴 Prazo — VENCIDO':'📌 Prazo de Entrega'}</div>
+            <input type="date" style="background:${isVencida?'#FFF5F5':'#F8FAFC'};border:1.5px solid ${isVencida?'#FCA5A5':'#E2E8F0'};border-radius:9px;color:${isVencida?'#DC2626':'#1E293B'};font-size:11px;font-weight:${isVencida?'700':'600'};width:100%;padding:8px 10px;cursor:pointer;font-family:inherit;outline:none;" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)" onfocus="this.style.borderColor='${isVencida?'#EF4444':'#4F46E5'}'" onblur="this.style.borderColor='${isVencida?'#FCA5A5':'#E2E8F0'}'">
           </div>
         </div>
       </div>
 
       <!-- PROJETO -->
-      ${p ? `<div class="det-block" style="padding:0;overflow:hidden;background:linear-gradient(135deg,#EEF2FF,#F5F3FF);">
-        <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(99,102,241,.12);">
-          <div class="det-block-title" style="margin-bottom:0;color:#6366F1">📌 Projeto</div>
+      ${p ? `<div class="det-block" style="padding:0;overflow:hidden;background:linear-gradient(145deg,#EEF2FF 0%,#F5F3FF 100%);border-color:rgba(99,102,241,.25);">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(99,102,241,.15);">
+          <div style="font-size:10px;font-weight:800;color:#6366F1;letter-spacing:.5px;text-transform:uppercase;">📌 Projeto Vinculado</div>
         </div>
-        <div style="padding:12px 14px;">
-          <div style="font-size:13px;font-weight:800;color:#3730A3;line-height:1.3;margin-bottom:4px">${p.nome}</div>
-          ${esp?`<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.1);color:#6366F1;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;">📁 ${esp.nome}</div>`:''}
-          ${p.prog!==undefined?`
-          <div style="margin-top:10px;">
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:13px;font-weight:800;color:#3730A3;line-height:1.3">${p.nome}</div>
+          ${esp ? `<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.12);color:#6366F1;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;width:fit-content;">📁 ${esp.nome}</div>` : ''}
+          ${p.dept ? `<div style="font-size:10px;color:#6366F1;opacity:.8;font-weight:600;">🏢 ${p.dept}</div>` : ''}
+          <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <span style="font-size:9px;font-weight:700;color:#8B5CF6;letter-spacing:.5px;text-transform:uppercase;">Progresso</span>
-              <span style="font-size:11px;font-weight:800;color:#6366F1">${p.prog||0}%</span>
+              <span style="font-size:10px;font-weight:700;color:#6366F1;opacity:.8;text-transform:uppercase;letter-spacing:.3px;">Progresso</span>
+              <span style="font-size:12px;font-weight:800;color:#4F46E5">${p.prog||0}%</span>
             </div>
-            <div style="height:5px;background:rgba(99,102,241,.15);border-radius:10px;overflow:hidden;">
-              <div style="height:100%;width:${p.prog||0}%;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:10px;transition:width .4s ease;"></div>
+            <div style="height:6px;background:rgba(99,102,241,.15);border-radius:10px;overflow:hidden;">
+              <div style="height:100%;width:${p.prog||0}%;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:10px;"></div>
             </div>
-          </div>`:''}
+          </div>
+          ${p.fim ? `<div style="font-size:10px;color:#475569;font-weight:600;">📅 Entrega: <strong style="color:#3730A3">${new Date(p.fim+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</strong></div>` : ''}
         </div>
-      </div>` : ''}
+      </div>` : `<div class="det-block" style="padding:12px 14px;background:#FAFBFD;border:1.5px dashed #E2E8F0;text-align:center;">
+        <div style="font-size:11px;color:#94A3B8;font-weight:600;">Sem projeto vinculado</div>
+      </div>`}
 
       <!-- RESPONSÁVEL -->
       <div class="det-block" style="padding:0;overflow:hidden;">
         <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
-          <div class="det-block-title" style="margin-bottom:0">👤 Responsável</div>
+          <div style="font-size:10px;font-weight:800;color:#334155;letter-spacing:.5px;text-transform:uppercase;">👤 Responsável</div>
         </div>
         <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:10px;background:${m?.cor||'#4F46E5'}18;color:${m?.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">${t.resp||'?'}</div>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:#1E293B">${m?m.nome.split(' ').slice(0,2).join(' '):t.resp||'—'}</div>
-            ${m?.cargo?`<div style="font-size:10px;color:#94A3B8">${m.cargo}</div>`:''}
+          <div style="width:38px;height:38px;border-radius:11px;background:${m?.cor||'#4F46E5'}18;color:${m?.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">${t.resp||'?'}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:#1E293B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m?m.nome.split(' ').slice(0,2).join(' '):t.resp||'—'}</div>
+            ${m?.cargo?`<div style="font-size:10px;color:#94A3B8;margin-top:1px">${m.cargo}</div>`:''}
           </div>
-          <button onclick="abrirTransferencia('${id}')" style="margin-left:auto;padding:4px 8px;border-radius:7px;border:1.5px solid #E2E8F0;background:#fff;color:#64748B;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">↔</button>
+          <button onclick="abrirTransferencia('${id}')" style="padding:5px 10px;border-radius:8px;border:1.5px solid #E2E8F0;background:#fff;color:#64748B;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">↔</button>
         </div>
       </div>
 
       <!-- HISTÓRICO -->
       ${t.historico_resp ? `<div class="det-block" style="padding:0;overflow:hidden;">
         <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
-          <div class="det-block-title" style="margin-bottom:0">🔄 Histórico</div>
+          <div style="font-size:10px;font-weight:800;color:#334155;letter-spacing:.5px;text-transform:uppercase;">🔄 Histórico</div>
         </div>
         <div style="padding:8px 14px;">
           ${JSON.parse(t.historico_resp||'[]').slice(-3).map(h=>`
-            <div style="font-size:10px;color:#334155;padding:5px 0;border-bottom:1px solid #F8FAFC;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div style="font-size:10px;color:#334155;padding:6px 0;border-bottom:1px solid #F8FAFC;display:flex;justify-content:space-between;align-items:center;gap:8px;">
               <span>${h.de} <span style="color:#94A3B8">→</span> <strong style="color:#4F46E5">${h.para}</strong></span>
-              <span style="color:#CBD5E1;white-space:nowrap">${h.data}</span>
+              <span style="color:#CBD5E1;white-space:nowrap;font-size:9px">${h.data}</span>
             </div>`).join('')}
         </div>
       </div>` : ''}
