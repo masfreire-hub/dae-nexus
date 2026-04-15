@@ -3016,118 +3016,245 @@ select.sel{
   position:fixed;
   top:var(--topbar-h);
   left:var(--sidebar-w);
-  right:0;
-  bottom:0;
+  right:0; bottom:0;
   z-index:10;
   background:var(--bg);
   overflow:hidden;
-  margin:0;
-  padding:0;
+  margin:0; padding:0;
 }
 #t-arquivos #arq-wrap { flex:1; overflow:hidden; min-height:0; width:100%; }
 #arq-wrap { display:flex; flex:1; overflow:hidden; }
-#arq-sidebar { width:220px; flex-shrink:0; border-right:1px solid var(--border); overflow-y:auto; padding:12px 8px; display:flex; flex-direction:column; gap:2px; }
-#arq-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-#arq-toolbar { padding:10px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex-shrink:0; }
-#arq-breadcrumb { padding:8px 14px 0; font-size:11px; color:var(--tx3); display:flex; align-items:center; gap:4px; flex-shrink:0; }
-#arq-breadcrumb span { cursor:pointer; } #arq-breadcrumb span:hover { color:var(--brand); }
-#arq-content { flex:1; overflow-y:auto; padding:10px 14px 80px; }
-.arq-folder-item { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:8px; cursor:pointer; font-size:12px; color:var(--tx2); font-weight:500; transition:background .15s; }
-.arq-folder-item:hover, .arq-folder-item.on { background:var(--surface3); color:var(--tx); }
-.arq-folder-item.on { font-weight:700; color:var(--brand); }
-.arq-file-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); margin-bottom:6px; transition:box-shadow .15s; }
-.arq-file-row:hover { box-shadow:0 2px 12px rgba(0,0,0,0.07); }
-.arq-file-ico { width:38px; height:38px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
-.arq-file-name { font-size:12px; font-weight:700; color:var(--tx); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px; }
-.arq-file-meta { font-size:10px; color:var(--tx3); margin-top:1px; }
-.arq-file-tag { font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; display:inline-block; margin-right:3px; }
-.arq-fav { color:#F59E0B; cursor:pointer; font-size:14px; }
-.arq-fav.off { color:var(--tx3); }
+
+/* SIDEBAR */
+#arq-sidebar {
+  width:230px; flex-shrink:0;
+  border-right:1px solid var(--border);
+  overflow-y:auto; padding:14px 10px;
+  display:flex; flex-direction:column; gap:2px;
+  background:var(--surface);
+}
+.arq-sidebar-section {
+  font-size:9px; font-weight:800; color:var(--tx3);
+  letter-spacing:.9px; text-transform:uppercase;
+  padding:8px 8px 4px; margin-top:4px;
+}
+.arq-folder-item {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 10px; border-radius:9px; cursor:pointer;
+  font-size:12px; font-weight:600; color:var(--tx2);
+  transition:all .15s; position:relative;
+}
+.arq-folder-item:hover { background:var(--surface3); color:var(--tx); }
+.arq-folder-item.on { background:var(--brand-light); color:var(--brand); font-weight:700; }
+.arq-folder-item .arq-pasta-acts { display:none; margin-left:auto; gap:2px; }
+.arq-folder-item:hover .arq-pasta-acts { display:flex; }
+.arq-folder-count {
+  margin-left:auto; font-size:9px; font-weight:700;
+  background:var(--surface3); color:var(--tx3);
+  padding:1px 6px; border-radius:20px;
+}
+.arq-folder-item.on .arq-folder-count { background:rgba(79,70,229,.15); color:var(--brand); }
+
+/* ÁREA PRINCIPAL */
+#arq-main { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
+
+/* HEADER DA PASTA ATUAL */
+#arq-header {
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  flex-shrink:0;
+}
+#arq-breadcrumb {
+  font-size:11px; color:var(--tx3);
+  display:flex; align-items:center; gap:4px;
+  margin-bottom:10px;
+}
+#arq-breadcrumb span { cursor:pointer; transition:color .15s; }
+#arq-breadcrumb span:hover { color:var(--brand); }
+#arq-header-row {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+#arq-pasta-titulo {
+  font-size:18px; font-weight:800; color:var(--tx);
+  display:flex; align-items:center; gap:8px; flex:1;
+}
+#arq-toolbar-row {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-top:10px;
+}
+
+/* CONTEÚDO */
+#arq-content-wrap { flex:1; overflow-y:auto; padding:16px 20px 80px; }
+
+/* SEÇÃO DE PASTAS */
+.arq-pastas-section { margin-bottom:20px; }
+.arq-pastas-section-title {
+  font-size:10px; font-weight:800; color:var(--tx3);
+  letter-spacing:.7px; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:6px;
+}
+.arq-pastas-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;
+}
+.arq-pasta-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:12px; padding:14px; cursor:pointer;
+  transition:all .2s; display:flex; flex-direction:column; gap:6px;
+}
+.arq-pasta-card:hover {
+  border-color:var(--brand); transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(79,70,229,.1);
+}
+.arq-pasta-card-ico { font-size:28px; line-height:1; }
+.arq-pasta-card-nome { font-size:12px; font-weight:700; color:var(--tx); }
+.arq-pasta-card-meta { font-size:10px; color:var(--tx3); font-weight:500; }
+
+/* SEÇÃO DE ARQUIVOS */
+.arq-files-section-title {
+  font-size:10px; font-weight:800; color:var(--tx3);
+  letter-spacing:.7px; text-transform:uppercase;
+  margin-bottom:10px; margin-top:4px; display:flex; align-items:center; gap:6px;
+}
+
+/* LINHA DE ARQUIVO */
+.arq-file-row {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 14px; border-radius:11px;
+  border:1px solid var(--border); background:var(--surface);
+  margin-bottom:6px; transition:all .15s; cursor:default;
+}
+.arq-file-row:hover { box-shadow:0 2px 12px rgba(0,0,0,.06); border-color:var(--border2); }
+.arq-file-ico {
+  width:40px; height:40px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.arq-file-name {
+  font-size:13px; font-weight:700; color:var(--tx);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.arq-file-meta { font-size:10px; color:var(--tx3); margin-top:2px; }
+.arq-file-tag {
+  font-size:9px; font-weight:700; padding:2px 7px;
+  border-radius:20px; display:inline-block; margin-right:3px;
+}
+.arq-fav { color:#F59E0B; cursor:pointer; font-size:16px; line-height:1; }
+.arq-fav.off { color:var(--border2); }
+.arq-fav:hover { transform:scale(1.2); }
 .arq-actions { display:flex; gap:4px; margin-left:auto; flex-shrink:0; }
-.arq-btn { border:1px solid var(--border); background:var(--surface2); border-radius:6px; padding:4px 9px; font-size:10px; cursor:pointer; color:var(--tx2); font-weight:600; transition:background .15s; }
+.arq-btn {
+  border:1px solid var(--border); background:var(--surface2);
+  border-radius:7px; padding:5px 10px; font-size:10px;
+  cursor:pointer; color:var(--tx2); font-weight:600;
+  transition:all .15s; display:flex; align-items:center; gap:3px;
+}
 .arq-btn:hover { background:var(--surface3); color:var(--tx); }
 .arq-btn.red { border-color:rgba(239,68,68,.3); color:#EF4444; background:rgba(239,68,68,.07); }
 .arq-btn.red:hover { background:rgba(239,68,68,.15); }
 .arq-btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
-.arq-dropzone-active { border-color:var(--brand) !important; background:rgba(79,70,229,.05) !important; }
-.arq-upload-bar { height:3px; background:var(--brand); border-radius:2px; transition:width .3s; }
+.arq-btn.primary:hover { background:#4338CA; }
+
+/* GRID DE ARQUIVOS */
+.arq-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;
+}
+.arq-grid-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; overflow:hidden; cursor:pointer;
+  transition:all .2s;
+}
+.arq-grid-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); transform:translateY(-2px); }
+
+/* EMPTY */
+.arq-empty {
+  text-align:center; padding:60px 20px; color:var(--tx3);
+}
+
+.arq-dropzone-active { border:2px dashed var(--brand) !important; background:rgba(79,70,229,.03) !important; }
 #arq-view-toggle button { padding:5px 10px; font-size:11px; border:1px solid var(--border); background:transparent; cursor:pointer; color:var(--tx2); }
 #arq-view-toggle button.on { background:var(--brand); color:#fff; border-color:var(--brand); }
 #arq-view-toggle button:first-child { border-radius:6px 0 0 6px; }
 #arq-view-toggle button:last-child { border-radius:0 6px 6px 0; }
-.arq-grid-card { background:var(--surface2); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:box-shadow .15s; }
-.arq-grid-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.1); }
-#arq-content.grid-view { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; }
-#arq-content.list-view { display:block; }
 </style>
 
 <!-- TOPBAR -->
-<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--bg)">
+<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--surface)">
   <div style="flex:1">
-    <div style="font-size:16px;font-weight:800;color:var(--tx);letter-spacing:-.3px">📁 Arquivos & Documentos</div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:1px">Central de documentos · gestão de arquivos da equipe</div>
+    <div style="font-size:16px;font-weight:800;color:var(--tx);">📁 Arquivos & Documentos</div>
+    <div style="font-size:11px;color:var(--tx3);margin-top:1px">Central de documentos da equipe</div>
   </div>
   <input type="file" id="arqFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.mp3,.wav,.zip,.txt" style="display:none" onchange="uploadArquivos(this.files)">
   <button onclick="abrirUploadArquivo()" style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);display:flex;align-items:center;gap:6px">
     ⬆ Enviar arquivo
   </button>
-  <button onclick="arqCriarPasta()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--tx2)">
+  <button onclick="arqCriarPasta()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--tx2);font-family:var(--fh)">
     📂 Nova pasta
   </button>
+</div>
 
 <!-- LAYOUT PRINCIPAL -->
 <div id="arq-wrap">
-  <!-- SIDEBAR PASTAS -->
+
+  <!-- SIDEBAR -->
   <div id="arq-sidebar">
-    <div style="font-size:9px;font-weight:800;color:var(--tx3);letter-spacing:.8px;padding:4px 8px;margin-bottom:4px">PASTAS</div>
+    <div class="arq-sidebar-section">Navegação</div>
     <div class="arq-folder-item on" onclick="arqNavPasta('',this)" id="arqFolderRaiz">
-      🏠 Todos os arquivos
+      <span>🏠</span> Todos os arquivos
     </div>
     <div class="arq-folder-item" onclick="arqNavPasta('favoritos',this)" id="arqFolderFav">
-      ⭐ Favoritos
+      <span>⭐</span> Favoritos
     </div>
-    <div style="height:1px;background:var(--border);margin:8px 4px"></div>
-    <div style="font-size:9px;font-weight:800;color:var(--tx3);letter-spacing:.8px;padding:4px 8px;margin-bottom:2px">MINHAS PASTAS</div>
+
+    <div class="arq-sidebar-section" style="margin-top:8px">Minhas Pastas</div>
     <div id="arqPastasList"></div>
-    <div style="height:1px;background:var(--border);margin:8px 4px"></div>
-    <div style="font-size:9px;font-weight:800;color:var(--tx3);letter-spacing:.8px;padding:4px 8px;margin-bottom:4px">TIPO</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('doc',this)">📄 Documentos</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('img',this)">🖼️ Imagens</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('plan',this)">📊 Planilhas</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('midia',this)">🎥 Mídia</div>
+
+    <div class="arq-sidebar-section" style="margin-top:8px">Tipo de Arquivo</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('doc',this)"><span>📄</span> Documentos</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('img',this)"><span>🖼️</span> Imagens</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('plan',this)"><span>📊</span> Planilhas</div>
+    <div class="arq-folder-item" onclick="arqFiltroTipo('midia',this)"><span>🎥</span> Mídia</div>
   </div>
 
   <!-- ÁREA PRINCIPAL -->
   <div id="arq-main">
-    <!-- TOOLBAR -->
-    <div id="arq-toolbar">
-      <input id="arqBusca" class="inp" style="margin:0;width:220px;font-size:12px;padding:6px 10px" placeholder="🔍 Buscar por nome ou tag..." oninput="renderArquivos()">
-      <select id="arqOrdem" class="sel" style="margin:0;font-size:11px;padding:5px 8px;width:auto" onchange="renderArquivos()">
-        <option value="nome">Nome A→Z</option>
-        <option value="nome_desc">Nome Z→A</option>
-        <option value="data">Mais recentes</option>
-        <option value="tam">Maior tamanho</option>
-      </select>
-      <div id="arq-view-toggle" style="margin-left:auto">
-        <button class="on" id="arqBtnList" onclick="arqSetView('list',this)">☰ Lista</button>
-        <button id="arqBtnGrid" onclick="arqSetView('grid',this)">⊞ Grade</button>
+
+    <!-- HEADER COM BREADCRUMB E TOOLBAR -->
+    <div id="arq-header">
+      <div id="arq-breadcrumb">
+        <span onclick="arqNavPasta('',null)">🏠 Início</span>
+        <span id="arqBreadExtra" style="display:none;color:var(--tx3)"> › </span>
+        <span id="arqBreadNome" style="display:none;color:var(--tx);font-weight:700"></span>
+      </div>
+      <div id="arq-header-row">
+        <div id="arq-pasta-titulo">📁 <span id="arqPastaTituloNome">Todos os arquivos</span></div>
+        <div id="arq-view-toggle">
+          <button class="on" id="arqBtnList" onclick="arqSetView('list',this)">☰ Lista</button>
+          <button id="arqBtnGrid" onclick="arqSetView('grid',this)">⊞ Grade</button>
+        </div>
+      </div>
+      <div id="arq-toolbar-row">
+        <input id="arqBusca" class="inp" style="margin:0;flex:1;max-width:280px;font-size:12px;padding:6px 10px" placeholder="🔍 Buscar por nome..." oninput="renderArquivos()">
+        <select id="arqOrdem" class="sel" style="margin:0;font-size:11px;padding:5px 8px;width:auto" onchange="renderArquivos()">
+          <option value="nome">Nome A→Z</option>
+          <option value="nome_desc">Nome Z→A</option>
+          <option value="data">Mais recentes</option>
+          <option value="tam">Maior tamanho</option>
+        </select>
+        <span id="arqContador" style="font-size:11px;color:var(--tx3);font-weight:600;margin-left:4px;white-space:nowrap"></span>
       </div>
     </div>
 
-    <!-- BREADCRUMB -->
-    <div id="arq-breadcrumb">
-      <span onclick="arqNavPasta('',null)">🏠 Início</span>
-      <span id="arqBreadExtra" style="display:none"> › <span id="arqBreadNome"></span></span>
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div id="arq-content-wrap"
+      ondragover="event.preventDefault();this.classList.add('arq-dropzone-active')"
+      ondragleave="this.classList.remove('arq-dropzone-active')"
+      ondrop="this.classList.remove('arq-dropzone-active');handleArqDrop(event)">
+      <div id="arq-content"></div>
     </div>
 
-    <!-- DROPZONE + CONTEÚDO -->
-    <div id="arq-content" class="list-view"
-      ondragover="event.preventDefault();document.getElementById('arq-content').classList.add('arq-dropzone-active')"
-      ondragleave="document.getElementById('arq-content').classList.remove('arq-dropzone-active')"
-      ondrop="handleArqDrop(event)">
-    </div>
-  </div>
-</div>
+  </div><!-- /arq-main -->
+</div><!-- /arq-wrap -->
 </div><!-- /t-arquivos -->
 
 <div class="tab" id="t-nova">
@@ -6305,8 +6432,6 @@ function arqSetView(mode, btn) {
   arqViewMode = mode;
   document.querySelectorAll('#arq-view-toggle button').forEach(b => b.classList.remove('on'));
   btn?.classList.add('on');
-  const c = document.getElementById('arq-content');
-  if (c) { c.className = mode === 'grid' ? 'grid-view' : 'list-view'; }
   renderArquivos();
 }
 
@@ -6349,28 +6474,40 @@ async function renderArquivos() {
   const container = document.getElementById('arq-content');
   if (!container) return;
   renderArqPastasSidebar();
-  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tx3);font-size:12px;grid-column:1/-1">⏳ Carregando...</div>';
+
+  // Atualizar título e breadcrumb
+  const tituloEl = document.getElementById('arqPastaTituloNome');
+  const breadExtra = document.getElementById('arqBreadExtra');
+  const breadNome = document.getElementById('arqBreadNome');
+  if (tituloEl) {
+    if (!arqPastaAtual) tituloEl.textContent = 'Todos os arquivos';
+    else if (arqPastaAtual === 'favoritos') tituloEl.textContent = '⭐ Favoritos';
+    else tituloEl.textContent = arqPastaAtual;
+  }
+  if (breadExtra) breadExtra.style.display = arqPastaAtual && arqPastaAtual !== 'favoritos' ? 'inline' : 'none';
+  if (breadNome) breadNome.textContent = arqPastaAtual;
+
+  container.innerHTML = '<div class="arq-empty"><div style="font-size:36px;margin-bottom:10px">⏳</div><div style="font-size:13px;font-weight:600">Carregando...</div></div>';
 
   await carregarArquivos();
 
-  const busca  = (document.getElementById('arqBusca')?.value||'').toLowerCase();
-  const ordem  = document.getElementById('arqOrdem')?.value || 'nome';
+  const busca = (document.getElementById('arqBusca')?.value||'').toLowerCase();
+  const ordem = document.getElementById('arqOrdem')?.value || 'nome';
+  const pasta  = (arqPastaAtual && arqPastaAtual !== 'favoritos') ? arqPastaAtual + '/' : '';
+
+  // Separar pastas virtuais de arquivos
+  const pastasVirtuais = (arqPastaAtual === '') ? arqPastas.map(p => ({ _isPasta:true, nome:p })) : [];
 
   let lista = arquivosDb.filter(f => {
-    if (f.id === null) return false; // pasta/diretório
+    if (f.id === null) return false;
     const nomeLimpo = arqNomeLimpo(f.name).toLowerCase();
     const tags = arqGetTags(f.name).join(' ').toLowerCase();
     if (busca && !nomeLimpo.includes(busca) && !tags.includes(busca)) return false;
-    if (arqFiltroTipoAtivo) {
-      if (arqInfo(f.name).cat !== arqFiltroTipoAtivo) return false;
-    }
-    if (arqPastaAtual === 'favoritos') {
-      if (!arqFavs.includes(f.name)) return false;
-    }
+    if (arqFiltroTipoAtivo && arqInfo(f.name).cat !== arqFiltroTipoAtivo) return false;
+    if (arqPastaAtual === 'favoritos' && !arqFavs.includes(f.name)) return false;
     return true;
   });
 
-  // Ordenação
   lista.sort((a, b) => {
     if (ordem === 'nome')      return arqNomeLimpo(a.name).localeCompare(arqNomeLimpo(b.name));
     if (ordem === 'nome_desc') return arqNomeLimpo(b.name).localeCompare(arqNomeLimpo(a.name));
@@ -6379,104 +6516,109 @@ async function renderArquivos() {
     return 0;
   });
 
-  // Pastas virtuais (subpastas no grid)
-  const pastasVirtuais = arqPastaAtual === '' ? arqPastas.map(p => ({ _isPasta: true, nome: p })) : [];
+  // Contador
+  const contEl = document.getElementById('arqContador');
+  if (contEl) {
+    const total = pastasVirtuais.length + lista.length;
+    contEl.textContent = total > 0 ? total + (total===1?' item':' itens') : '';
+  }
 
   if (!lista.length && !pastasVirtuais.length) {
-    container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--tx3)">
-      <div style="font-size:48px;margin-bottom:12px">📂</div>
-      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Nenhum arquivo aqui ainda</div>
-      <div style="font-size:12px">Arraste arquivos nesta área ou clique em ⬆ Enviar arquivo</div>
+    container.innerHTML = `<div class="arq-empty">
+      <div style="font-size:48px;margin-bottom:12px;opacity:.4">📂</div>
+      <div style="font-size:14px;font-weight:700;color:var(--tx2);margin-bottom:6px">Pasta vazia</div>
+      <div style="font-size:12px">Arraste arquivos aqui ou clique em ⬆ Enviar arquivo</div>
     </div>`;
     return;
   }
 
-  const pasta  = (arqPastaAtual && arqPastaAtual !== 'favoritos') ? arqPastaAtual + '/' : '';
+  let html = '';
 
-  if (arqViewMode === 'grid') {
-    container.className = 'grid-view';
-    container.innerHTML = [
-      ...pastasVirtuais.map(p => `
-        <div class="arq-grid-card" onclick="arqNavPasta('${p.nome}', document.getElementById('arqFolder_${p.nome.replace(/\s/g,'_')}'))">
-          <div style="height:70px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;font-size:32px">📁</div>
-          <div style="padding:8px 10px">
-            <div style="font-size:11px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nome}</div>
-            <div style="font-size:10px;color:var(--tx3)">Pasta</div>
-          </div>
-        </div>`),
-      ...lista.map(f => {
-        const info   = arqInfo(f.name);
-        const url    = db.storage.from(ARQ_BUCKET).getPublicUrl(pasta + f.name).data?.publicUrl || '#';
-        const isFav  = arqFavs.includes(f.name);
-        const tags   = arqGetTags(f.name);
-        const isImg  = info.cat === 'img';
-        return `
-        <div class="arq-grid-card">
+  // ── SEÇÃO DE PASTAS ──
+  if (pastasVirtuais.length) {
+    html += '<div class="arq-pastas-section">';
+    html += '<div class="arq-pastas-section-title">📂 PASTAS <span style="font-weight:400;opacity:.6">('+pastasVirtuais.length+')</span></div>';
+    html += '<div class="arq-pastas-grid">';
+    pastasVirtuais.forEach(p => {
+      // Contar arquivos na pasta
+      const countItems = 0; // será carregado ao abrir
+      html += `<div class="arq-pasta-card" onclick="arqNavPasta('${p.nome}', document.getElementById('arqFolder_${p.nome.replace(/\s/g,'_')}'))">
+        <div class="arq-pasta-card-ico">📁</div>
+        <div class="arq-pasta-card-nome">${p.nome}</div>
+        <div class="arq-pasta-card-meta">Pasta · clique para abrir</div>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // ── SEÇÃO DE ARQUIVOS ──
+  if (lista.length) {
+    html += '<div class="arq-files-section-title">📄 ARQUIVOS <span style="font-weight:400;opacity:.6">('+lista.length+')</span></div>';
+
+    if (arqViewMode === 'grid') {
+      html += '<div class="arq-grid">';
+      lista.forEach(f => {
+        const info = arqInfo(f.name);
+        const url  = db.storage.from(ARQ_BUCKET).getPublicUrl(pasta + f.name).data?.publicUrl || '#';
+        const isFav = arqFavs.includes(f.name);
+        const isImg = info.cat === 'img';
+        html += `<div class="arq-grid-card">
           ${isImg
-            ? `<div style="height:100px;overflow:hidden;background:var(--surface3);display:flex;align-items:center;justify-content:center">
-                 <img src="${url}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'font-size:28px;text-align:center\'>🖼️</div>'">
+            ? `<div style="height:90px;overflow:hidden;background:var(--surface3);display:flex;align-items:center;justify-content:center">
+                 <img src="${url}" style="width:100%;height:100%;object-fit:cover" loading="lazy">
                </div>`
             : `<div style="height:70px;background:${info.cor}18;display:flex;align-items:center;justify-content:center;font-size:28px">${info.ico}</div>`
           }
-          <div style="padding:8px 10px;flex:1">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
-              <div style="font-size:11px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" title="${arqNomeLimpo(f.name)}">${arqNomeLimpo(f.name)}</div>
-              <span class="arq-fav ${isFav?'':'off'}" onclick="arqToggleFav('${f.name}')" title="${isFav?'Remover favorito':'Favoritar'}">★</span>
+          <div style="padding:10px;flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px">
+              <div style="font-size:11px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${arqNomeLimpo(f.name)}</div>
+              <span class="arq-fav ${isFav?'':'off'}" onclick="arqToggleFav('${f.name}')">★</span>
             </div>
-            <div style="font-size:10px;color:var(--tx3);margin-top:2px">${fmtBytes(f.metadata?.size)} · ${fmtDataArq(f.created_at)}</div>
-            ${tags.length ? `<div style="margin-top:4px">${tags.map(t=>`<span class="arq-file-tag" style="background:${ARQ_TAG_CORES[t]||'#6B7280'}22;color:${ARQ_TAG_CORES[t]||'#6B7280'}">${t}</span>`).join('')}</div>` : ''}
+            <div style="font-size:10px;color:var(--tx3);margin-top:3px">${info.label} · ${fmtBytes(f.metadata?.size)}</div>
+            <div style="font-size:10px;color:var(--tx3)">${fmtDataArq(f.created_at)}</div>
           </div>
-          <div style="display:flex;gap:4px;padding:6px 8px;border-top:1px solid var(--border)">
-            <button class="arq-btn primary" onclick="window.open('${url}','_blank')" style="flex:1;font-size:10px">⬇ Abrir</button>
+          <div style="display:flex;gap:4px;padding:8px;border-top:1px solid var(--border)">
+            <button class="arq-btn primary" onclick="window.open('${url}','_blank')" style="flex:1">⬇ Abrir</button>
             <button class="arq-btn" onclick="copiarLinkArquivo('${url}')" title="Copiar link">🔗</button>
-            <button class="arq-btn" onclick="arqAdicionarTag('${f.name}')" title="Tag">🏷️</button>
             <button class="arq-btn red" onclick="excluirArquivo('${pasta+f.name}',this)" title="Excluir">🗑</button>
           </div>
         </div>`;
-      })
-    ].join('');
-  } else {
-    // LISTA
-    container.className = 'list-view';
-    container.innerHTML = [
-      ...pastasVirtuais.map(p => `
-        <div class="arq-file-row" onclick="arqNavPasta('${p.nome}', document.getElementById('arqFolder_${p.nome.replace(/\s/g,'_')}'))" style="cursor:pointer">
-          <div class="arq-file-ico" style="background:rgba(245,158,11,.12)">📁</div>
-          <div style="flex:1;overflow:hidden">
-            <div class="arq-file-name">${p.nome}</div>
-            <div class="arq-file-meta">Pasta</div>
-          </div>
-          <span style="font-size:11px;color:var(--tx3)">›</span>
-        </div>`),
-      ...lista.map(f => {
+      });
+      html += '</div>';
+    } else {
+      // LISTA
+      lista.forEach(f => {
         const info  = arqInfo(f.name);
         const url   = db.storage.from(ARQ_BUCKET).getPublicUrl(pasta + f.name).data?.publicUrl || '#';
         const isFav = arqFavs.includes(f.name);
         const tags  = arqGetTags(f.name);
-        const quem  = f.metadata?.owner || curUser?.nome?.split(' ')[0] || '—';
-        return `
-        <div class="arq-file-row">
+        html += `<div class="arq-file-row">
           <div class="arq-file-ico" style="background:${info.cor}18">${info.ico}</div>
           <div style="flex:1;overflow:hidden;min-width:0">
-            <div class="arq-file-name" title="${arqNomeLimpo(f.name)}">${arqNomeLimpo(f.name)}</div>
-            <div class="arq-file-meta">${info.label} · ${fmtBytes(f.metadata?.size)} · ${fmtDataArq(f.created_at)}
+            <div class="arq-file-name">${arqNomeLimpo(f.name)}</div>
+            <div class="arq-file-meta">
+              ${info.label} · ${fmtBytes(f.metadata?.size)} · ${fmtDataArq(f.created_at)}
               ${tags.map(t=>`<span class="arq-file-tag" style="background:${ARQ_TAG_CORES[t]||'#6B7280'}22;color:${ARQ_TAG_CORES[t]||'#6B7280'}">${t}</span>`).join('')}
             </div>
           </div>
-          <span class="arq-fav ${isFav?'':'off'}" onclick="arqToggleFav('${f.name}')" style="margin-right:6px" title="${isFav?'Remover':'Favoritar'}">★</span>
+          <span class="arq-fav ${isFav?'':'off'}" onclick="arqToggleFav('${f.name}')" style="margin-right:8px">★</span>
           <div class="arq-actions">
             <button class="arq-btn primary" onclick="window.open('${url}','_blank')">⬇ Abrir</button>
             <button class="arq-btn" onclick="arqRenomearArquivo('${pasta+f.name}','${arqNomeLimpo(f.name)}')" title="Renomear">✏️</button>
             <button class="arq-btn" onclick="copiarLinkArquivo('${url}')" title="Copiar link">🔗</button>
-            <button class="arq-btn" onclick="arqAdicionarTag('${f.name}')" title="Adicionar tag">🏷️</button>
-            <button class="arq-btn" onclick="arqMoverPara('${f.name}')" title="Mover para pasta">📂</button>
+            <button class="arq-btn" onclick="arqAdicionarTag('${f.name}')" title="Tag">🏷️</button>
+            <button class="arq-btn" onclick="arqMoverPara('${f.name}')" title="Mover">📂</button>
             <button class="arq-btn red" onclick="excluirArquivo('${pasta+f.name}',this)" title="Excluir">🗑</button>
           </div>
         </div>`;
-      })
-    ].join('');
+      });
+    }
   }
+
+  container.innerHTML = html;
 }
+
+  await carregarArquivos();
 
 // ── Upload ───────────────────────────────────────────────────────
 function abrirUploadArquivo() { document.getElementById('arqFileInput')?.click(); }
