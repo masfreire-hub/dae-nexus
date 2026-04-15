@@ -4445,50 +4445,122 @@ async function openDet(type, id) {
       </div>
 
       <!-- STATUS & PRIORIDADE -->
-      <div class="det-block">
-        <div class="det-block-title">⚙ Configurações</div>
-        <div class="det-row">
-          <div class="det-lbl">Status</div>
-          <select class="sel" style="margin:0;font-size:11px;padding:5px 8px" onchange="salvarStatus('${id}',this.value)">
-            ${statusOpts.map(s=>`<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}
-          </select>
+      <div class="det-block" style="padding:0;overflow:hidden;">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
+          <div class="det-block-title" style="margin-bottom:0">⚙ Configurações</div>
         </div>
-        <div class="det-row">
-          <div class="det-lbl">Prioridade</div>
-          <select class="sel" style="margin:0;font-size:11px;padding:5px 8px" onchange="salvarPrioridade('${id}',this.value)">
-            ${priorOpts.map(s=>`<option value="${s}" ${t.prior===s?'selected':''}>${s}</option>`).join('')}
-          </select>
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px;">
+
+          <div>
+            <div class="det-lbl" style="margin-bottom:5px">Status</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${statusOpts.map(s => {
+                const statusIcons = {'to do':'📋','em andamento':'⚡','pronto p/ testar':'🔍','feito':'✅','bloqueado':'🚫'};
+                const statusColors = {'to do':'#64748B','em andamento':'#3B82F6','pronto p/ testar':'#8B5CF6','feito':'#10B981','bloqueado':'#EF4444'};
+                const sc = statusColors[s]||'#64748B';
+                const isActive = t.status===s;
+                return `<button onclick="salvarStatus('${id}','${s}');openDet('task','${id}')" style="
+                  padding:5px 9px;border-radius:20px;border:1.5px solid ${isActive?sc:'#E2E8F0'};
+                  background:${isActive?sc+'18':'#fff'};color:${isActive?sc:'#94A3B8'};
+                  font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;
+                  display:flex;align-items:center;gap:4px;transition:all .15s;letter-spacing:.2px;
+                ">${statusIcons[s]||''} ${s}</button>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <div>
+            <div class="det-lbl" style="margin-bottom:5px">Prioridade</div>
+            <div style="display:flex;gap:5px;">
+              ${priorOpts.map(s => {
+                const priorColors = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'};
+                const priorIcons = {urgente:'🔴',alta:'🟠',media:'🔵',baixa:'🟢'};
+                const pc = priorColors[s]||'#64748B';
+                const isActive = t.prior===s;
+                return `<button onclick="salvarPrioridade('${id}','${s}');openDet('task','${id}')" style="
+                  flex:1;padding:5px 4px;border-radius:8px;border:1.5px solid ${isActive?pc:'#E2E8F0'};
+                  background:${isActive?pc:'#fff'};color:${isActive?'#fff':'#94A3B8'};
+                  font-size:9px;font-weight:800;cursor:pointer;font-family:inherit;
+                  display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .15s;
+                ">${priorIcons[s]}<span>${s}</span></button>`;
+              }).join('')}
+            </div>
+          </div>
+
         </div>
       </div>
 
       <!-- DATAS -->
-      <div class="det-block">
-        <div class="det-block-title">📅 Datas</div>
-        <div class="det-row">
-          <div class="det-lbl">Início</div>
-          <input type="date" style="background:#F8FAFC;border:1px solid #E9EEF4;border-radius:7px;color:#1E293B;font-size:11px;font-weight:600;width:100%;padding:5px 8px;cursor:pointer;font-family:inherit" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)">
+      <div class="det-block" style="padding:0;overflow:hidden;">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
+          <div class="det-block-title" style="margin-bottom:0">📅 Datas</div>
         </div>
-        <div class="det-row">
-          <div class="det-lbl">Prazo</div>
-          <input type="date" style="background:${isVencida?'#FFF5F5':'#F8FAFC'};border:1px solid ${isVencida?'#FCA5A5':'#E9EEF4'};border-radius:7px;color:${isVencida?'#DC2626':'#1E293B'};font-size:11px;font-weight:600;width:100%;padding:5px 8px;cursor:pointer;font-family:inherit" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)">
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div class="det-lbl">Início</div>
+            <div style="position:relative;">
+              <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none;">🗓</span>
+              <input type="date" style="background:#F8FAFC;border:1.5px solid #E9EEF4;border-radius:9px;color:${t.data_inicio?'#1E293B':'#94A3B8'};font-size:11px;font-weight:600;width:100%;padding:7px 8px 7px 28px;cursor:pointer;font-family:inherit;outline:none;" value="${t.data_inicio||''}" onchange="salvarDataInicio('${id}',this.value)" onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='#E9EEF4'">
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div class="det-lbl" style="color:${isVencida?'#EF4444':'#CBD5E1'}">Prazo ${isVencida?'⚠ VENCIDO':''}</div>
+            <div style="position:relative;">
+              <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none;">${isVencida?'🔴':'📌'}</span>
+              <input type="date" style="background:${isVencida?'#FFF5F5':'#F8FAFC'};border:1.5px solid ${isVencida?'#FCA5A5':'#E9EEF4'};border-radius:9px;color:${isVencida?'#DC2626':'#1E293B'};font-size:11px;font-weight:${isVencida?'700':'600'};width:100%;padding:7px 8px 7px 28px;cursor:pointer;font-family:inherit;outline:none;" value="${t.prazo||''}" onchange="salvarPrazo('${id}',this.value)" onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='${isVencida?'#FCA5A5':'#E9EEF4'}'">
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- PROJETO -->
-      <div class="det-block">
-        <div class="det-block-title">📌 Projeto</div>
-        <div class="det-val" style="font-size:12px;font-weight:600;color:#1E293B">${p?p.nome:'—'}</div>
-        ${esp?`<div style="font-size:10px;color:#94A3B8;margin-top:2px">📁 ${esp.nome}</div>`:''}
+      ${p ? `<div class="det-block" style="padding:0;overflow:hidden;background:linear-gradient(135deg,#EEF2FF,#F5F3FF);">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(99,102,241,.12);">
+          <div class="det-block-title" style="margin-bottom:0;color:#6366F1">📌 Projeto</div>
+        </div>
+        <div style="padding:12px 14px;">
+          <div style="font-size:13px;font-weight:800;color:#3730A3;line-height:1.3;margin-bottom:4px">${p.nome}</div>
+          ${esp?`<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.1);color:#6366F1;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;">📁 ${esp.nome}</div>`:''}
+          ${p.prog!==undefined?`
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:9px;font-weight:700;color:#8B5CF6;letter-spacing:.5px;text-transform:uppercase;">Progresso</span>
+              <span style="font-size:11px;font-weight:800;color:#6366F1">${p.prog||0}%</span>
+            </div>
+            <div style="height:5px;background:rgba(99,102,241,.15);border-radius:10px;overflow:hidden;">
+              <div style="height:100%;width:${p.prog||0}%;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:10px;transition:width .4s ease;"></div>
+            </div>
+          </div>`:''}
+        </div>
+      </div>` : ''}
+
+      <!-- RESPONSÁVEL -->
+      <div class="det-block" style="padding:0;overflow:hidden;">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
+          <div class="det-block-title" style="margin-bottom:0">👤 Responsável</div>
+        </div>
+        <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:${m?.cor||'#4F46E5'}18;color:${m?.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">${t.resp||'?'}</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1E293B">${m?m.nome.split(' ').slice(0,2).join(' '):t.resp||'—'}</div>
+            ${m?.cargo?`<div style="font-size:10px;color:#94A3B8">${m.cargo}</div>`:''}
+          </div>
+          <button onclick="abrirTransferencia('${id}')" style="margin-left:auto;padding:4px 8px;border-radius:7px;border:1.5px solid #E2E8F0;background:#fff;color:#64748B;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">↔</button>
+        </div>
       </div>
 
       <!-- HISTÓRICO -->
-      ${t.historico_resp ? `<div class="det-block">
-        <div class="det-block-title">🔄 Histórico</div>
-        ${JSON.parse(t.historico_resp||'[]').slice(-3).map(h=>`
-          <div style="font-size:10px;color:#334155;padding:4px 0;border-bottom:1px solid #F8FAFC;display:flex;justify-content:space-between">
-            <span>${h.de} → <strong>${h.para}</strong></span>
-            <span style="color:#CBD5E1">${h.data}</span>
-          </div>`).join('')}
+      ${t.historico_resp ? `<div class="det-block" style="padding:0;overflow:hidden;">
+        <div style="padding:10px 14px 8px;border-bottom:1px solid #F1F5F9;">
+          <div class="det-block-title" style="margin-bottom:0">🔄 Histórico</div>
+        </div>
+        <div style="padding:8px 14px;">
+          ${JSON.parse(t.historico_resp||'[]').slice(-3).map(h=>`
+            <div style="font-size:10px;color:#334155;padding:5px 0;border-bottom:1px solid #F8FAFC;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <span>${h.de} <span style="color:#94A3B8">→</span> <strong style="color:#4F46E5">${h.para}</strong></span>
+              <span style="color:#CBD5E1;white-space:nowrap">${h.data}</span>
+            </div>`).join('')}
+        </div>
       </div>` : ''}
     `;
 
@@ -4532,17 +4604,29 @@ async function openDet(type, id) {
     const comInput = document.getElementById('detComInput');
     if (comInput) comInput.style.display = isLocal ? 'none' : 'flex';
 
-    // ── Aba Descrição ──────────────────────────────────────────────
+    // ── Aba Descrição editável ─────────────────────────────────────
     const descArea = document.getElementById('detDescArea');
     if (descArea) {
       const descTxt = t.descricao || t.desc || '';
-      descArea.innerHTML = descTxt
-        ? `<div class="det-desc-txt">${descTxt}</div>`
-        : `<div class="det-desc-empty">
-            <div style="font-size:32px;opacity:.3">📝</div>
-            <div style="font-size:13px;color:#94A3B8;font-weight:600">Sem descrição</div>
-            <div style="font-size:11px;color:#CBD5E1;margin-top:4px">Edite a tarefa para adicionar uma descrição</div>
-           </div>`;
+      descArea.innerHTML = `
+        <div style="display:flex;flex-direction:column;height:100%;padding:16px;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div style="font-size:10px;font-weight:800;color:#94A3B8;letter-spacing:.8px;text-transform:uppercase;">📝 DESCRIÇÃO DA TAREFA</div>
+            <span id="descSaveStatus" style="font-size:10px;color:#10B981;font-weight:600;opacity:0;transition:opacity .3s;">✓ Salvo</span>
+          </div>
+          <textarea id="detDescInput"
+            placeholder="Descreva os detalhes desta tarefa, objetivos, critérios de aceite..."
+            style="flex:1;resize:none;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px;font-size:13px;font-family:inherit;color:#1E293B;line-height:1.7;outline:none;background:#FAFBFD;transition:border-color .2s,box-shadow .2s;"
+            onfocus="this.style.borderColor='#4F46E5';this.style.boxShadow='0 0 0 3px rgba(79,70,229,.08)';this.style.background='#fff';"
+            onblur="this.style.borderColor='#E2E8F0';this.style.boxShadow='none';this.style.background='#FAFBFD';"
+            oninput="agendarSalvarDescricao('${id}',this.value)"
+          >${descTxt}</textarea>
+          <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;color:#CBD5E1;">Edições salvas automaticamente</span>
+            <button onclick="salvarDescricaoAgora('${id}')" style="padding:7px 16px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">💾 Salvar</button>
+          </div>
+        </div>
+      `;
     }
 
     // ── Reset abas para Comentários ────────────────────────────────
@@ -4839,6 +4923,32 @@ function switchDetTab(tab) {
   });
 }
 
+let _descTimer = null;
+function agendarSalvarDescricao(tarefaId, valor) {
+  clearTimeout(_descTimer);
+  const status = document.getElementById('descSaveStatus');
+  if (status) { status.style.opacity='0'; }
+  _descTimer = setTimeout(() => salvarDescricaoAgora(tarefaId, valor), 1200);
+}
+
+async function salvarDescricaoAgora(tarefaId, valor) {
+  const input = document.getElementById('detDescInput');
+  const texto = valor !== undefined ? valor : (input?.value || '');
+  const t = tar.find(x => x.id === tarefaId);
+  if (!t) return;
+  t.descricao = texto;
+  if (!String(tarefaId).startsWith('local_')) {
+    await safeDb.from('tarefas').update({ descricao: texto }).eq('id', tarefaId);
+  }
+  const status = document.getElementById('descSaveStatus');
+  if (status) {
+    status.textContent = '✓ Salvo';
+    status.style.color = '#10B981';
+    status.style.opacity = '1';
+    setTimeout(() => { if(status) status.style.opacity='0'; }, 2000);
+  }
+}
+
 
 
 
@@ -4849,7 +4959,9 @@ async function salvarStatus(tarefaId, status) {
   if (t) { t.status = status; t.ok = ok; }
   if (ok) await calcularProgressoAuto(t?.projeto_id);
   renderTasks(); renderDashInteligente();
-  showToast('✅ Status atualizado!');
+  // Atualizar banner e sidebar sem fechar painel
+  if (window._detTarefaId === tarefaId) { try { await openDet('task', tarefaId); } catch(e){} }
+  showToast('✅ Status: ' + status);
 }
 
 async function salvarPrioridade(tarefaId, prior) {
@@ -4857,7 +4969,9 @@ async function salvarPrioridade(tarefaId, prior) {
   const t = tar.find(x => x.id === tarefaId);
   if (t) t.prior = prior;
   renderTasks();
-  showToast('🚨 Prioridade atualizada!');
+  // Atualizar banner e sidebar sem fechar painel
+  if (window._detTarefaId === tarefaId) { try { await openDet('task', tarefaId); } catch(e){} }
+  showToast('🚨 Prioridade: ' + prior);
 }
 
 async function salvarDataInicio(tarefaId, data) {
