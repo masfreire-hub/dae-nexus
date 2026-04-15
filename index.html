@@ -7968,16 +7968,15 @@ function selIcone(el, icone) {
 }
 
 function renderEstacaoChips() {
-  // Estações = lista de estações distintas dos espaços cadastrados
-  // + estações que têm projetos (via dept dos projetos legados)
   const todas = [...new Set([
+    ...(cadastros?.estacao||[]),
     ...proj.map(p => p.dept).filter(Boolean),
     ...espacos.map(e => e.estacao).filter(Boolean)
-  ])].sort();
+  ].map(e => e.trim()))].sort();
   const el = document.getElementById('estacaoChips');
   if (!el) return;
   el.innerHTML = `<div class="chip ${estacaoFiltroAtual==='todas'?'on':''}" onclick="filtrarEstacao('todas',this)">Todas</div>` +
-    todas.map(e => `<div class="chip ${estacaoFiltroAtual===e?'on':''}" onclick="filtrarEstacao('${e}',this)">${e.split(' ')[0]}</div>`).join('');
+    todas.map(e => `<div class="chip ${estacaoFiltroAtual===e?'on':''}" onclick="filtrarEstacao('${e.replace(/'/g,"\\'")}',this)">${e}</div>`).join('');
 }
 
 function filtrarEstacao(nome, el) {
@@ -7994,12 +7993,18 @@ function renderHierarquia() {
   if (!el) return;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
-  // Setores = espaços cadastrados (cada espaço é um setor dentro de uma estação/dept)
-  const todasEstacoes = [...new Set([
-    ...(cadastros?.estacao || []),
+  // Normalizar: trim + deduplicar case-insensitive mantendo primeira ocorrência
+  const rawEstacoes = [
+    ...(cadastros?.estacao||[]),
     ...proj.map(function(p){ return p.dept; }).filter(Boolean),
     ...espacos.map(function(e){ return e.estacao; }).filter(Boolean)
-  ])].sort();
+  ].map(function(e){ return e.trim(); });
+  const seenLower = new Set();
+  const todasEstacoes = rawEstacoes.filter(function(e){
+    const key = e.toLowerCase();
+    if (seenLower.has(key)) return false;
+    seenLower.add(key); return true;
+  }).sort();
 
   const estacoesFiltradas = estacaoFiltroAtual === 'todas' ? todasEstacoes : [estacaoFiltroAtual];
 
@@ -8023,11 +8028,12 @@ function renderHierarquia() {
 
   estacoesFiltradas.forEach(function(estacao, idx) {
     const grad = GRADS[idx % GRADS.length];
-    const setores = espacos.filter(function(e){ return e.estacao === estacao; });
+    const estLow = estacao.toLowerCase();
+    const setores = espacos.filter(function(e){ return (e.estacao||'').trim().toLowerCase() === estLow; });
 
     // Todos projetos desta estação
     const idsSetores = setores.map(function(e){ return e.id; });
-    const projEstacao = proj.filter(function(p){ return idsSetores.includes(p.espaco_id) || (!p.espaco_id && p.dept === estacao); });
+    const projEstacao = proj.filter(function(p){ return idsSetores.includes(p.espaco_id) || (!p.espaco_id && (p.dept||'').trim().toLowerCase() === estLow); });
 
     // Atividades desta estação (sem projeto_id = atividade de setor)
     const ativsEstacao = ativs.filter(function(a){
@@ -9712,19 +9718,6 @@ function abrirNovoProjEspaco(espacoId, estacao) {
   renderProjResponsaveis();
   openM('mProj');
 }
-
-// ══ HIERARQUIA: override de chips para usar cadastros.estacao ════
-const _origRenderHierarquia = typeof renderHierarquia === 'function' ? renderHierarquia : null;
-
-// Override renderEstacaoChips para usar cadastros.estacao
-const _origChips = renderEstacaoChips;
-renderEstacaoChips = function() {
-  const todas = [...new Set([...cadastros.estacao, ...espacos.map(e => e.estacao).filter(Boolean)])].sort();
-  const el = document.getElementById('estacaoChips');
-  if (!el) return;
-  el.innerHTML = `<div class="chip ${estacaoFiltroAtual==='todas'?'on':''}" onclick="filtrarEstacao('todas',this)">Todas</div>` +
-    todas.map(e => `<div class="chip ${estacaoFiltroAtual===e?'on':''}" onclick="filtrarEstacao('${e.replace(/'/g,"\\'")}',this)">${e}</div>`).join('');
-};
 
 // Override addProj para usar responsáveis
 const _origAddProj = addProj;
