@@ -813,7 +813,7 @@ button{font-family:var(--fb);}
 .det-body{display:flex;flex:1;overflow:hidden;min-height:0;}
 
 /* ══ SIDEBAR ESQUERDA ══ */
-.det-left{width:220px;flex-shrink:0;border-right:1px solid #F1F5F9;overflow-y:auto;background:#F8FAFC;display:flex;flex-direction:column;}
+.det-left{width:260px;flex-shrink:0;border-right:1px solid #F1F5F9;overflow-y:auto;background:#F8FAFC;display:flex;flex-direction:column;}
 .det-left-inner{padding:14px;display:flex;flex-direction:column;gap:12px;flex:1;}
 .det-block{background:#fff;border:1px solid #EAEFF6;border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
 .det-block-title{font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:.9px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:4px;}
@@ -4356,14 +4356,20 @@ async function openDet(type, id) {
   }
   if (type==='task') {
     const t = tar.find(x => x.id===id); if (!t) return;
-    const p = proj.find(x => x.id===t.projeto_id);
+    // Busca robusta do projeto (compara como string para evitar tipo mismatch)
+    let p = proj.find(x => String(x.id) === String(t.projeto_id));
+    // Fallback: buscar no Supabase se não achou localmente
+    if (!p && t.projeto_id && !String(id).startsWith('local_')) {
+      const { data: pData } = await safeDb.from('projetos').select('*').eq('id', t.projeto_id).single();
+      if (pData) { proj.push(pData); p = pData; }
+    }
     const m = memb.find(x => x.av===t.resp);
     const pc = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#22C55E'}[t.prior]||'#C9920A';
     window._detTarefaId = id;
 
     // ── Cores de prioridade e status ──────────────────────────────
     const PRIOR_COR  = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#22C55E'};
-    const STATUS_COR = {'to do':'#6B7280','em andamento':'#3B82F6','pronto p/ testar':'#8B5CF6','feito':'#22C55E','bloqueado':'#EF4444'};
+    const STATUS_COR = {'to do':'#6B7280','em andamento':'#3B82F6','em revisão':'#8B5CF6','pronto p/ testar':'#F59E0B','aguardando':'#F97316','bloqueado':'#EF4444','feito':'#10B981'};
     const priorCor   = PRIOR_COR[t.prior]  || '#6B7280';
     const statusCor  = STATUS_COR[t.status] || '#6B7280';
     const isVencida  = t.prazo && new Date(t.prazo) < new Date() && !t.ok;
@@ -4411,8 +4417,6 @@ async function openDet(type, id) {
     const tempoGasto = t.tempo_gasto || 0;
     const isTimerOn  = timerTarefaId === id;
     const esp        = espacos.find(e => e.id === (p?.espaco_id));
-    const statusOpts = ['to do','em andamento','pronto p/ testar','feito','bloqueado'];
-    const priorOpts  = ['urgente','alta','media','baixa'];
 
     // Meta row no header
     const metaRow = document.getElementById('detMetaRow');
