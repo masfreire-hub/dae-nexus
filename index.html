@@ -7957,7 +7957,6 @@ function renderHierarquia() {
 
   const estacoesFiltradas = estacaoFiltroAtual === 'todas' ? todasEstacoes : [estacaoFiltroAtual];
 
-  // Paleta de gradientes para os setores
   const GRADIENTS = [
     'linear-gradient(135deg,#4F46E5,#7C3AED)',
     'linear-gradient(135deg,#0891B2,#0E7490)',
@@ -7969,135 +7968,110 @@ function renderHierarquia() {
     'linear-gradient(135deg,#BE185D,#E11D48)',
   ];
 
-  let html = '';
+  if (estacoesFiltradas.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:60px;color:#94A3B8"><div style="font-size:40px;margin-bottom:12px">🏗️</div><div style="font-size:14px;font-weight:700;color:#475569">Nenhuma estação ainda</div><div style="font-size:12px;margin-top:6px">Clique em <strong>+ ESTAÇÃO</strong> para começar</div></div>';
+    document.getElementById('pcount').textContent = '0 estações';
+    renderEstacaoChips();
+    return;
+  }
 
-  estacoesFiltradas.forEach((estacao, idx) => {
-    const espacosEstacao = espacos.filter(e => e.estacao === estacao);
-    const idsEspacos = espacosEstacao.map(e => e.id);
-    const projDosEspacos = proj.filter(p => idsEspacos.includes(p.espaco_id));
-    const projLegados = proj.filter(p => !p.espaco_id && p.dept === estacao);
-    const todosProj = [...projDosEspacos, ...projLegados];
-    const totalProj = todosProj.length;
+  el.innerHTML = '';
 
-    // Métricas
-    const todasTarefas = tar.filter(t => todosProj.some(p => p.id === t.projeto_id));
-    const tarefasAbertas = todasTarefas.filter(t => !t.ok);
-    const tarefasConcluidas = todasTarefas.filter(t => t.ok);
-    const tarefasVencidas = tarefasAbertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
-    const mediaProgress = totalProj > 0 ? Math.round(todosProj.reduce((a,p)=>a+(p.prog||0),0)/totalProj) : 0;
+  estacoesFiltradas.forEach(function(estacao, idx) {
+    try {
+      const grad = GRADIENTS[idx % GRADIENTS.length];
+      const espacosEstacao = espacos.filter(function(e){ return e.estacao === estacao; });
+      const idsEspacos = espacosEstacao.map(function(e){ return e.id; });
+      const projDosEspacos = proj.filter(function(p){ return idsEspacos.includes(p.espaco_id); });
+      const projLegados = proj.filter(function(p){ return !p.espaco_id && p.dept === estacao; });
+      const todosProj = projDosEspacos.concat(projLegados);
+      const totalProj = todosProj.length;
 
-    // Membros dos espaços
-    const membrosIds = [...new Set(
-      espacosEstacao.flatMap(esp => (esp._membros || []))
-        .concat(todosProj.flatMap(p => p.eq || []))
-    )].slice(0,5);
-    const membrosCards = membrosIds.map(av => {
-      const m = memb.find(x => x.av === av);
-      return m ? `<div class="setor-av" style="background:${m.cor||'#4F46E5'}" title="${m.nome}">${m.av}</div>` : '';
-    }).join('');
+      const todasTar = tar.filter(function(t){ return todosProj.some(function(p){ return p.id === t.projeto_id; }); });
+      const nAbertas = todasTar.filter(function(t){ return !t.ok; }).length;
+      const nFeitas  = todasTar.filter(function(t){ return t.ok; }).length;
+      const nVenc    = todasTar.filter(function(t){ return !t.ok && t.prazo && new Date(t.prazo) < hoje; }).length;
+      const mediaProg = totalProj > 0 ? Math.round(todosProj.reduce(function(a,p){ return a+(p.prog||0); },0)/totalProj) : 0;
 
-    const grad = GRADIENTS[idx % GRADIENTS.length];
+      const membrosIds = [...new Set(todosProj.flatMap(function(p){ return p.eq||[]; }))].slice(0,5);
+      const membrosHtml = membrosIds.map(function(av){
+        const m = memb.find(function(x){ return x.av===av; });
+        return m ? '<div style="width:26px;height:26px;border-radius:8px;background:'+( m.cor||'#4F46E5')+';border:2px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;margin-right:-5px" title="'+m.nome+'">'+m.av+'</div>' : '';
+      }).join('');
 
-    html += `<div class="setor-card">
-      <!-- BANNER DO SETOR -->
-      <div class="setor-banner" style="background:${grad}">
-        <div class="setor-banner-top">
-          <div>
-            <div class="setor-titulo">${estacao}</div>
-            <div class="setor-sub">${espacosEstacao.length} setor${espacosEstacao.length!==1?'es':''} · ${totalProj} projeto${totalProj!==1?'s':''}</div>
-          </div>
-          <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;">
-            <button class="setor-btn-add" onclick="abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}')">+ Setor</button>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;">
-          <div class="setor-membros">${membrosCards}${membrosIds.length?'<span style="font-size:10px;color:rgba(255,255,255,.7);margin-left:10px;font-weight:600;">'+(membrosIds.length)+' membro'+( membrosIds.length!==1?'s':'')+'</span>':''}</div>
-          <div style="text-align:right">
-            <div style="font-size:22px;font-weight:800;color:#fff;line-height:1;">${mediaProgress}%</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">progresso geral</div>
-          </div>
-        </div>
-      </div>
+      // Montar card do setor
+      const card = document.createElement('div');
+      card.className = 'setor-card';
 
-      <!-- MÉTRICAS -->
-      <div class="setor-metricas">
-        <div class="setor-metrica">
-          <div class="setor-metrica-val">${totalProj}</div>
-          <div class="setor-metrica-lbl">Projetos</div>
-        </div>
-        <div class="setor-metrica">
-          <div class="setor-metrica-val" style="color:#3B82F6">${tarefasAbertas.length}</div>
-          <div class="setor-metrica-lbl">Em aberto</div>
-        </div>
-        <div class="setor-metrica">
-          <div class="setor-metrica-val" style="color:#10B981">${tarefasConcluidas.length}</div>
-          <div class="setor-metrica-lbl">Concluídas</div>
-        </div>
-        <div class="setor-metrica">
-          <div class="setor-metrica-val" style="color:${tarefasVencidas.length>0?'#EF4444':'#94A3B8'}">${tarefasVencidas.length}</div>
-          <div class="setor-metrica-lbl">Vencidas</div>
-        </div>
-      </div>
+      // Banner
+      let bannerHtml = '<div class="setor-banner" style="background:'+grad+'">';
+      bannerHtml += '<div class="setor-banner-top">';
+      bannerHtml += '<div><div class="setor-titulo">'+estacao+'</div>';
+      bannerHtml += '<div class="setor-sub">'+espacosEstacao.length+' setor'+(espacosEstacao.length!==1?'es':'')+' · '+totalProj+' projeto'+(totalProj!==1?'s':'')+'</div></div>';
+      bannerHtml += '<button class="setor-btn-add" onclick="abrirNovoEspaco(\''+estacao.replace(/'/g,"\\'")+'\')" >+ Setor</button>';
+      bannerHtml += '</div>';
+      bannerHtml += '<div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;margin-top:8px;">';
+      bannerHtml += '<div style="display:flex;align-items:center;">'+membrosHtml;
+      if (membrosIds.length) bannerHtml += '<span style="font-size:10px;color:rgba(255,255,255,.75);margin-left:12px;font-weight:600;">'+membrosIds.length+' membro'+(membrosIds.length!==1?'s':'')+'</span>';
+      bannerHtml += '</div>';
+      bannerHtml += '<div style="text-align:right"><div style="font-size:26px;font-weight:800;color:#fff;line-height:1;">'+mediaProg+'%</div>';
+      bannerHtml += '<div style="font-size:9px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">progresso</div></div>';
+      bannerHtml += '</div></div>';
 
-      <!-- SETORES E PROJETOS -->
-      <div class="setor-body">`;
+      // Métricas
+      bannerHtml += '<div class="setor-metricas">';
+      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val">'+totalProj+'</div><div class="setor-metrica-lbl">Projetos</div></div>';
+      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#3B82F6">'+nAbertas+'</div><div class="setor-metrica-lbl">Em aberto</div></div>';
+      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#10B981">'+nFeitas+'</div><div class="setor-metrica-lbl">Concluídas</div></div>';
+      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:'+(nVenc>0?'#EF4444':'#94A3B8')+'">'+nVenc+'</div><div class="setor-metrica-lbl">Vencidas</div></div>';
+      bannerHtml += '</div>';
 
-    // Espaços cadastrados
-    espacosEstacao.forEach(esp => {
-      const projEsp = proj.filter(p => p.espaco_id === esp.id);
-      html += `
-        <div class="setor-body-header" style="margin-top:${espacosEstacao.indexOf(esp)>0?'20px':'0'}">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:18px">${esp.icone||'📁'}</span>
-            <span class="setor-body-title">${esp.nome}</span>
-            <span style="font-size:10px;color:#94A3B8;font-weight:600;">${projEsp.length} proj</span>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <span onclick="gerenciarMembrosEspaco('${esp.id}','${esp.nome.replace(/'/g,"\\'")}'')" style="cursor:pointer;font-size:13px;color:#94A3B8;padding:3px 6px;border-radius:6px;transition:all .15s" title="Membros" onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='transparent'">👥</span>
-            <span onclick="editarEspaco('${esp.id}')" style="cursor:pointer;font-size:12px;color:#94A3B8;padding:3px 6px;border-radius:6px;transition:all .15s" onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='transparent'">✏️</span>
-            <span onclick="deletarEspaco('${esp.id}')" style="cursor:pointer;font-size:12px;color:#94A3B8;padding:3px 6px;border-radius:6px;transition:all .15s" onmouseover="this.style.background='#FEE2E2';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#94A3B8'">🗑️</span>
-          </div>
-        </div>
-        <div class="setor-projetos-grid">
-          ${projEsp.map(p => cardProjNovo(p, hoje, grad)).join('')}
-          <div class="proj-card-novo" onclick="abrirNovoProjEspaco('${esp.id}','${estacao.replace(/'/g,"\\'")}')">
-            <div style="font-size:24px;opacity:.4">+</div>
-            <div style="font-size:12px;font-weight:700;">Novo projeto</div>
-          </div>
-        </div>`;
-    });
+      // Body com setores
+      bannerHtml += '<div class="setor-body">';
 
-    // Projetos legados
-    if (projLegados.length) {
-      html += `
-        <div class="setor-body-header" style="margin-top:${espacosEstacao.length>0?'20px':'0'}">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:18px">📂</span>
-            <span class="setor-body-title">${estacao} — geral</span>
-            <span style="font-size:10px;color:#F59E0B;font-weight:600;background:#FEF3C7;padding:2px 8px;border-radius:20px;">sem setor</span>
-          </div>
-          <button onclick="abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}'')" style="padding:4px 10px;border-radius:7px;border:1.5px solid #E2E8F0;background:#fff;color:#64748B;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">+ Criar setor</button>
-        </div>
-        <div class="setor-projetos-grid">
-          ${projLegados.map(p => cardProjNovo(p, hoje, grad)).join('')}
-        </div>`;
+      espacosEstacao.forEach(function(esp, ei) {
+        const projEsp = proj.filter(function(p){ return p.espaco_id === esp.id; });
+        bannerHtml += '<div style="margin-top:'+(ei>0?'20px':'0')+'">';
+        bannerHtml += '<div class="setor-body-header">';
+        bannerHtml += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">'+(esp.icone||'📁')+'</span>';
+        bannerHtml += '<span class="setor-body-title">'+esp.nome+'</span>';
+        bannerHtml += '<span style="font-size:10px;color:#94A3B8;font-weight:600;">'+projEsp.length+' proj</span></div>';
+        bannerHtml += '<div style="display:flex;gap:4px">';
+        bannerHtml += '<span onclick="gerenciarMembrosEspaco(\''+esp.id+'\',\''+esp.nome.replace(/'/g,"\\'")+'\')" style="cursor:pointer;font-size:12px;padding:4px 7px;border-radius:7px;background:#F1F5F9;color:#64748B" title="Membros">👥</span>';
+        bannerHtml += '<span onclick="editarEspaco(\''+esp.id+'\')" style="cursor:pointer;font-size:12px;padding:4px 7px;border-radius:7px;background:#F1F5F9;color:#64748B">✏️</span>';
+        bannerHtml += '<span onclick="deletarEspaco(\''+esp.id+'\')" style="cursor:pointer;font-size:12px;padding:4px 7px;border-radius:7px;background:#FEF2F2;color:#EF4444">🗑️</span>';
+        bannerHtml += '</div></div>';
+        bannerHtml += '<div class="setor-projetos-grid">';
+        projEsp.forEach(function(p){ bannerHtml += cardProjNovo(p, hoje, grad); });
+        bannerHtml += '<div class="proj-card-novo" onclick="abrirNovoProjEspaco(\''+esp.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')"><div style="font-size:28px;opacity:.35;font-weight:300">+</div><div style="font-size:12px;font-weight:700">Novo projeto</div></div>';
+        bannerHtml += '</div></div>';
+      });
+
+      if (projLegados.length > 0) {
+        bannerHtml += '<div style="margin-top:'+(espacosEstacao.length>0?'20px':'0')+'">';
+        bannerHtml += '<div class="setor-body-header"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">📂</span><span class="setor-body-title">Sem setor</span><span style="font-size:10px;color:#F59E0B;font-weight:700;background:#FEF3C7;padding:2px 8px;border-radius:20px;">'+projLegados.length+' proj</span></div></div>';
+        bannerHtml += '<div class="setor-projetos-grid">';
+        projLegados.forEach(function(p){ bannerHtml += cardProjNovo(p, hoje, grad); });
+        bannerHtml += '</div></div>';
+      }
+
+      if (espacosEstacao.length === 0 && projLegados.length === 0) {
+        bannerHtml += '<div style="text-align:center;padding:32px;color:#94A3B8"><div style="font-size:28px;opacity:.35;margin-bottom:8px">📭</div><div style="font-size:12px;font-weight:600">Nenhum setor ainda</div><div style="font-size:11px;margin-top:4px">Clique em "+ Setor" para criar</div></div>';
+      }
+
+      bannerHtml += '</div>';
+      card.innerHTML = bannerHtml;
+      el.appendChild(card);
+    } catch(err) {
+      console.error('[DAE] Erro ao renderizar estacao "'+estacao+'":', err);
     }
-
-    if (espacosEstacao.length === 0 && projLegados.length === 0) {
-      html += `<div style="text-align:center;padding:32px;color:#94A3B8;">
-        <div style="font-size:32px;margin-bottom:8px;opacity:.4">📭</div>
-        <div style="font-size:13px;font-weight:600;">Nenhum setor ainda</div>
-        <div style="font-size:11px;margin-top:4px;">Clique em "+ Setor" para começar</div>
-      </div>`;
-    }
-
-    html += `</div></div>`;
   });
 
-  el.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:13px">Nenhuma estação configurada ainda.</div>';
-  document.getElementById('pcount').textContent = todasEstacoes.length + ' estações · ' + espacos.length + ' espaços';
+  const pcEl = document.getElementById('pcount');
+  if (pcEl) pcEl.textContent = todasEstacoes.length + ' estações · ' + espacos.length + ' espaços';
   renderEstacaoChips();
 }
+
 
 function cardProjNovo(p, hoje, grad) {
   const tf = tar.filter(t => t.projeto_id === p.id);
