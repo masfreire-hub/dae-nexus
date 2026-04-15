@@ -3244,6 +3244,51 @@ select.sel{
 </div></div>
 
 <!-- MODAL MEMBROS DO ESPAÇO -->
+<div class="ov" id="mAtivSetor"><div class="modal">
+  <div class="mhandle"></div>
+  <div class="mtitle">⚡ NOVA ATIVIDADE</div>
+  <input type="hidden" id="mAtivSetorId">
+  <div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.04));border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+    <div style="font-size:10px;font-weight:700;color:#059669;letter-spacing:.8px;margin-bottom:2px;">SETOR</div>
+    <div id="mAtivSetorNome" style="font-size:13px;font-weight:800;color:#065F46;">—</div>
+  </div>
+  <label class="lbl">Título da Atividade *</label>
+  <input class="inp" id="mAtivTitulo" placeholder="Ex: Auditoria mensal, Reunião de alinhamento...">
+  <label class="lbl">Descrição</label>
+  <textarea class="inp" id="mAtivDesc" placeholder="Descreva a atividade..." style="height:80px;resize:vertical;"></textarea>
+  <div class="fg">
+    <div>
+      <label class="lbl">Tipo</label>
+      <select class="sel" id="mAtivTipo">
+        <option value="atividade">Atividade</option>
+        <option value="reunião">Reunião</option>
+        <option value="auditoria">Auditoria</option>
+        <option value="análise">Análise</option>
+        <option value="treinamento">Treinamento</option>
+        <option value="processo">Processo</option>
+        <option value="melhoria">Melhoria</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div>
+      <label class="lbl">Responsável</label>
+      <select class="sel" id="mAtivResp"></select>
+    </div>
+  </div>
+  <label class="lbl">Cor</label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="mAtivCorPicker">
+    <div onclick="selCorAtiv(this,'#10B981')" style="width:28px;height:28px;border-radius:50%;background:#10B981;cursor:pointer;border:3px solid #10B981;box-shadow:0 0 0 2px #fff,0 0 0 4px #10B981;"></div>
+    <div onclick="selCorAtiv(this,'#4F46E5')" style="width:28px;height:28px;border-radius:50%;background:#4F46E5;cursor:pointer;border:2px solid transparent;"></div>
+    <div onclick="selCorAtiv(this,'#3B82F6')" style="width:28px;height:28px;border-radius:50%;background:#3B82F6;cursor:pointer;border:2px solid transparent;"></div>
+    <div onclick="selCorAtiv(this,'#F59E0B')" style="width:28px;height:28px;border-radius:50%;background:#F59E0B;cursor:pointer;border:2px solid transparent;"></div>
+    <div onclick="selCorAtiv(this,'#EF4444')" style="width:28px;height:28px;border-radius:50%;background:#EF4444;cursor:pointer;border:2px solid transparent;"></div>
+    <div onclick="selCorAtiv(this,'#8B5CF6')" style="width:28px;height:28px;border-radius:50%;background:#8B5CF6;cursor:pointer;border:2px solid transparent;"></div>
+    <div onclick="selCorAtiv(this,'#F97316')" style="width:28px;height:28px;border-radius:50%;background:#F97316;cursor:pointer;border:2px solid transparent;"></div>
+  </div>
+  <button class="btnp" onclick="salvarAtivSetor()">⚡ CRIAR ATIVIDADE</button>
+  <button class="btncanc" onclick="closeM('mAtivSetor')">Cancelar</button>
+</div></div>
+
 <div class="ov" id="mMembrosEspaco"><div class="modal">
   <div class="mhandle"></div>
   <div class="mtitle" id="mMembrosEspacoTitle">👥 MEMBROS DO ESPAÇO</div>
@@ -3799,7 +3844,7 @@ async function loadAll() {
         safeDb.from('riscos').select('*').eq('status','aberto').order('created_at',{ascending:false}),
         safeDb.from('reunioes').select('*').order('created_at',{ascending:false}),
         safeDb.from('agenda').select('*').order('created_at',{ascending:false}),
-        safeDb.from('atividades').select('*').order('created_at',{ascending:false}).limit(20),
+        safeDb.from('atividades').select('*').order('created_at',{ascending:false}).limit(200),
         safeDb.from('espacos').select('*').order('nome'),
       ]);
       // Só usar dados do Supabase se retornar algo (evita sobrescrever local com vazio)
@@ -7949,175 +7994,226 @@ function renderHierarquia() {
   if (!el) return;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
+  // Setores = espaços cadastrados (cada espaço é um setor dentro de uma estação/dept)
   const todasEstacoes = [...new Set([
     ...(cadastros?.estacao || []),
-    ...proj.map(p => p.dept).filter(Boolean),
-    ...espacos.map(e => e.estacao).filter(Boolean)
+    ...proj.map(function(p){ return p.dept; }).filter(Boolean),
+    ...espacos.map(function(e){ return e.estacao; }).filter(Boolean)
   ])].sort();
 
   const estacoesFiltradas = estacaoFiltroAtual === 'todas' ? todasEstacoes : [estacaoFiltroAtual];
 
-  const GRADIENTS = [
-    'linear-gradient(135deg,#4F46E5,#7C3AED)',
-    'linear-gradient(135deg,#0891B2,#0E7490)',
-    'linear-gradient(135deg,#059669,#0D9488)',
-    'linear-gradient(135deg,#DC2626,#EA580C)',
-    'linear-gradient(135deg,#D97706,#CA8A04)',
-    'linear-gradient(135deg,#7C3AED,#A855F7)',
-    'linear-gradient(135deg,#0F172A,#334155)',
-    'linear-gradient(135deg,#BE185D,#E11D48)',
+  const GRADS = [
+    'linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%)',
+    'linear-gradient(135deg,#0369A1 0%,#0891B2 100%)',
+    'linear-gradient(135deg,#047857 0%,#059669 100%)',
+    'linear-gradient(135deg,#B45309 0%,#D97706 100%)',
+    'linear-gradient(135deg,#9D174D 0%,#BE185D 100%)',
+    'linear-gradient(135deg,#1D4ED8 0%,#3B82F6 100%)',
+    'linear-gradient(135deg,#0F172A 0%,#1E293B 100%)',
   ];
 
   if (estacoesFiltradas.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:60px;color:#94A3B8"><div style="font-size:40px;margin-bottom:12px">🏗️</div><div style="font-size:14px;font-weight:700;color:#475569">Nenhuma estação ainda</div><div style="font-size:12px;margin-top:6px">Clique em <strong>+ ESTAÇÃO</strong> para começar</div></div>';
-    document.getElementById('pcount').textContent = '0 estações';
-    renderEstacaoChips();
-    return;
+    el.innerHTML = '<div style="text-align:center;padding:80px 40px;color:#94A3B8"><div style="font-size:48px;margin-bottom:16px">🏗️</div><div style="font-size:16px;font-weight:700;color:#475569;margin-bottom:8px">Nenhum departamento ainda</div><div style="font-size:13px">Clique em <strong>+ ESTAÇÃO</strong> para criar o DAE</div></div>';
+    const pc = document.getElementById('pcount'); if(pc) pc.textContent = '0 estações';
+    renderEstacaoChips(); return;
   }
 
   el.innerHTML = '';
 
   estacoesFiltradas.forEach(function(estacao, idx) {
-    try {
-      const grad = GRADIENTS[idx % GRADIENTS.length];
-      const espacosEstacao = espacos.filter(function(e){ return e.estacao === estacao; });
-      const idsEspacos = espacosEstacao.map(function(e){ return e.id; });
-      const projDosEspacos = proj.filter(function(p){ return idsEspacos.includes(p.espaco_id); });
-      const projLegados = proj.filter(function(p){ return !p.espaco_id && p.dept === estacao; });
-      const todosProj = projDosEspacos.concat(projLegados);
-      const totalProj = todosProj.length;
+    const grad = GRADS[idx % GRADS.length];
+    const setores = espacos.filter(function(e){ return e.estacao === estacao; });
 
-      const todasTar = tar.filter(function(t){ return todosProj.some(function(p){ return p.id === t.projeto_id; }); });
-      const nAbertas = todasTar.filter(function(t){ return !t.ok; }).length;
-      const nFeitas  = todasTar.filter(function(t){ return t.ok; }).length;
-      const nVenc    = todasTar.filter(function(t){ return !t.ok && t.prazo && new Date(t.prazo) < hoje; }).length;
-      const mediaProg = totalProj > 0 ? Math.round(todosProj.reduce(function(a,p){ return a+(p.prog||0); },0)/totalProj) : 0;
+    // Todos projetos desta estação
+    const idsSetores = setores.map(function(e){ return e.id; });
+    const projEstacao = proj.filter(function(p){ return idsSetores.includes(p.espaco_id) || (!p.espaco_id && p.dept === estacao); });
 
-      const membrosIds = [...new Set(todosProj.flatMap(function(p){ return p.eq||[]; }))].slice(0,5);
-      const membrosHtml = membrosIds.map(function(av){
-        const m = memb.find(function(x){ return x.av===av; });
-        return m ? '<div style="width:26px;height:26px;border-radius:8px;background:'+( m.cor||'#4F46E5')+';border:2px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;margin-right:-5px" title="'+m.nome+'">'+m.av+'</div>' : '';
-      }).join('');
-
-      // Montar card do setor
-      const card = document.createElement('div');
-      card.className = 'setor-card';
-
-      // Banner
-      let bannerHtml = '<div class="setor-banner" style="background:'+grad+'">';
-      bannerHtml += '<div class="setor-banner-top">';
-      bannerHtml += '<div><div class="setor-titulo">'+estacao+'</div>';
-      bannerHtml += '<div class="setor-sub">'+espacosEstacao.length+' setor'+(espacosEstacao.length!==1?'es':'')+' · '+totalProj+' projeto'+(totalProj!==1?'s':'')+'</div></div>';
-      bannerHtml += '<button class="setor-btn-add" onclick="abrirNovoEspaco(\''+estacao.replace(/'/g,"\\'")+'\')" >+ Setor</button>';
-      bannerHtml += '</div>';
-      bannerHtml += '<div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;margin-top:8px;">';
-      bannerHtml += '<div style="display:flex;align-items:center;">'+membrosHtml;
-      if (membrosIds.length) bannerHtml += '<span style="font-size:10px;color:rgba(255,255,255,.75);margin-left:12px;font-weight:600;">'+membrosIds.length+' membro'+(membrosIds.length!==1?'s':'')+'</span>';
-      bannerHtml += '</div>';
-      bannerHtml += '<div style="text-align:right"><div style="font-size:26px;font-weight:800;color:#fff;line-height:1;">'+mediaProg+'%</div>';
-      bannerHtml += '<div style="font-size:9px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">progresso</div></div>';
-      bannerHtml += '</div></div>';
-
-      // Métricas
-      bannerHtml += '<div class="setor-metricas">';
-      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val">'+totalProj+'</div><div class="setor-metrica-lbl">Projetos</div></div>';
-      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#3B82F6">'+nAbertas+'</div><div class="setor-metrica-lbl">Em aberto</div></div>';
-      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#10B981">'+nFeitas+'</div><div class="setor-metrica-lbl">Concluídas</div></div>';
-      bannerHtml += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:'+(nVenc>0?'#EF4444':'#94A3B8')+'">'+nVenc+'</div><div class="setor-metrica-lbl">Vencidas</div></div>';
-      bannerHtml += '</div>';
-
-      // Body com setores
-      bannerHtml += '<div class="setor-body">';
-
-      espacosEstacao.forEach(function(esp, ei) {
-        const projEsp = proj.filter(function(p){ return p.espaco_id === esp.id; });
-        bannerHtml += '<div style="margin-top:'+(ei>0?'20px':'0')+'">';
-        bannerHtml += '<div class="setor-body-header">';
-        bannerHtml += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">'+(esp.icone||'📁')+'</span>';
-        bannerHtml += '<span class="setor-body-title">'+esp.nome+'</span>';
-        bannerHtml += '<span style="font-size:10px;color:#94A3B8;font-weight:600;">'+projEsp.length+' proj</span></div>';
-        bannerHtml += '<div style="display:flex;gap:4px">';
-        bannerHtml += '<span onclick="gerenciarMembrosEspaco(\''+esp.id+'\',\''+esp.nome.replace(/'/g,"\\'")+'\')" style="cursor:pointer;font-size:12px;padding:4px 7px;border-radius:7px;background:#F1F5F9;color:#64748B" title="Membros">👥</span>';
-        bannerHtml += '<span onclick="editarEspaco(\''+esp.id+'\')" style="cursor:pointer;font-size:12px;padding:4px 7px;border-radius:7px;background:#F1F5F9;color:#64748B">✏️</span>';
-        bannerHtml += '<span onclick="deletarEspaco(\''+esp.id+'\')" style="cursor:pointer;font-size:12px;padding:4px 7px;border-radius:7px;background:#FEF2F2;color:#EF4444">🗑️</span>';
-        bannerHtml += '</div></div>';
-        bannerHtml += '<div class="setor-projetos-grid">';
-        projEsp.forEach(function(p){ bannerHtml += cardProjNovo(p, hoje, grad); });
-        bannerHtml += '<div class="proj-card-novo" onclick="abrirNovoProjEspaco(\''+esp.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')"><div style="font-size:28px;opacity:.35;font-weight:300">+</div><div style="font-size:12px;font-weight:700">Novo projeto</div></div>';
-        bannerHtml += '</div></div>';
-      });
-
-      if (projLegados.length > 0) {
-        bannerHtml += '<div style="margin-top:'+(espacosEstacao.length>0?'20px':'0')+'">';
-        bannerHtml += '<div class="setor-body-header"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">📂</span><span class="setor-body-title">Sem setor</span><span style="font-size:10px;color:#F59E0B;font-weight:700;background:#FEF3C7;padding:2px 8px;border-radius:20px;">'+projLegados.length+' proj</span></div></div>';
-        bannerHtml += '<div class="setor-projetos-grid">';
-        projLegados.forEach(function(p){ bannerHtml += cardProjNovo(p, hoje, grad); });
-        bannerHtml += '</div></div>';
+    // Atividades desta estação (sem projeto_id = atividade de setor)
+    const ativsEstacao = ativs.filter(function(a){
+      if (!a.projeto_id) {
+        // atividade sem projeto — tenta casar pelo espaco_id ou dept
+        return setores.some(function(s){ return s.id === a.espaco_id; }) || a.dept === estacao;
       }
+      return projEstacao.some(function(p){ return p.id === a.projeto_id; });
+    });
 
-      if (espacosEstacao.length === 0 && projLegados.length === 0) {
-        bannerHtml += '<div style="text-align:center;padding:32px;color:#94A3B8"><div style="font-size:28px;opacity:.35;margin-bottom:8px">📭</div><div style="font-size:12px;font-weight:600">Nenhum setor ainda</div><div style="font-size:11px;margin-top:4px">Clique em "+ Setor" para criar</div></div>';
-      }
+    // Métricas gerais
+    const todasTar = tar.filter(function(t){ return projEstacao.some(function(p){ return p.id === t.projeto_id; }); });
+    const nAb  = todasTar.filter(function(t){ return !t.ok; }).length;
+    const nFt  = todasTar.filter(function(t){ return t.ok; }).length;
+    const nVc  = todasTar.filter(function(t){ return !t.ok && t.prazo && new Date(t.prazo) < hoje; }).length;
+    const mediaProg = projEstacao.length > 0 ? Math.round(projEstacao.reduce(function(a,p){ return a+(p.prog||0); },0)/projEstacao.length) : 0;
 
-      bannerHtml += '</div>';
-      card.innerHTML = bannerHtml;
-      el.appendChild(card);
-    } catch(err) {
-      console.error('[DAE] Erro ao renderizar estacao "'+estacao+'":', err);
+    // Membros únicos
+    const mbIds = [...new Set(projEstacao.flatMap(function(p){ return p.eq||[]; }))].slice(0,6);
+    const mbHtml = mbIds.map(function(av){
+      const m = memb.find(function(x){ return x.av===av; });
+      return m ? '<div style="width:28px;height:28px;border-radius:8px;background:'+(m.cor||'#4F46E5')+';border:2px solid rgba(255,255,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;margin-right:-6px" title="'+m.nome+'">'+m.av+'</div>' : '';
+    }).join('');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'setor-card';
+
+    // ── BANNER ──
+    var h = '';
+    h += '<div class="setor-banner" style="background:'+grad+'">';
+    h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1;">';
+    h += '<div><div class="setor-titulo">'+estacao+'</div>';
+    h += '<div class="setor-sub">'+setores.length+' setor'+(setores.length!==1?'es':'')+' · '+projEstacao.length+' projeto'+(projEstacao.length!==1?'s':'')+' · '+ativsEstacao.length+' atividade'+(ativsEstacao.length!==1?'s':'')+'</div></div>';
+    h += '<button class="setor-btn-add" onclick="abrirNovoEspaco(\''+estacao.replace(/'/g,"\\'")+'\')" style="flex-shrink:0">+ Setor</button>';
+    h += '</div>';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;position:relative;z-index:1;">';
+    h += '<div style="display:flex;align-items:center;">'+mbHtml+(mbIds.length ? '<span style="font-size:10px;color:rgba(255,255,255,.7);margin-left:14px;font-weight:600;">'+mbIds.length+' membro'+(mbIds.length!==1?'s':'')+'</span>' : '<span style="font-size:10px;color:rgba(255,255,255,.5);">Sem membros</span>')+'</div>';
+    h += '<div style="text-align:right"><div style="font-size:28px;font-weight:900;color:#fff;line-height:1;">'+mediaProg+'<span style="font-size:16px">%</span></div><div style="font-size:9px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">progresso</div></div>';
+    h += '</div></div>';
+
+    // ── MÉTRICAS ──
+    h += '<div class="setor-metricas">';
+    h += '<div class="setor-metrica"><div class="setor-metrica-val">'+projEstacao.length+'</div><div class="setor-metrica-lbl">Projetos</div></div>';
+    h += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#3B82F6">'+nAb+'</div><div class="setor-metrica-lbl">Tarefas abertas</div></div>';
+    h += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#10B981">'+nFt+'</div><div class="setor-metrica-lbl">Concluídas</div></div>';
+    h += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:'+(nVc>0?'#EF4444':'#94A3B8')+'">'+nVc+'</div><div class="setor-metrica-lbl">Vencidas</div></div>';
+    h += '</div>';
+
+    // ── BODY: setores ──
+    h += '<div class="setor-body">';
+
+    if (setores.length === 0 && projEstacao.length === 0) {
+      h += '<div style="text-align:center;padding:40px;color:#94A3B8"><div style="font-size:32px;margin-bottom:10px;opacity:.4">📭</div><div style="font-size:13px;font-weight:600">Nenhum setor cadastrado</div><div style="font-size:11px;margin-top:6px">Clique em "+ Setor" para criar MKT, Qualidade, Projetos...</div></div>';
     }
+
+    setores.forEach(function(setor, si) {
+      const projSetor = proj.filter(function(p){ return p.espaco_id === setor.id; });
+      // Atividades diretas deste setor (sem projeto_id)
+      const ativsSetor = ativs.filter(function(a){ return !a.projeto_id && a.espaco_id === setor.id; });
+
+      h += '<div style="margin-top:'+(si>0?'24px':'0')+';padding-bottom:20px;border-bottom:'+(si<setores.length-1?'1px solid #F1F5F9':'none')+'">';
+
+      // Header do setor
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">';
+      h += '<div style="display:flex;align-items:center;gap:10px;">';
+      h += '<span style="font-size:22px">'+(setor.icone||'📁')+'</span>';
+      h += '<div><div style="font-size:14px;font-weight:800;color:#1E293B;">'+setor.nome+'</div>';
+      h += '<div style="font-size:10px;color:#94A3B8;font-weight:600;">'+projSetor.length+' projeto'+(projSetor.length!==1?'s':'')+' · '+ativsSetor.length+' atividade'+(ativsSetor.length!==1?'s':'')+'</div></div>';
+      h += '</div>';
+      h += '<div style="display:flex;gap:6px;align-items:center;">';
+      h += '<button onclick="abrirNovoProjEspaco(\''+setor.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')" style="padding:6px 12px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">📌 + Projeto</button>';
+      h += '<button onclick="abrirNovaAtivSetor(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="padding:6px 12px;border-radius:8px;background:#10B981;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">⚡ + Atividade</button>';
+      h += '<span onclick="gerenciarMembrosEspaco(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;" title="Membros">👥</span>';
+      h += '<span onclick="editarEspaco(\''+setor.id+'\')" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;" title="Editar">✏️</span>';
+      h += '</div></div>';
+
+      // Projetos do setor
+      if (projSetor.length > 0) {
+        h += '<div style="margin-bottom:12px;">';
+        h += '<div style="font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">📌 PROJETOS</div>';
+        h += '<div class="setor-projetos-grid">';
+        projSetor.forEach(function(p){ h += cardProjNovo(p, hoje, grad); });
+        h += '<div class="proj-card-novo" onclick="abrirNovoProjEspaco(\''+setor.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')">';
+        h += '<div style="font-size:28px;font-weight:200;opacity:.3">+</div><div style="font-size:11px;font-weight:700">Novo projeto</div></div>';
+        h += '</div></div>';
+      }
+
+      // Atividades do setor
+      if (ativsSetor.length > 0) {
+        h += '<div>';
+        h += '<div style="font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">⚡ ATIVIDADES</div>';
+        h += '<div style="display:flex;flex-direction:column;gap:6px;">';
+        ativsSetor.forEach(function(a){
+          const cor = a.cor || '#4F46E5';
+          const autor = memb.find(function(m){ return m.av===a.autor; });
+          h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#F8FAFC;border-radius:10px;border:1px solid #EAEFF6;transition:all .15s;cursor:default" onmouseover="this.style.borderColor=\'#4F46E5\'" onmouseout="this.style.borderColor=\'#EAEFF6\'">';
+          h += '<div style="width:4px;height:36px;border-radius:4px;background:'+cor+';flex-shrink:0"></div>';
+          h += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:#1E293B;">'+a.titulo+'</div>';
+          if (a.descricao) h += '<div style="font-size:10px;color:#64748B;margin-top:2px;">'+a.descricao.slice(0,60)+(a.descricao.length>60?'…':'')+'</div>';
+          h += '</div>';
+          if (autor) h += '<div style="width:26px;height:26px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="'+autor.nome+'">'+autor.av+'</div>';
+          h += '<div style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+cor+'14;color:'+cor+';">'+( a.tipo||'atividade')+'</div>';
+          h += '</div>';
+        });
+        h += '</div></div>';
+      }
+
+      // Se setor vazio
+      if (projSetor.length === 0 && ativsSetor.length === 0) {
+        h += '<div style="border:1.5px dashed #E2E8F0;border-radius:12px;padding:24px;text-align:center;color:#94A3B8;">';
+        h += '<div style="font-size:11px;font-weight:600;margin-bottom:10px;">Setor vazio — adicione projetos ou atividades</div>';
+        h += '<div style="display:flex;gap:8px;justify-content:center;">';
+        h += '<button onclick="abrirNovoProjEspaco(\''+setor.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')" style="padding:6px 14px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">📌 Novo projeto</button>';
+        h += '<button onclick="abrirNovaAtivSetor(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="padding:6px 14px;border-radius:8px;background:#10B981;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">⚡ Nova atividade</button>';
+        h += '</div></div>';
+      }
+
+      h += '</div>'; // fim setor
+    });
+
+    // Projetos sem setor (legados)
+    const projSemSetor = proj.filter(function(p){ return !p.espaco_id && p.dept === estacao; });
+    if (projSemSetor.length > 0) {
+      h += '<div style="margin-top:'+(setores.length>0?'24px':'0')+';padding-top:'+(setores.length>0?'20px':'0')+';border-top:'+(setores.length>0?'1px solid #F1F5F9':'none')+'">';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
+      h += '<span style="font-size:22px">📂</span>';
+      h += '<div><div style="font-size:14px;font-weight:800;color:#475569">Sem setor definido</div>';
+      h += '<div style="font-size:10px;color:#94A3B8">Mova estes projetos para um setor</div></div>';
+      h += '<span style="font-size:10px;color:#F59E0B;background:#FEF3C7;padding:3px 10px;border-radius:20px;font-weight:700;margin-left:auto;">'+projSemSetor.length+' projeto'+(projSemSetor.length!==1?'s':'')+'</span>';
+      h += '</div>';
+      h += '<div class="setor-projetos-grid">';
+      projSemSetor.forEach(function(p){ h += cardProjNovo(p, hoje, grad); });
+      h += '</div></div>';
+    }
+
+    h += '</div>'; // fim setor-body
+    wrapper.innerHTML = h;
+    el.appendChild(wrapper);
   });
 
-  const pcEl = document.getElementById('pcount');
-  if (pcEl) pcEl.textContent = todasEstacoes.length + ' estações · ' + espacos.length + ' espaços';
+  const pc = document.getElementById('pcount');
+  if (pc) pc.textContent = todasEstacoes.length + ' estação(ões) · ' + espacos.length + ' setores';
   renderEstacaoChips();
 }
 
-
 function cardProjNovo(p, hoje, grad) {
-  const tf = tar.filter(t => t.projeto_id === p.id);
-  const abertas = tf.filter(t => !t.ok).length;
-  const concluidas = tf.filter(t => t.ok).length;
-  const vencidas = tf.filter(t => !t.ok && t.prazo && new Date(t.prazo) < hoje).length;
-  const atrasado = p.fim && new Date(p.fim) < hoje && p.status !== 'concluido';
+  const tf = tar.filter(function(t){ return t.projeto_id === p.id; });
+  const nAb  = tf.filter(function(t){ return !t.ok; }).length;
+  const nFt  = tf.filter(function(t){ return t.ok; }).length;
+  const nVc  = tf.filter(function(t){ return !t.ok && t.prazo && new Date(t.prazo) < hoje; }).length;
+  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje && p.status !== 'concluido';
   const prog = p.prog || 0;
-  const priorCores = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'};
-  const priorCor = priorCores[p.prior?.toLowerCase()] || '#6366F1';
+  const PCORES = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'};
+  const priorCor = PCORES[(p.prior||'').toLowerCase()] || '#6366F1';
   const barCor = atrasado ? '#EF4444' : priorCor;
-  const eqAvatars = (p.eq||[]).slice(0,3).map(av => {
-    const m = memb.find(x => x.av === av);
-    return m ? `<div style="width:20px;height:20px;border-radius:6px;background:${m.cor||'#4F46E5'}22;color:${m.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1.5px solid #fff;margin-right:-4px;" title="${m.nome}">${m.av}</div>` : '';
+  const eqHtml = (p.eq||[]).slice(0,3).map(function(av){
+    const m = memb.find(function(x){ return x.av===av; });
+    return m ? '<div style="width:22px;height:22px;border-radius:6px;background:'+(m.cor||'#4F46E5')+'22;color:'+(m.cor||'#4F46E5')+';display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1.5px solid #fff;margin-right:-4px" title="'+m.nome+'">'+m.av+'</div>' : '';
   }).join('');
 
-  return `<div class="proj-card" style="--proj-cor:${barCor}" onclick="openDet('proj','${p.id}')">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding-top:6px;">
-      <div class="proj-card-nome">${p.nome}</div>
-      <div class="proj-card-acoes">
-        <button class="proj-card-acao" onclick="event.stopPropagation();openEditProj('${p.id}')" title="Editar">✏️</button>
-        <button class="proj-card-acao" onclick="event.stopPropagation();delProj('${p.id}')" title="Excluir">🗑️</button>
-      </div>
-    </div>
-    ${p.descricao ? `<div class="proj-card-desc">${p.descricao.slice(0,55)}${p.descricao.length>55?'…':''}</div>` : ''}
-    <div class="proj-card-stats">
-      <span class="proj-card-stat" style="background:${priorCor}14;color:${priorCor}">${p.prior?.toUpperCase()||'—'}</span>
-      ${abertas>0?`<span class="proj-card-stat" style="background:#EFF6FF;color:#3B82F6">📋 ${abertas} abertas</span>`:''}
-      ${vencidas>0?`<span class="proj-card-stat" style="background:#FEF2F2;color:#EF4444">⚠ ${vencidas} vencida${vencidas>1?'s':''}</span>`:''}
-      ${concluidas>0?`<span class="proj-card-stat" style="background:#F0FDF4;color:#10B981">✅ ${concluidas}</span>`:''}
-    </div>
-    <div class="proj-card-prog">
-      <div class="proj-card-bar">
-        <div class="proj-card-fill" style="width:${prog}%;background:${barCor}"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:10px;color:#94A3B8;">${p.fim ? (atrasado?'🔴 ':'📅 ')+new Date(p.fim+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '—'}</span>
-        <span style="font-size:11px;font-weight:800;color:${barCor}">${prog}%</span>
-      </div>
-    </div>
-    <div class="proj-card-foot">
-      <div style="display:flex;align-items:center;">${eqAvatars}</div>
-      ${p.status?`<span style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.3px;">${p.status}</span>`:''}
-    </div>
-  </div>`;
+  var h = '<div class="proj-card" style="--proj-cor:'+barCor+'" onclick="openDet(\'proj\',\''+p.id+'\')">';
+  h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding-top:6px;">';
+  h += '<div class="proj-card-nome">'+p.nome+'</div>';
+  h += '<div class="proj-card-acoes">';
+  h += '<button class="proj-card-acao" onclick="event.stopPropagation();openEditProj(\''+p.id+'\')" title="Editar">✏️</button>';
+  h += '<button class="proj-card-acao" onclick="event.stopPropagation();delProj(\''+p.id+'\')" title="Excluir">🗑️</button>';
+  h += '</div></div>';
+  if (p.descricao) h += '<div class="proj-card-desc">'+p.descricao.slice(0,55)+(p.descricao.length>55?'…':'')+'</div>';
+  h += '<div class="proj-card-stats">';
+  h += '<span class="proj-card-stat" style="background:'+priorCor+'14;color:'+priorCor+'">'+(p.prior||'—').toUpperCase()+'</span>';
+  if (nAb>0)  h += '<span class="proj-card-stat" style="background:#EFF6FF;color:#3B82F6">📋 '+nAb+'</span>';
+  if (nVc>0)  h += '<span class="proj-card-stat" style="background:#FEF2F2;color:#EF4444">⚠ '+nVc+'</span>';
+  if (nFt>0)  h += '<span class="proj-card-stat" style="background:#F0FDF4;color:#10B981">✅ '+nFt+'</span>';
+  h += '</div>';
+  h += '<div><div class="proj-card-bar"><div class="proj-card-fill" style="width:'+prog+'%;background:'+barCor+'"></div></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;">';
+  h += '<span style="font-size:10px;color:#94A3B8;">'+(p.fim ? (atrasado?'🔴 ':'📅 ')+new Date(p.fim+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : 'Sem prazo')+'</span>';
+  h += '<span style="font-size:12px;font-weight:800;color:'+barCor+'">'+prog+'%</span>';
+  h += '</div></div>';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">';
+  h += '<div style="display:flex;align-items:center;">'+eqHtml+'</div>';
+  if (p.status) h += '<span style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.3px;">'+p.status+'</span>';
+  h += '</div></div>';
+  return h;
 }
+
 
 function toggleEstacao(nome) {
   const key = safeId(nome);
@@ -8158,7 +8254,50 @@ function abrirNovoEspaco(estacao) {
   openM('mEspaco');
 }
 
-function abrirNovoProjeto(estacao) {
+function abrirNovaAtivSetor(setorId, setorNome) {
+  document.getElementById('mAtivSetorId').value = setorId;
+  document.getElementById('mAtivSetorNome').textContent = setorNome;
+  document.getElementById('mAtivTitulo').value = '';
+  document.getElementById('mAtivDesc').value = '';
+  document.getElementById('mAtivTipo').value = 'atividade';
+  // Popular responsáveis
+  const respSel = document.getElementById('mAtivResp');
+  respSel.innerHTML = '<option value="">Selecionar...</option>' + memb.map(function(m){ return '<option value="'+m.av+'">'+m.nome+'</option>'; }).join('');
+  if (curUser?.av) respSel.value = curUser.av;
+  // Reset cor
+  document.querySelectorAll('#mAtivCorPicker div').forEach(function(d,i){ d.style.border = i===0 ? '3px solid '+d.style.background+';box-shadow:0 0 0 2px #fff,0 0 0 4px '+d.style.background : '2px solid transparent'; });
+  window._ativCorSel = '#10B981';
+  openM('mAtivSetor');
+}
+
+function selCorAtiv(el, cor) {
+  document.querySelectorAll('#mAtivCorPicker div').forEach(function(d){ d.style.border = '2px solid transparent'; d.style.boxShadow = 'none'; });
+  el.style.border = '3px solid ' + cor;
+  el.style.boxShadow = '0 0 0 2px #fff, 0 0 0 4px ' + cor;
+  window._ativCorSel = cor;
+}
+
+async function salvarAtivSetor() {
+  const titulo = document.getElementById('mAtivTitulo').value.trim();
+  if (!titulo) { showToast('⚠️ Digite o título da atividade'); return; }
+  const setorId = document.getElementById('mAtivSetorId').value;
+  const nova = {
+    tipo: document.getElementById('mAtivTipo').value,
+    titulo: titulo,
+    descricao: document.getElementById('mAtivDesc').value.trim() || '',
+    autor: document.getElementById('mAtivResp').value || curUser?.av || '',
+    espaco_id: setorId,
+    projeto_id: null,
+    tarefa_id: null,
+    cor: window._ativCorSel || '#10B981'
+  };
+  const { data, error } = await safeDb.from('atividades').insert([nova]).select().single();
+  if (error) { showToast('❌ Erro: ' + error.message); return; }
+  ativs.unshift(data);
+  closeM('mAtivSetor');
+  renderHierarquia();
+  showToast('⚡ Atividade criada!');
+}
   document.getElementById('npDp').value = estacao;
   document.getElementById('npEspaco').value = '';
   openM('mProj');
