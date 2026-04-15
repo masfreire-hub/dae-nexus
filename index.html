@@ -130,7 +130,7 @@ body{
 /* ══════════════════════════════════════════════════════════════
    LOGIN
 ══════════════════════════════════════════════════════════════ */
-#loginScreen{display:flex;flex-direction:column;min-height:100dvh;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);}
+#loginScreen{display:flex;flex-direction:column;min-height:100dvh;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);position:fixed;inset:0;z-index:9999;}
 #mainApp{display:none;flex-direction:column;height:100vh;overflow:hidden;}
   min-height:100dvh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;padding:32px;
@@ -266,7 +266,7 @@ body{
 
 /* ── BODY WRAP ───────────────────────────────────────────────── */
 #body-wrap{
-  display:flex;min-height:100dvh;padding-top:var(--topbar-h);
+  min-height:100dvh;padding-top:var(--topbar-h);
   position:relative;
 }
 
@@ -2295,7 +2295,7 @@ select.sel{
     </div>
   </div>
 
-  <div id="body-wrap">
+  <div id="body-wrap" style="display:none">
   <div id="sidebar">
     <div style="padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -9222,9 +9222,14 @@ async function entrarNoApp(usuario) {
   }
   // Esconder login e mostrar app
   const ls = document.getElementById('loginScreen');
-  const ma = document.getElementById('mainApp');
   if (ls) ls.style.display = 'none';
-  if (ma) ma.style.cssText = 'display:flex!important;flex-direction:column;height:100vh;overflow:hidden;';
+  // Mostrar o app — tenta mainApp primeiro, depois body-wrap
+  const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
+  if (ma) {
+    ma.style.display = 'flex';
+    ma.style.flexDirection = 'column';
+    if (ma.id === 'body-wrap') ma.style.height = '100vh';
+  }
   try { await loadAll(); } catch(e) { console.error(e); }
   showLoading(false);
   // Garantir nome correto no dashboard
