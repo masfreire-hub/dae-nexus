@@ -3640,14 +3640,6 @@ function stopTimer(id) {
   const t = tar.find(x => x.id === id);
   if (t) { t.tempo_gasto = t.tempo_gasto || 0; renderTasks(); }
 }
-function swME(tab, el) {
-  document.querySelectorAll('.me-conteudo').forEach(c => c.style.display = 'none');
-  document.querySelectorAll('.me-tab-btn').forEach(b => b.classList.remove('on'));
-  const cont = document.getElementById('meConteudo-' + tab);
-  if (cont) cont.style.display = 'block';
-  if (el) el.classList.add('on');
-  meRenderAtual && meRenderAtual();
-}
 window.sw = sw;
 
 
@@ -9296,19 +9288,21 @@ function salvarME() {
   localStorage.setItem('me_agenda',  JSON.stringify(meAgenda));
 }
 
-function swME(aba) {
+function swME(aba, el) {
+  // Suporte às duas implementações
+  document.querySelectorAll('.me-conteudo').forEach(c => c.style.display = 'none');
+  document.querySelectorAll('.me-tab-btn').forEach(b => b.classList.remove('on'));
   ['tarefas','notas','agenda'].forEach(a => {
-    document.getElementById('me-'+a).style.display = a === aba ? 'block' : 'none';
+    const d = document.getElementById('me-'+a); if(d) d.style.display = a===aba?'block':'none';
     const btn = document.getElementById('me-btn-'+a);
-    if (btn) {
-      btn.style.background = a === aba ? 'var(--brand)' : 'transparent';
-      btn.style.color = a === aba ? '#fff' : 'var(--tx2)';
-      btn.style.borderColor = a === aba ? 'var(--brand)' : 'var(--border)';
-    }
+    if(btn){ btn.style.background=a===aba?'var(--brand)':'transparent'; btn.style.color=a===aba?'#fff':'var(--tx2)'; btn.style.borderColor=a===aba?'var(--brand)':'var(--border)'; }
   });
-  if (aba === 'tarefas') renderMeTarefas();
-  if (aba === 'notas')   renderMeNotas();
-  if (aba === 'agenda')  renderMeAgenda();
+  const cont = document.getElementById('meConteudo-'+aba); if(cont) cont.style.display='block';
+  if(el) el.classList.add('on');
+  if(aba==='tarefas') { try{renderMeTarefas();}catch(e){} }
+  if(aba==='notas')   { try{renderMeNotas();}catch(e){} }
+  if(aba==='agenda')  { try{renderMeAgenda();}catch(e){} }
+  meRenderAtual && meRenderAtual();
 }
 
 // ── TAREFAS ──────────────────────────────────────────────────────
@@ -9630,163 +9624,6 @@ async function saveNovaEstacao() {
   showToast('✅ Estação "' + nome + '" criada!');
 }
 
-// ══ ESPAÇO (filho, salvo na tabela espacos) ══════════════════════
-function abrirNovoEspaco(estacao) {
-  document.getElementById('mEspacoId').value = '';
-  document.getElementById('mEspacoTitle').textContent = 'NOVO ESPAÇO';
-  document.getElementById('mEspacoNome').value = '';
-  document.getElementById('mEspacoDesc').value = '';
-  iconeSelecionado = '📁';
-  document.querySelectorAll('#mEspaco .icone-opt').forEach(d=>d.classList.remove('sel-on'));
-  document.querySelector('#mEspaco .icone-opt')?.classList.add('sel-on');
-  const sel = document.getElementById('mEspacoEstacao');
-  if (sel) {
-    sel.innerHTML = '<option value="">Selecione a estação...</option>' + cadastros.estacao.map(s=>`<option value="${s}">${s}</option>`).join('');
-    if (estacao) sel.value = estacao;
-  }
-  openM('mEspaco');
-}
-
-async function saveEspaco() {
-  const nome = document.getElementById('mEspacoNome').value.trim();
-  const estacao = document.getElementById('mEspacoEstacao').value;
-  if (!nome) { showToast('⚠️ Digite o nome do espaço'); return; }
-  if (!estacao) { showToast('⚠️ Selecione a estação'); return; }
-  const id = document.getElementById('mEspacoId').value;
-  const desc = document.getElementById('mEspacoDesc').value.trim();
-  const dados = { nome, estacao, descricao: desc, icone: iconeSelecionado };
-  try {
-    if (id) {
-      const { error } = await safeDb.from('espacos').update(dados).eq('id', id);
-      if (error) throw error;
-      const idx = espacos.findIndex(e => e.id === id);
-      if (idx >= 0) espacos[idx] = { ...espacos[idx], ...dados };
-    } else {
-      const { data, error } = await safeDb.from('espacos').insert([dados]).select().single();
-      if (error) throw error;
-      espacos.push(data);
-    }
-  } catch(err) {
-    console.error('Erro ao salvar espaço:', err);
-    showToast('❌ Erro ao salvar espaço: ' + (err?.message || err));
-  }
-  closeM('mEspaco'); renderHierarquia(); popSels();
-  showToast('✅ Espaço "' + nome + '" salvo!');
-}
-
-async function editarEspaco(id) {
-  const e = espacos.find(x => x.id === id);
-  if (!e) return;
-  document.getElementById('mEspacoId').value = id;
-  document.getElementById('mEspacoTitle').textContent = 'EDITAR ESPAÇO';
-  document.getElementById('mEspacoNome').value = e.nome;
-  document.getElementById('mEspacoDesc').value = e.descricao || '';
-  const sel = document.getElementById('mEspacoEstacao');
-  if (sel) {
-    sel.innerHTML = '<option value="">Selecione a estação...</option>' + cadastros.estacao.map(s=>`<option value="${s}">${s}</option>`).join('');
-    sel.value = e.estacao;
-  }
-  iconeSelecionado = e.icone || '📁';
-  document.querySelectorAll('#mEspaco .icone-opt').forEach(d => d.classList.toggle('sel-on', d.textContent === iconeSelecionado));
-  openM('mEspaco');
-}
-
-async function deletarEspaco(id) {
-  if (!confirm('Remover espaço?')) return;
-  try { await safeDb.from('espacos').delete().eq('id', id); } catch(e){}
-  espacos = espacos.filter(e => e.id !== id);
-  proj.forEach(p => { if (p.espaco_id === id) p.espaco_id = null; });
-  renderHierarquia();
-  showToast('🗑️ Espaço removido');
-}
-
-// ══ RESPONSÁVEIS NO PROJETO ══════════════════════════════════════
-let projResponsaveisSel = [];
-
-function renderProjResponsaveis() {
-  const wrap = document.getElementById('npRespCheckboxes');
-  const badges = document.getElementById('npRespBadges');
-  if (!wrap) return;
-  wrap.innerHTML = memb.length ? memb.map(m => {
-    const sel = projResponsaveisSel.includes(m.av);
-    return `<label style="display:flex;align-items:center;gap:9px;padding:7px 8px;cursor:pointer;border-radius:6px;${sel?'background:var(--brand-light)':''}">
-      <input type="checkbox" ${sel?'checked':''} onchange="toggleProjResp('${m.av}')" style="accent-color:var(--brand);width:16px;height:16px;cursor:pointer">
-      <div style="width:26px;height:26px;border-radius:7px;background:${m.cor||'#4F46E5'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${m.av}</div>
-      <div><div style="font-size:12px;font-weight:600;color:var(--tx)">${m.nome}</div><div style="font-size:10px;color:var(--tx3)">${m.cargo||''}</div></div>
-    </label>`;
-  }).join('') : '<div style="padding:12px;text-align:center;color:var(--tx3);font-size:12px">Nenhum membro cadastrado.</div>';
-  if (badges) {
-    badges.innerHTML = projResponsaveisSel.length ? projResponsaveisSel.map(av => {
-      const m = memb.find(x => x.av === av);
-      return m ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;background:var(--brand-light);border:1px solid rgba(79,70,229,0.2);font-size:11px;font-weight:600;color:var(--brand)">${m.nome.split(' ')[0]} ×</span>` : '';
-    }).join('') : '';
-  }
-}
-
-function toggleProjResp(av) {
-  const idx = projResponsaveisSel.indexOf(av);
-  if (idx >= 0) projResponsaveisSel.splice(idx, 1);
-  else projResponsaveisSel.push(av);
-  renderProjResponsaveis();
-}
-
-// ══ ABRIR PROJETO (corrigido) ════════════════════════════════════
-function abrirNovoProjEspaco(espacoId, estacao) {
-  document.getElementById('npEspaco').value = espacoId;
-  document.getElementById('npDp').value = estacao || '';
-  document.getElementById('npN').value = '';
-  document.getElementById('npD').value = '';
-  const iniEl = document.getElementById('npInicio');
-  if(iniEl) iniEl.value = new Date().toISOString().split('T')[0];
-  document.getElementById('npF').value = '';
-  document.getElementById('mProjTitle').textContent = 'NOVO PROJETO';
-  document.getElementById('btnSaveProj').textContent = 'CRIAR PROJETO';
-  document.getElementById('btnSaveProj').onclick = addProj;
-  projResponsaveisSel = [curUser?.av||curUser?.av||'?'];
-  renderProjResponsaveis();
-  openM('mProj');
-}
-
-// Override addProj para usar responsáveis
-const _origAddProj = addProj;
-addProj = async function() {
-  const n = document.getElementById('npN').value.trim();
-  if (!n) { showToast('Digite o nome'); return; }
-  if (projResponsaveisSel.length === 0) { showToast('⚠️ Selecione ao menos um responsável'); return; }
-  const espacoIdVal = document.getElementById('npEspaco')?.value || null;
-  const novo = { nome:n, descricao:document.getElementById('npD').value||'', dept:document.getElementById('npDp').value||'', espaco_id:espacoIdVal||null, prior:document.getElementById('npPr').value, prog:0, fim:document.getElementById('npF').value||null, status:'planejamento', eq:projResponsaveisSel };
-  const inicio = document.getElementById('npInicio')?.value;
-  if (inicio) novo.inicio = inicio;
-  const { data, error } = await safeDb.from('projetos').insert([novo]).select().single();
-  if (error) { showToast('❌ Erro: ' + error.message); return; }
-  proj.unshift(data);
-  await logAtividade('projeto_criado', 'Projeto criado', n, curUser?.av, data.id, null, '#C9920A');
-  await notificarEquipe(`🚀 Novo projeto: ${n}`, `Criado por ${curUser?.nome||curUser?.av||'?'}`, 'info', null, data.id);
-  closeM('mProj'); renderHierarquia(); renderDashInteligente(); popSels();
-  projResponsaveisSel = [];
-  showToast('🚀 Projeto criado!');
-};
-
-const _sw0=sw;
-window.sw=function(name,el){_sw0(name,el);if(name==='config'){renderCadastros();updateSelects();}};
-
-// Chamar updateSelects no init
-setTimeout(updateSelects, 500);
-
-
-// ══════════════════════════════════════════════════════════════════
-// MEU ESPAÇO — Área exclusiva da Gestora Mabiane
-// ══════════════════════════════════════════════════════════════════
-// removido duplicado
-// removido
-// removido
-let mePlanos   = JSON.parse(localStorage.getItem('me_planos')   || '[]');
-// dup removed: // meNotas    = JSON.parse(localStorage.getItem('me_notas')    || '[]');
-// dup removed: // meTarefas  = JSON.parse(localStorage.getItem('me_tarefas')  || '[]');
-// dup removed: // meAgenda   = JSON.parse(localStorage.getItem('me_agenda')   || '[]');
-// dup removed: // mePlanos   = JSON.parse(localStorage.getItem('me_planos')   || '[]');
-let meTabAtual = 'notas';
-let meFormTipo = 'nota';
 
 function meSalvarLocal() {
   localStorage.setItem('me_notas',   JSON.stringify(meNotas));
