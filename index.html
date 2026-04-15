@@ -4674,8 +4674,7 @@ async function openDet(type, id) {
       const elapsed = timerInicio ? Math.floor((Date.now() - timerInicio) / 1000) : 0;
       const el2 = document.getElementById('tempoDisplay');
       if (el2) el2.textContent = fmtTempo(tempoGasto + elapsed);
-      const btn = document.getElementById('btnTimer');
-      if (btn) { btn.textContent = '⏹ PARAR'; btn.style.background = 'rgba(239,68,68,0.2)'; btn.style.borderColor = '#EF4444'; btn.style.color = '#EF4444'; }
+      _atualizarBtnTimer(true);
     }
 
   } else if (type==='proj') {
@@ -4904,16 +4903,23 @@ async function addComentario(tarefaId) {
     inp.value = '';
     limparImagemColada();
 
+    // Garantir que a tab de comentários está ativa
+    const tabComs = document.querySelector('.det-tab[onclick*="coms"]');
+    if (tabComs && !tabComs.classList.contains('on')) switchDetTab('coms', tabComs);
+
     // Adicionar comentário na UI imediatamente
     const m = memb.find(x => x.av===curUser?.av);
+    const mFoto = m?.foto ? `<img src="${m.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">` : (curUser?.av||'?');
     const comsBox = document.getElementById('comsBox');
     if (comsBox) {
       // Remover estado vazio se existir
       const vazio = comsBox.querySelector('[data-vazio]');
       if (vazio) vazio.remove();
+      // Remover empty state genérico se houver
+      if (comsBox.children.length === 1 && comsBox.children[0].style.display === 'flex') comsBox.innerHTML = '';
 
       const novoHtml = `<div class="det-com-item" style="flex-direction:row-reverse">
-        <div class="det-com-av" style="background:${m?.cor||'#4F46E5'}20;color:${m?.cor||'#4F46E5'}">${curUser?.av||curUser?.av||'?'}</div>
+        <div class="det-com-av" style="background:${m?.cor||'#4F46E5'}20;color:${m?.cor||'#4F46E5'};overflow:hidden">${mFoto}</div>
         <div class="det-com-bubble" style="display:flex;flex-direction:column;align-items:flex-end">
           <div class="det-com-meta" style="flex-direction:row-reverse">
             <strong>Você</strong><span>agora</span>
@@ -4965,26 +4971,32 @@ function toggleTimer(tarefaId) {
   }
 }
 
+function _atualizarBtnTimer(rodando) {
+  const btn = document.getElementById('btnTimer');
+  if (!btn) return;
+  if (rodando) {
+    btn.textContent = '⏹ Parar';
+    btn.className = 'det-timer-btn det-timer-btn-stop';
+    btn.style.cssText = '';
+  } else {
+    btn.textContent = '▶ Iniciar timer';
+    btn.className = 'det-timer-btn det-timer-btn-start';
+    btn.style.cssText = '';
+  }
+}
+
 function iniciarTimer(tarefaId) {
   timerTarefaId = tarefaId;
   timerInicio = Date.now();
   const t = tar.find(x => x.id === tarefaId);
   const base = t?.tempo_gasto || 0;
   if (timerInterval) clearInterval(timerInterval);
-  // Atualizar display a cada segundo
   timerInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
     const el = document.getElementById('tempoDisplay');
     if (el) el.textContent = fmtTempo(base + elapsed);
   }, 1000);
-  // Atualizar botão
-  const btn = document.getElementById('btnTimer');
-  if (btn) {
-    btn.textContent = '⏹ PARAR';
-    btn.style.background = 'rgba(239,68,68,0.2)';
-    btn.style.borderColor = '#EF4444';
-    btn.style.color = '#EF4444';
-  }
+  _atualizarBtnTimer(true);
   showToast('▶ Timer iniciado!');
 }
 
@@ -4996,7 +5008,6 @@ async function pararTimer(tarefaId) {
   const t = tar.find(x => x.id === tarefaId);
   const base = t?.tempo_gasto || 0;
   const total = base + elapsed;
-  // Salvar no Supabase se ID real
   if (!String(tarefaId).startsWith('local_')) {
     await safeDb.from('tarefas').update({ tempo_gasto: total }).eq('id', tarefaId);
   }
@@ -5004,17 +5015,9 @@ async function pararTimer(tarefaId) {
   salvarLocal();
   timerTarefaId = null;
   timerInicio = null;
-  // Atualizar display
   const el = document.getElementById('tempoDisplay');
   if (el) el.textContent = fmtTempo(total);
-  // Atualizar botão
-  const btn = document.getElementById('btnTimer');
-  if (btn) {
-    btn.textContent = '▶ INICIAR';
-    btn.style.background = 'rgba(34,197,94,0.2)';
-    btn.style.borderColor = '#22C55E';
-    btn.style.color = '#22C55E';
-  }
+  _atualizarBtnTimer(false);
   showToast('⏱ Tempo registrado: ' + fmtTempo(total));
 }
 
