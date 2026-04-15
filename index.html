@@ -3772,22 +3772,40 @@ let curChName = '', curTeamView = 'cards', curUser = null;
 
 // ── LOGIN ─────────────────────────────────────────────────────────
 async function doLogin() {
-  const email = document.getElementById('lemail').value.trim();
-  const pass  = document.getElementById('lpass').value.trim();
-  if (!email) { showToast('Digite seu e-mail'); return; }
+  const emailEl = document.getElementById('lemail');
+  const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
+  if (!email) { showToast('⚠️ Digite seu e-mail'); return; }
 
-  showToast('Entrando...');
-  const { data: rows, error } = await safeDb.from('membros').select('*').eq('email', email);
-  const data = rows?.[0] || null;
+  const btnLogin = document.querySelector('#loginScreen button');
+  if (btnLogin) { btnLogin.textContent = 'Entrando...'; btnLogin.disabled = true; }
 
-  if (error || !data) {
-    showToast('❌ Email não encontrado. Verifique o cadastro em Equipe.');
-    console.error('Login error:', error, 'email:', email);
-    return;
+  try {
+    // Buscar membro pelo email (case-insensitive)
+    const { data: rows, error } = await safeDb.from('membros').select('*').eq('email', email);
+    
+    // Tentar também com email original (sem toLowerCase)
+    let usuario = rows?.[0] || null;
+    if (!usuario) {
+      const emailOrig = emailEl.value.trim();
+      const { data: rows2 } = await safeDb.from('membros').select('*').eq('email', emailOrig);
+      usuario = rows2?.[0] || null;
+    }
+
+    if (!usuario) {
+      showToast('❌ Email não encontrado. Verifique o cadastro.');
+      console.error('Login: email não encontrado:', email, '| erro:', error);
+      if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
+      return;
+    }
+
+    localStorage.setItem('dae_user_email', usuario.email);
+    await entrarNoApp(usuario);
+    showToast('✅ Bem-vindo, ' + usuario.nome.split(' ')[0] + '!');
+  } catch(err) {
+    console.error('Erro no login:', err);
+    showToast('❌ Erro de conexão. Tente novamente.');
+    if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
   }
-  localStorage.setItem('dae_user_email', email);
-  await entrarNoApp(data);
-  showToast(`✅ Bem-vindo, ${data.nome.split(' ')[0]}!`);
 }
 
 function setBottomNav(el) {
@@ -9247,16 +9265,19 @@ async function entrarNoApp(usuario) {
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
+  showLoading(true);
   const emailSalvo = localStorage.getItem('dae_user_email');
   if (emailSalvo) {
-    const { data: rows } = await safeDb.from('membros').select('*').eq('email', emailSalvo);
-    const usuario = rows?.[0];
-    if (usuario) { await entrarNoApp(usuario); return; }
-    // Email salvo mas não encontrado — limpar e mostrar login
+    try {
+      const { data: rows } = await safeDb.from('membros').select('*').eq('email', emailSalvo);
+      const usuario = rows?.[0];
+      if (usuario) { await entrarNoApp(usuario); return; }
+    } catch(e) { console.warn('Auto-login falhou:', e); }
     localStorage.removeItem('dae_user_email');
   }
   showLoading(false);
-  document.getElementById('loginScreen').style.display = 'flex';
+  const ls = document.getElementById('loginScreen');
+  if (ls) ls.style.display = 'flex';
 });
 
 // ══════════════════════════════════════════════════════════════════
