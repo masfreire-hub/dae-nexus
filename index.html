@@ -4292,31 +4292,25 @@ async function loadNotifs() {
 }
 
 function renderAll() {
-  // Atualizar avatar do usuário logado
-  if (curUser) {
-    const avEl = document.getElementById('userAv');
-    if (avEl) {
-      avEl.textContent = curUser.av || '?';
-      avEl.style.background = (curUser.cor||'#4F46E5') + '33';
-      avEl.style.color = curUser.cor || '#4F46E5';
-    }
-  }
-  // Garantir tab home visível
-  if (!document.querySelector('.tab.on')) {
-    const th = document.getElementById('t-home');
-    if (th) th.classList.add('on');
-  }
-  const now = new Date();
-  const hStr = now.toLocaleString('pt-BR', {hour:'numeric', hour12:false, timeZone:'America/Bahia'});
-  const h = parseInt(hStr) || new Date().getHours();
-  const nome = (curUser?.nome?.split(' ')[0] || curUser?.av || 'Você').toUpperCase();
-  const wname = document.getElementById('wname');
-  if (wname) wname.textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome}`;
-  document.getElementById('wdate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  renderDashInteligente();
-  renderUrgent(); renderAct(); renderFeriasMini();
-  try{renderHierarquia();}catch(e){} try{renderProj();}catch(e){} try{renderTasks();}catch(e){} try{renderMeet();}catch(e){} try{renderMembers();}catch(e){} try{renderFerias();}catch(e){} try{renderCarga();}catch(e){} try{renderRiscos();}catch(e){} try{renderNova();}catch(e){} try{popSels();}catch(e){}
-  try{renderChatDMs();}catch(e){} try{renderChatCanais();}catch(e){}
+  try { if(curUser){const a=document.getElementById('userAv');if(a){a.textContent=curUser.av||'?';a.style.background=(curUser.cor||'#4F46E5')+'33';a.style.color=curUser.cor||'#4F46E5';}}}catch(e){}
+  try{if(!document.querySelector('.tab.on')){const t=document.getElementById('t-home');if(t)t.classList.add('on');}}catch(e){}
+  try{const h=new Date().getHours();const n=(curUser?.nome?.split(' ')[0]||curUser?.av||'Você').toUpperCase();const w=document.getElementById('wname');if(w)w.textContent=(h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE')+', '+n;const d=document.getElementById('wdate');if(d)d.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}catch(e){}
+  try{renderDashInteligente();}catch(e){}
+  try{renderUrgent();}catch(e){}
+  try{renderAct();}catch(e){}
+  try{renderFeriasMini();}catch(e){}
+  try{renderHierarquia();}catch(e){}
+  try{renderProj();}catch(e){}
+  try{renderTasks();}catch(e){}
+  try{renderMeet();}catch(e){}
+  try{renderMembers();}catch(e){}
+  try{renderFerias();}catch(e){}
+  try{renderCarga();}catch(e){}
+  try{renderRiscos();}catch(e){}
+  try{renderNova();}catch(e){}
+  try{popSels();}catch(e){}
+  try{renderChatDMs();}catch(e){}
+  try{renderChatCanais();}catch(e){}
 }
 
 function renderChatCanais() {
