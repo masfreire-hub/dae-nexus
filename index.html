@@ -2309,52 +2309,34 @@ function _entrarComo(av) {
 
   localStorage.setItem('dae_user_email', av);
   window._curUser = usuario;
+  curUser = usuario;
 
-  // 1. Esconder login
+  // Esconder login
   var ls = document.getElementById('loginScreen');
   if(ls) { ls.style.display='none'; ls.style.visibility='hidden'; ls.style.zIndex='-1'; }
 
-  // 2. Mostrar body-wrap
+  // Mostrar app
   var bw = document.getElementById('body-wrap');
-  if(bw) {
-    bw.removeAttribute('style');
-    bw.style.display = 'flex';
-    bw.style.flexDirection = 'column';
-    bw.style.minHeight = '100vh';
-    bw.style.paddingTop = 'var(--topbar-h, 56px)';
-  }
+  if(bw) { bw.style.display='flex'; bw.style.flexDirection='column'; bw.style.minHeight='100vh'; }
 
-  // 3. Mostrar tab home
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
-  var th = document.getElementById('t-home');
-  if(th) th.classList.add('on');
-
-  // 4. Atualizar avatar
+  // Avatar
   var avEl = document.getElementById('userAv');
-  if(avEl) {
-    avEl.textContent = usuario.av || '?';
-    avEl.style.background = (usuario.cor||'#4F46E5')+'33';
-    avEl.style.color = usuario.cor||'#4F46E5';
-  }
+  if(avEl) { avEl.textContent=usuario.av||'?'; avEl.style.background=(usuario.cor||'#4F46E5')+'33'; avEl.style.color=usuario.cor||'#4F46E5'; }
 
-  // 5. Saudação
+  // Saudação
   var h = new Date().getHours();
-  var saud = h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE';
   var wname = document.getElementById('wname');
-  if(wname) wname.textContent = saud+', '+(usuario.nome||av).split(' ')[0].toUpperCase();
+  if(wname) wname.textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE')+', '+(usuario.nome||av).split(' ')[0].toUpperCase();
   var wdate = document.getElementById('wdate');
-  if(wdate) wdate.textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  if(wdate) wdate.textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  // 6. Chamar entrarNoApp quando disponível
-  var tentativas = 0;
-  var wait = setInterval(function(){
-    tentativas++;
-    if(typeof entrarNoApp==='function'){
-      clearInterval(wait);
-      try { entrarNoApp(usuario); } catch(e){ console.warn('entrarNoApp:', e); }
-    }
-    if(tentativas > 50) clearInterval(wait); // desistir após 5s
-  }, 100);
+  // Ir para home
+  sw('home', document.querySelector('#sidebar .ni'));
+
+  // Carregar dados do Supabase
+  if(typeof loadAll === 'function') {
+    loadAll().catch(function(e){ console.warn(e); });
+  }
 }
 
 // Iniciar carregamento
