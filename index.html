@@ -9969,6 +9969,11 @@ async function entrarNoApp(usuario) {
   renderAll();
   sw('home', document.querySelector('.ni.on'));
   try { renderNova(); } catch(e) {}
+  // Forçar scroll para o topo
+  setTimeout(function(){
+    var c = document.querySelector('.content');
+    if(c) c.scrollTop = 0;
+  }, 200);
   // Iniciar listener global de mensagens
   setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); }, 1000);
 }
