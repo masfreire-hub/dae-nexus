@@ -337,6 +337,8 @@ body{
 /* ── TABS (conteúdo) ─────────────────────────────────────────── */
 .tab{display:none;animation:fadeUp .25s var(--ease) both;}
 .tab.on{display:block;}
+/* Garantir que content sempre começa do topo */
+.content{overflow-anchor:none;}
 
 /* ═══════════════════════════════════════════════════════════════
    CARDS BASE
@@ -3914,6 +3916,8 @@ function _selecionarMembro(av) {
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
 function sw(name, el) {
+  // Reset scroll imediato
+  try { var _sc=document.querySelector('.content'); if(_sc) _sc.scrollTop=0; } catch(e){}
   const _dp = document.getElementById('detPanel');
   if (_dp) _dp.classList.remove('on');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
