@@ -9971,38 +9971,67 @@ function pedirPermissaoNotif() {
 }
 
 async function entrarNoApp(usuario) {
-  curUser = usuario;
-  // Atualizar avatar
-  const avEl = document.getElementById('userAv');
-  if (avEl) { 
-    avEl.textContent = usuario.av||'?'; 
-    avEl.style.background = (usuario.cor||'#4F46E5')+'33'; 
-    avEl.style.color = usuario.cor||'#4F46E5'; 
+  try {
+    curUser = usuario;
+
+    // 1. Atualizar avatar
+    try {
+      const avEl = document.getElementById('userAv');
+      if (avEl) { 
+        avEl.textContent = usuario.av||'?'; 
+        avEl.style.background = (usuario.cor||'#4F46E5')+'33'; 
+        avEl.style.color = usuario.cor||'#4F46E5'; 
+      }
+    } catch(e) { console.warn('avatar err', e); }
+
+    // 2. Esconder login, mostrar app
+    try {
+      const ls = document.getElementById('loginScreen');
+      if (ls) ls.style.display = 'none';
+      const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
+      if (ma) {
+        ma.style.display = 'flex';
+        ma.style.flexDirection = 'column';
+        if (ma.id === 'body-wrap') ma.style.height = '100vh';
+      }
+    } catch(e) { console.warn('show app err', e); }
+
+    // 3. Carregar dados
+    try { await loadAll(); } catch(e) { console.warn('loadAll err', e); }
+
+    // 4. Esconder loader
+    try { showLoading(false); } catch(e) {}
+
+    // 5. Saudação
+    try {
+      const wname = document.getElementById('wname');
+      if (wname) {
+        const h = new Date().getHours();
+        const saud = h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE';
+        wname.textContent = saud + ', ' + (usuario.nome?.split(' ')[0]||usuario.av||'Você').toUpperCase();
+      }
+    } catch(e) {}
+
+    // 6. Renderizar tudo
+    try { renderAll(); } catch(e) { console.warn('renderAll err', e); }
+    try { sw('home', document.querySelector('.ni.on')); } catch(e) {}
+    try { renderNova(); } catch(e) {}
+
+    // 7. Chat e notificações
+    setTimeout(() => { 
+      try { iniciarChatGlobal(); } catch(e) {}
+      try { pedirPermissaoNotif(); } catch(e) {}
+    }, 1000);
+
+  } catch(e) {
+    console.error('entrarNoApp erro geral:', e);
+    // Mesmo com erro, esconder o login
+    try {
+      document.getElementById('loginScreen').style.display = 'none';
+      const ma = document.getElementById('body-wrap');
+      if (ma) ma.style.display = 'flex';
+    } catch(e2) {}
   }
-  // Esconder login e mostrar app
-  const ls = document.getElementById('loginScreen');
-  if (ls) ls.style.display = 'none';
-  // Mostrar o app — tenta mainApp primeiro, depois body-wrap
-  const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
-  if (ma) {
-    ma.style.display = 'flex';
-    ma.style.flexDirection = 'column';
-    if (ma.id === 'body-wrap') ma.style.height = '100vh';
-  }
-  try { await loadAll(); } catch(e) { console.error(e); }
-  showLoading(false);
-  // Garantir nome correto no dashboard
-  const wname = document.getElementById('wname');
-  if (wname) {
-    const h = new Date().getHours();
-    const saud = h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE';
-    wname.textContent = saud + ', ' + (usuario.nome?.split(' ')[0]||usuario.av||'Você').toUpperCase();
-  }
-  renderAll();
-  sw('home', document.querySelector('.ni.on'));
-  try { renderNova(); } catch(e) {}
-  // Iniciar listener global de mensagens
-  setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); }, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
