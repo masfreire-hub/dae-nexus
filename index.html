@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- BUILD: Thu Apr 16 00:54:07 UTC 2026 -->
 <title>DAE Nexus.AI — Inteligência, Gestão e Resultado</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -2203,80 +2204,72 @@ select.sel{
 <script>
 // Login por lista de membros
 var _membrosLogin = [];
+
 function _carregarMembrosLogin() {
-  // Membros fixos — aparecem instantaneamente
   var fixos = [
-    {av:'MA', nome:'Mabiane Andrade de Souza', cargo:'Gestora', cor:'#4F46E5', email:'mabiane.souza@sudoesteinformatica.com.br'},
-    {av:'AC', nome:'Ana Carolina', cargo:'', cor:'#10B981', email:''},
-    {av:'AL', nome:'Anderson Luis', cargo:'', cor:'#F59E0B', email:''},
-    {av:'YL', nome:'Yuri Leal', cargo:'', cor:'#EF4444', email:''},
-    {av:'ME', nome:'Maria Eduarda Pamponet', cargo:'', cor:'#8B5CF6', email:''}
+    {av:'MA',nome:'Mabiane Andrade de Souza',cargo:'Gestora',cor:'#4F46E5',email:'mabiane.souza@sudoesteinformatica.com.br'},
+    {av:'AC',nome:'Ana Carolina',cargo:'',cor:'#10B981',email:''},
+    {av:'AL',nome:'Anderson Luis',cargo:'',cor:'#F59E0B',email:''},
+    {av:'YL',nome:'Yuri Leal',cargo:'',cor:'#EF4444',email:''},
+    {av:'ME',nome:'Maria Eduarda Pamponet',cargo:'',cor:'#8B5CF6',email:''}
   ];
   _membrosLogin = fixos;
-  _renderMembrosLogin(fixos);
-  // Atualizar do Supabase em background usando db principal
-  setTimeout(function() {
-    var _dbRef = window.safeDb || window.db;
-    if(!_dbRef) return;
+  _renderListaMembros(fixos);
+  // Atualizar do Supabase em background
+  setTimeout(function(){
+    if(typeof supabase==='undefined') return;
     try {
-      _dbRef.from('membros').select('*').order('nome').then(function(res){
-        if(!res.error && res.data && res.data.length) {
-          _membrosLogin = res.data;
-          _renderMembrosLogin(res.data);
-        }
+      var _db2=supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF');
+      _db2.from('membros').select('*').order('nome').then(function(r){
+        if(!r.error&&r.data&&r.data.length){_membrosLogin=r.data;_renderListaMembros(r.data);}
       });
-    } catch(e){}
-  }, 800);
+    }catch(e){}
+  },500);
 }
 
-function _renderMembrosLogin(lista) {
-  var el = document.getElementById('loginMembrosList');
+function _renderListaMembros(lista) {
+  var el=document.getElementById('loginMembrosList');
   if(!el) return;
-  el.innerHTML = '';
-  lista.forEach(function(m) {
-    var cor = m.cor || '#4F46E5';
-    var btn = document.createElement('button');
-    btn.dataset.av = m.av;
-    btn.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-family:inherit;width:100%;text-align:left;transition:background .15s;';
-    btn.innerHTML = '<div style="width:40px;height:40px;border-radius:10px;background:'+cor+'33;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">'+m.av+'</div>'
-      + '<div style="flex:1"><div style="font-size:13px;font-weight:700;">'+m.nome+'</div>'
-      + (m.cargo ? '<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">'+m.cargo+'</div>' : '')
-      + '</div><div style="font-size:18px;opacity:.3;">›</div>';
-    btn.addEventListener('mouseover', function(){ this.style.background='rgba(79,70,229,0.2)'; this.style.borderColor='rgba(99,102,241,0.5)'; });
-    btn.addEventListener('mouseout', function(){ this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.12)'; });
-    btn.addEventListener('click', function(){ _entrarComo(this.dataset.av); });
+  el.innerHTML='';
+  lista.forEach(function(m){
+    var btn=document.createElement('button');
+    btn.dataset.av=m.av;
+    var cor=m.cor||'#4F46E5';
+    btn.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-family:inherit;width:100%;text-align:left;margin-bottom:6px;';
+    btn.innerHTML='<div style="width:40px;height:40px;border-radius:10px;background:'+cor+'33;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">'+m.av+'</div>'
+      +'<div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
+      +(m.cargo?'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">'+m.cargo+'</div>':'')
+      +'</div><div style="margin-left:auto;opacity:.3">›</div>';
+    btn.addEventListener('mouseover',function(){this.style.background='rgba(79,70,229,0.2)';this.style.borderColor='rgba(99,102,241,0.5)';});
+    btn.addEventListener('mouseout',function(){this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.12)';});
+    btn.addEventListener('click',function(){_selecionarMembro(this.dataset.av);});
     el.appendChild(btn);
   });
 }
 
-function _entrarComo(av) {
-  var usuario = _membrosLogin.find(function(m){ return m.av === av; });
-  if (!usuario) return;
-
+function _selecionarMembro(av) {
+  var usuario=_membrosLogin.find(function(m){return m.av===av;});
+  if(!usuario) return;
   // Salvar sessão
-  localStorage.setItem('dae_user_email', usuario.email || av);
-
-  // Esconder login imediatamente
-  var ls = document.getElementById('loginScreen');
-  if (ls) ls.style.display = 'none';
-
-  // Mostrar app imediatamente
-  var bw = document.getElementById('body-wrap');
-  if (bw) { bw.style.display = 'flex'; bw.style.flexDirection = 'column'; bw.style.height = '100vh'; }
-
-  // Esperar entrarNoApp estar disponível (script principal ainda carregando)
-  var tentativas = 0;
-  var intervalo = setInterval(function() {
-    tentativas++;
-    if (typeof entrarNoApp === 'function') {
-      clearInterval(intervalo);
-      entrarNoApp(usuario).catch(function(e) { console.warn('entrarNoApp:', e); });
-    }
-    if (tentativas > 100) { // 10 segundos max
-      clearInterval(intervalo);
-      console.error('entrarNoApp não ficou disponível');
-    }
-  }, 100);
+  localStorage.setItem('dae_user_email', usuario.email||av);
+  // Esconder login
+  var ls=document.getElementById('loginScreen');
+  if(ls) ls.style.display='none';
+  // Chamar doLogin com o usuário já encontrado
+  if(typeof entrarNoApp==='function'){
+    entrarNoApp(usuario).catch(function(e){console.warn(e);});
+  } else {
+    // Esperar entrarNoApp carregar
+    var t=0;
+    var iv=setInterval(function(){
+      t++;
+      if(typeof entrarNoApp==='function'){
+        clearInterval(iv);
+        entrarNoApp(usuario).catch(function(e){console.warn(e);});
+      }
+      if(t>100) clearInterval(iv);
+    },100);
+  }
 }
 </script>
 </head>
@@ -2296,77 +2289,26 @@ function _entrarComo(av) {
       <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px">Quem é você?</div>
     </div>
     <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px">
-      <div id="loginMembrosList" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;">
+      <div id="loginMembrosList" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto">
         <div style="text-align:center;color:rgba(255,255,255,.4);font-size:13px;padding:20px">Carregando equipe...</div>
       </div>
-      <div id="loginMsg" style="text-align:center;margin-top:10px;font-size:12px;color:rgba(255,255,255,.4);min-height:18px"></div>
     </div>
   </div>
 </div>
-</div>
-
-
-  <!-- BOTTOM NAV MOBILE -->
-  <nav id="bottom-nav">
-    <div class="bni on" onclick="sw('home',document.querySelectorAll('#sidebar .ni')[0]);setBottomNav(this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>Início</span><div class="bni-dot"></div>
-    </div>
-    <div class="bni" onclick="sw('proj',document.querySelectorAll('#sidebar .ni')[1]);setBottomNav(this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-      <span>Estações</span><div class="bni-dot"></div>
-    </div>
-    <div class="bni" onclick="sw('tasks',document.querySelectorAll('#sidebar .ni')[2]);setBottomNav(this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      <span>Tarefas</span><div class="bni-dot"></div>
-    </div>
-    <div class="bni" onclick="sw('risk',document.querySelectorAll('#sidebar .ni')[5]);setBottomNav(this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <span>Riscos</span><div class="bni-dot"></div>
-    </div>
-    <div class="bni" onclick="sw('nova',document.querySelectorAll('#sidebar .ni')[8]);setBottomNav(this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      <span>Nova IA</span><div class="bni-dot"></div>
-    </div>
-  </nav>
-  <div class="topbar" style="padding-left:0;">
-    <div class="tbl" style="padding:0 16px;border-right:1px solid var(--border);height:100%;background:var(--sb-bg);">
-      <div class="tblogo" style="background:transparent;">
-        <svg width="28" height="28" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="gg2" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#818CF8"/>
-              <stop offset="50%" stop-color="#4F46E5"/>
-              <stop offset="100%" stop-color="#3730A3"/>
-            </linearGradient>
-            <linearGradient id="gg2a" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#C7D2FE"/>
-              <stop offset="100%" stop-color="#818CF8"/>
-            </linearGradient>
-          </defs>
-          <polygon points="28,3 50,15.5 50,40.5 28,53 6,40.5 6,15.5" fill="url(#gg2)" opacity="0.2"/>
-          <polygon points="28,3 50,15.5 50,40.5 28,53 6,40.5 6,15.5" fill="none" stroke="url(#gg2)" stroke-width="2"/>
-          <polygon points="28,11 43,19.5 43,36.5 28,45 13,36.5 13,19.5" fill="none" stroke="url(#gg2a)" stroke-width="1" opacity="0.6"/>
-          <text x="28" y="38" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="24" font-weight="900" fill="url(#gg2a)" letter-spacing="-1">D</text>
-          <circle cx="40" cy="14" r="3" fill="#818CF8"/>
-          <circle cx="40" cy="14" r="1.5" fill="#C7D2FE"/>
-        </svg>
-      </div>
-      <div><div class="tbname" style="color:#FFFFFF;font-size:13px;font-weight:800;">DAE NEXUS.AI</div></div>
-    </div>
-    <div style="flex:1;padding:0 20px;">
-      <div id="topbar-page-title" style="font-size:13px;font-weight:600;color:var(--tx2);">Dashboard</div>
-    </div>
-    <div class="tbr" style="padding-right:16px;">
-      <div class="gsearch-wrap" id="gsearchWrap">
-        <span class="gsearch-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-        <input class="gsearch-inp" id="gsearchInp" placeholder="Buscar projetos, tarefas..." oninput="gsearch(this.value)" onfocus="if(this.value)gsearch(this.value)" onblur="setTimeout(()=>document.getElementById('gsearchDrop').classList.remove('on'),180)">
-        <div class="gsearch-drop" id="gsearchDrop"></div>
-      </div>
-      <div class="ibtn" onclick="showAlerts()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="nbd" id="alertCount">2</div></div>
-      <div class="uav" id="userAv" onclick="menuUsuario()" title="Clique para sair">MA</div>
-    </div>
-  </div>
+<script>
+// Chamar imediatamente quando o DOM desta parte estiver pronto
+(function(){ 
+  var t=0;
+  var iv=setInterval(function(){
+    t++;
+    if(typeof _carregarMembrosLogin==='function'){
+      clearInterval(iv);
+      _carregarMembrosLogin();
+    }
+    if(t>50) clearInterval(iv);
+  },50);
+})();
+</script>
 
   <div id="body-wrap" style="display:none">
   <div id="sidebar">
@@ -3244,7 +3186,20 @@ function _entrarComo(av) {
   text-align:center; padding:60px 20px; color:var(--tx3);
 }
 
-.arq-dropzone-active { border:2px dashed var(--brand) !important; background:rgba(79,70,229,.03) !important; }
+/* ── DOCS ── */
+.doc-card {
+  background:var(--surface);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 16px;cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;gap:6px;position:relative;
+}
+.doc-card:hover { border-color:var(--brand);transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,70,229,.1); }
+.doc-card-icon { font-size:24px;line-height:1; }
+.doc-card-title { font-size:13px;font-weight:700;color:var(--tx);line-height:1.3; }
+.doc-card-meta { font-size:10px;color:var(--tx3); }
+.doc-card-preview { font-size:11px;color:var(--tx2);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; }
+.doc-card-acoes { display:flex;gap:4px;opacity:0;transition:opacity .15s;position:absolute;top:10px;right:10px; }
+.doc-card:hover .doc-card-acoes { opacity:1; }
+
 #arq-view-toggle button { padding:5px 10px; font-size:11px; border:1px solid var(--border); background:transparent; cursor:pointer; color:var(--tx2); }
 #arq-view-toggle button.on { background:var(--brand); color:#fff; border-color:var(--brand); }
 #arq-view-toggle button:first-child { border-radius:6px 0 0 6px; }
@@ -3258,6 +3213,9 @@ function _entrarComo(av) {
     <div style="font-size:11px;color:var(--tx3);margin-top:1px">Central de documentos da equipe</div>
   </div>
   <input type="file" id="arqFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.mp3,.wav,.zip,.txt" style="display:none" onchange="uploadArquivos(this.files)">
+  <button onclick="novoDocumento()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--tx);font-family:var(--fh);display:flex;align-items:center;gap:6px">
+    📝 Novo documento
+  </button>
   <button onclick="abrirUploadArquivo()" style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);display:flex;align-items:center;gap:6px">
     ⬆ Enviar arquivo
   </button>
@@ -3271,8 +3229,17 @@ function _entrarComo(av) {
 
   <!-- SIDEBAR -->
   <div id="arq-sidebar">
-    <div class="arq-sidebar-section">Navegação</div>
-    <div class="arq-folder-item on" onclick="arqNavPasta('',this)" id="arqFolderRaiz">
+    <div class="arq-sidebar-section">Documentos</div>
+    <div class="arq-folder-item" onclick="arqModoView('docs',this)" id="arqNavDocs">
+      <span>📝</span> Todos os docs
+      <span class="arq-folder-count" id="arqDocsCount">0</span>
+    </div>
+    <div class="arq-folder-item" onclick="arqModoView('docs-meus',this)" id="arqNavDocsMeus">
+      <span>👤</span> Meus documentos
+    </div>
+
+    <div class="arq-sidebar-section" style="margin-top:8px">Arquivos</div>
+    <div class="arq-folder-item on" onclick="arqModoView('arquivos',this)" id="arqFolderRaiz">
       <span>🏠</span> Todos os arquivos
     </div>
     <div class="arq-folder-item" onclick="arqNavPasta('favoritos',this)" id="arqFolderFav">
@@ -3330,7 +3297,165 @@ function _entrarComo(av) {
 </div><!-- /arq-wrap -->
 </div><!-- /t-arquivos -->
 
-<div class="tab" id="t-nova">
+<!-- MODAL EDITOR DE DOCUMENTOS — Quill.js -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+#docEditorModal {
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(10,18,35,.65);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;
+}
+#docEditorModal.on { display:flex; }
+#docEditorBox {
+  width:900px;max-width:96vw;height:92vh;
+  background:#fff;border-radius:16px;
+  display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.3);
+  overflow:hidden;animation:scaleIn .2s cubic-bezier(.16,1,.3,1);
+}
+@keyframes scaleIn{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+#docEditorHeader {
+  padding:12px 18px;border-bottom:1px solid #E2E8F0;
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  background:#FAFBFD;
+}
+#docEditorTituloInput {
+  flex:1;font-size:18px;font-weight:800;color:#0F172A;
+  border:none;outline:none;background:transparent;font-family:inherit;
+}
+#docEditorTituloInput::placeholder { color:#CBD5E1; }
+#docSaveStatus {
+  font-size:10px;font-weight:600;white-space:nowrap;
+  padding:3px 10px;border-radius:20px;
+  background:#F0FDF4;color:#10B981;
+  opacity:0;transition:opacity .3s;
+}
+#quillEditor { flex:1;overflow:hidden;display:flex;flex-direction:column; }
+#quillEditor .ql-toolbar { border:none;border-bottom:1px solid #E2E8F0;background:#FAFBFD;flex-shrink:0;padding:8px 12px; }
+#quillEditor .ql-container { flex:1;overflow-y:auto;border:none;font-size:14px;font-family:inherit; }
+#quillEditor .ql-editor { min-height:100%;padding:28px 48px;line-height:1.8; }
+#quillEditor .ql-editor.ql-blank::before { color:#CBD5E1;font-style:normal;font-size:14px; }
+#quillEditor .ql-editor h1 { font-size:26px;font-weight:800;margin:16px 0 8px; }
+#quillEditor .ql-editor h2 { font-size:20px;font-weight:700;margin:14px 0 6px; }
+#quillEditor .ql-editor h3 { font-size:16px;font-weight:700;margin:12px 0 4px; }
+.doc-editor-footer {
+  padding:10px 18px;border-top:1px solid #E2E8F0;
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  background:#FAFBFD;
+}
+/* ── EMOJI PICKER ── */
+#emojiPicker {
+  position:fixed;z-index:2000;
+  background:#fff;border:1px solid #E2E8F0;border-radius:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+  padding:10px;width:320px;
+  display:none;
+}
+#emojiPicker.on { display:block; }
+.emoji-cats { display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap; }
+.emoji-cat-btn {
+  padding:4px 8px;border-radius:6px;border:none;background:transparent;
+  font-size:12px;cursor:pointer;color:#64748B;font-weight:600;transition:all .15s;
+}
+.emoji-cat-btn.on { background:#EEF2FF;color:#4F46E5; }
+.emoji-grid {
+  display:grid;grid-template-columns:repeat(8,1fr);gap:3px;
+  max-height:200px;overflow-y:auto;
+}
+.emoji-btn {
+  width:34px;height:34px;border:none;background:transparent;
+  border-radius:7px;cursor:pointer;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .1s;
+}
+.emoji-btn:hover { background:#F1F5F9; }
+.emoji-search {
+  width:100%;padding:6px 10px;border:1px solid #E2E8F0;border-radius:8px;
+  font-size:12px;margin-bottom:8px;outline:none;font-family:inherit;
+}
+.emoji-search:focus { border-color:#4F46E5; }
+
+/* ── HIGHLIGHT COLORS PICKER ── */
+#hlPicker {
+  position:fixed;z-index:2000;
+  background:#fff;border:1px solid #E2E8F0;border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+  padding:10px;display:none;
+}
+#hlPicker.on { display:flex;flex-direction:column;gap:8px; }
+.hl-label { font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px; }
+.hl-colors { display:flex;gap:5px;flex-wrap:wrap; }
+.hl-color-btn {
+  width:26px;height:26px;border-radius:6px;border:2px solid transparent;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;
+}
+.hl-color-btn:hover { border-color:#334155;transform:scale(1.1); }
+
+/* ── TOOLBAR EXTRA (botões custom) ── */
+.doc-extra-toolbar {
+  display:flex;align-items:center;gap:4px;
+  padding:6px 12px;border-bottom:1px solid #E2E8F0;
+  background:#F8FAFD;flex-shrink:0;flex-wrap:wrap;
+}
+.doc-xt-btn {
+  padding:5px 10px;border-radius:7px;border:1.5px solid #E2E8F0;
+  background:#fff;color:#475569;font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:4px;
+  font-family:inherit;
+}
+.doc-xt-btn:hover { border-color:#4F46E5;color:#4F46E5;background:#EEF2FF; }
+
+
+<div id="docEditorModal" onclick="if(event.target===this)fecharEditor()">
+  <div id="docEditorBox">
+
+    <!-- HEADER -->
+    <div id="docEditorHeader">
+      <span style="font-size:20px;flex-shrink:0">📝</span>
+      <input id="docEditorTituloInput" placeholder="Título do documento..." oninput="docAgendarSalvar()">
+      <span id="docSaveStatus">✓ Salvo</span>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="docSalvarAgora()" style="padding:6px 14px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Salvar</button>
+        <button onclick="fecharEditor()" style="width:30px;height:30px;border:none;border-radius:8px;background:#F1F5F9;color:#64748B;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+
+    <!-- TOOLBAR EXTRA: Highlight + Ícones (ACIMA do editor) -->
+    <div class="doc-extra-toolbar">
+      <span style="font-size:10px;font-weight:700;color:#94A3B8;margin-right:4px;">DESTAQUE:</span>
+      <button class="doc-xt-btn" onclick="aplicarHighlight('#FEF08A')" style="background:#FEF08A;border-color:#EAB308;color:#713F12">Amarelo</button>
+      <button class="doc-xt-btn" onclick="aplicarHighlight('#BBF7D0')" style="background:#BBF7D0;border-color:#22C55E;color:#14532D">Verde</button>
+      <button class="doc-xt-btn" onclick="aplicarHighlight('#BAE6FD')" style="background:#BAE6FD;border-color:#0EA5E9;color:#0C4A6E">Azul</button>
+      <button class="doc-xt-btn" onclick="aplicarHighlight('#FECACA')" style="background:#FECACA;border-color:#EF4444;color:#7F1D1D">Vermelho</button>
+      <button class="doc-xt-btn" onclick="aplicarHighlight('#E9D5FF')" style="background:#E9D5FF;border-color:#A855F7;color:#581C87">Roxo</button>
+      <button class="doc-xt-btn" onclick="aplicarHighlight('#FED7AA')" style="background:#FED7AA;border-color:#F97316;color:#7C2D12">Laranja</button>
+      <button class="doc-xt-btn" onclick="removerHighlight()" style="background:#fff;">✕ Remover</button>
+      <div style="width:1px;height:20px;background:#E2E8F0;margin:0 6px"></div>
+      <button class="doc-xt-btn" onclick="abrirIconePicker(event)" style="display:flex;align-items:center;gap:5px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Inserir Ícone
+      </button>
+    </div>
+
+    <!-- EDITOR QUILL -->
+    <div id="quillEditor" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;"></div>
+
+    <!-- FOOTER -->
+    <div class="doc-editor-footer">
+      <span class="doc-save-status" id="docSaveStatusFooter">💾 Salvamento automático</span>
+      <span style="font-size:10px;color:#CBD5E1" id="docWordCount">0 palavras</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ÍCONE PICKER -->
+<div id="iconePicker" style="position:fixed;z-index:2000;background:#fff;border:1px solid #E2E8F0;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:14px;width:380px;display:none;">
+  <div style="font-size:11px;font-weight:800;color:#94A3B8;letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;">Inserir Ícone Visual</div>
+  <div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;" id="iconeCategs"></div>
+  <div id="iconeGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-height:280px;overflow-y:auto;"></div>
+</div>
   <div class="nova-wrap" style="display:flex;flex-direction:column;height:calc(100dvh - var(--topbar-h));overflow:hidden">
     <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--surface)">
       <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>
@@ -3786,6 +3911,7 @@ function _entrarComo(av) {
   <button class="btncanc" onclick="closeM('mCadastro')">Cancelar</button>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
 function sw(name, el) {
   const _dp = document.getElementById('detPanel');
@@ -3806,13 +3932,12 @@ function sw(name, el) {
     tasks:   () => { try{renderTasks();}catch(e){console.error('renderTasks',e)} },
     proj:    () => { try{renderHierarquia();}catch(e){} },
     meet:    () => { try{renderMeet();}catch(e){} },
-    team: () => {
+    team:    () => { 
       try{renderMembers();}catch(e){}
-      if(typeof safeDb !== 'undefined') {
-        safeDb.from('membros').select('*').order('nome').then(function(res) {
-          if(res.data && res.data.length) { memb = res.data; try{renderMembers();}catch(e){} }
-        }).catch(function(e){ console.warn('sw team:', e); });
-      }
+      // Recarregar membros do Supabase ao abrir aba
+      safeDb.from('membros').select('*').order('nome').then(({data}) => {
+        if(data?.length) { memb = data; renderMembers(); renderChatDMs(); }
+      });
     },
     risk:    () => { try{renderRiscos();}catch(e){} },
     gantt:   () => { try{renderGantt();}catch(e){} },
@@ -3829,6 +3954,7 @@ function sw(name, el) {
 const SUPA_URL='https://fjfggqdwlxmtpzhtdepq.supabase.co';
 const SUPA_KEY='sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF';
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
+window._db = db;
 
 // Paleta de cores
 const CL = ['#4F46E5','#10B981','#F59E0B','#EF4444','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#06B6D4'];
@@ -3956,7 +4082,6 @@ function makeSafeDb() {
   };
 }
 const safeDb = db ? db : makeSafeDb();
-window.safeDb = safeDb;
 
 // ── ESTADO LOCAL (cache em memória) ───────────────────────────────
 let proj = [], tar = [], memb = [], ferias = [], riscos = [], reun = [], agenda = [], ativs = [], notifs = [], espacos = [];
@@ -4045,10 +4170,6 @@ function carregarLocal() {
 
 async function loadAll() {
   showLoading(true);
-
-  // Esperar db estar disponível (até 5s)
-  let _waitDb = 0;
-  while (!db && _waitDb < 50) { await new Promise(r => setTimeout(r, 100)); _waitDb++; }
 
   // Tentar Supabase primeiro — tem prioridade absoluta
   if (db) {
@@ -4155,12 +4276,11 @@ function renderAll() {
   const nome = (curUser?.nome?.split(' ')[0] || curUser?.av || 'Você').toUpperCase();
   const wname = document.getElementById('wname');
   if (wname) wname.textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome}`;
-  var _wd=document.getElementById('wdate'); if(_wd) _wd.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var _wd=document.getElementById('wdate');if(_wd)_wd.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderDashInteligente();
   renderUrgent(); renderAct(); renderFeriasMini();
   try{renderHierarquia();}catch(e){} try{renderProj();}catch(e){} try{renderTasks();}catch(e){} try{renderMeet();}catch(e){} try{renderMembers();}catch(e){} try{renderFerias();}catch(e){} try{renderCarga();}catch(e){} try{renderRiscos();}catch(e){} try{renderNova();}catch(e){} try{popSels();}catch(e){}
   try{renderChatDMs();}catch(e){} try{renderChatCanais();}catch(e){}
-  try{renderMembers();}catch(e){}
 }
 
 function renderChatCanais() {
@@ -6480,22 +6600,18 @@ function arqExcluirPasta(nome) {
 }
 
 function arqNavPasta(pasta, el) {
+  arqModoAtual = 'arquivos';
   arqPastaAtual = pasta;
   arqFiltroTipoAtivo = '';
-  // Atualizar sidebar ativo
   document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
-  if (el) { el.classList.add('on'); }
-  else {
-    const r = document.getElementById('arqFolderRaiz');
-    if (r) r.classList.add('on');
-  }
-  // Breadcrumb
-  const extra = document.getElementById('arqBreadExtra');
-  const nome  = document.getElementById('arqBreadNome');
-  if (extra && nome) {
-    if (pasta && pasta !== 'favoritos') { extra.style.display='inline'; nome.textContent = pasta; }
-    else if (pasta === 'favoritos') { extra.style.display='inline'; nome.textContent = '⭐ Favoritos'; }
-    else { extra.style.display='none'; }
+  if (el) el.classList.add('on');
+  else { document.getElementById('arqFolderRaiz')?.classList.add('on'); }
+  const breadExtra = document.getElementById('arqBreadExtra');
+  const breadNome  = document.getElementById('arqBreadNome');
+  if (breadExtra && breadNome) {
+    if (pasta && pasta !== 'favoritos') { breadExtra.style.display='inline'; breadNome.style.display='inline'; breadNome.textContent = pasta; }
+    else if (pasta === 'favoritos') { breadExtra.style.display='inline'; breadNome.style.display='inline'; breadNome.textContent = '⭐ Favoritos'; }
+    else { breadExtra.style.display='none'; breadNome.style.display='none'; }
   }
   renderArquivos();
 }
@@ -6696,6 +6812,387 @@ async function renderArquivos() {
   }
 
   container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DOCUMENTOS DE TEXTO — Editor rico com Supabase
+// ══════════════════════════════════════════════════════════════════
+let docsCache = [];
+let docAtualId = null;
+let _docSaveTimer = null;
+let arqModoAtual = 'arquivos'; // 'arquivos' | 'docs' | 'docs-meus'
+
+// Modo de visualização (docs vs arquivos)
+function arqModoView(modo, el) {
+  arqModoAtual = modo;
+  document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
+  if (el) el.classList.add('on');
+
+  if (modo === 'arquivos') {
+    arqPastaAtual = '';
+    const tituloEl = document.getElementById('arqPastaTituloNome');
+    if (tituloEl) tituloEl.textContent = 'Todos os arquivos';
+    renderArquivos();
+  } else {
+    renderDocs();
+  }
+}
+
+// Carregar documentos do Supabase
+async function carregarDocs() {
+  try {
+    const { data, error } = await safeDb.from('documentos').select('*').order('updated_at', { ascending: false });
+    if (!error && data) docsCache = data;
+  } catch(e) { console.warn('Erro ao carregar docs:', e); }
+}
+
+// Renderizar lista de documentos
+async function renderDocs() {
+  const container = document.getElementById('arq-content');
+  const tituloEl  = document.getElementById('arqPastaTituloNome');
+  if (!container) return;
+
+  if (tituloEl) tituloEl.textContent = arqModoAtual === 'docs-meus' ? '👤 Meus documentos' : '📝 Todos os documentos';
+
+  container.innerHTML = '<div class="arq-empty"><div style="font-size:32px;margin-bottom:8px">⏳</div><div>Carregando...</div></div>';
+  await carregarDocs();
+
+  let lista = docsCache;
+  if (arqModoAtual === 'docs-meus') {
+    lista = lista.filter(d => d.autor === curUser?.av);
+  }
+
+  // Atualizar contador sidebar
+  const countEl = document.getElementById('arqDocsCount');
+  if (countEl) countEl.textContent = docsCache.length;
+
+  if (!lista.length) {
+    container.innerHTML = `<div class="arq-empty">
+      <div style="font-size:48px;margin-bottom:12px;opacity:.4">📝</div>
+      <div style="font-size:14px;font-weight:700;color:var(--tx2);margin-bottom:8px">Nenhum documento ainda</div>
+      <div style="font-size:12px;margin-bottom:16px">Crie documentos de texto com formatação</div>
+      <button onclick="novoDocumento()" style="padding:9px 20px;border-radius:10px;background:var(--brand);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);">📝 Criar primeiro documento</button>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="arq-files-section-title">📝 DOCUMENTOS <span style="font-weight:400;opacity:.6">(${lista.length})</span></div>
+    <div class="arq-pastas-grid">
+      ${lista.map(d => {
+        const autor = memb.find(m => m.av === d.autor);
+        const preview = d.conteudo ? d.conteudo.replace(/<[^>]+>/g,'').slice(0,80) : '';
+        const data = d.updated_at ? new Date(d.updated_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+        return `<div class="doc-card" onclick="abrirDoc('${d.id}')">
+          <div class="doc-card-icon">📄</div>
+          <div class="doc-card-title">${d.titulo || 'Sem título'}</div>
+          ${preview ? `<div class="doc-card-preview">${preview}${preview.length>=80?'…':''}</div>` : ''}
+          <div class="doc-card-meta">${autor?autor.nome.split(' ')[0]:d.autor||'—'} · ${data}</div>
+          <div class="doc-card-acoes">
+            <button class="arq-btn red" onclick="event.stopPropagation();excluirDoc('${d.id}')" title="Excluir">🗑</button>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="arq-pasta-card" onclick="novoDocumento()" style="border-style:dashed;align-items:center;justify-content:center;min-height:100px;">
+        <div style="font-size:28px;opacity:.3">+</div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx3)">Novo documento</div>
+      </div>
+    </div>`;
+}
+
+// Criar novo documento
+async function novoDocumento() {
+  const novo = {
+    titulo: '',
+    conteudo: '',
+    autor: curUser?.av || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  try {
+    const { data, error } = await safeDb.from('documentos').insert([novo]).select().single();
+    if (error) throw error;
+    docsCache.unshift(data);
+    abrirEditorDoc(data);
+    // Mudar para modo docs
+    arqModoAtual = 'docs';
+    document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
+    document.getElementById('arqNavDocs')?.classList.add('on');
+  } catch(e) {
+    console.error('Erro ao criar doc:', e);
+    showToast('❌ Erro ao criar documento');
+  }
+}
+
+// Abrir documento existente
+async function abrirDoc(id) {
+  const doc = docsCache.find(d => d.id === id);
+  if (doc) { abrirEditorDoc(doc); return; }
+  try {
+    const { data } = await safeDb.from('documentos').select('*').eq('id', id).single();
+    if (data) abrirEditorDoc(data);
+  } catch(e) { showToast('❌ Erro ao abrir documento'); }
+}
+
+// Abrir editor com Quill
+let quillInstance = null;
+
+function initQuill() {
+  if (quillInstance) return;
+  quillInstance = new Quill('#quillEditor', {
+    theme: 'snow',
+    placeholder: 'Comece a escrever aqui...',
+    modules: {
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        [{ font: [] }],
+        [{ size: ['small', false, 'large', 'huge'] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ color: [] }, { background: [] }],
+        [{ script: 'sub' }, { script: 'super' }],
+        ['blockquote', 'code-block'],
+        [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }],
+        [{ indent: '-1' }, { indent: '+1' }],
+        [{ align: [] }],
+        ['link', 'image'],
+        ['clean']
+      ]
+    }
+  });
+  quillInstance.on('text-change', () => {
+    docAgendarSalvar();
+    const txt = quillInstance.getText().trim();
+    const words = txt ? txt.split(/\s+/).filter(w => w).length : 0;
+    const wc = document.getElementById('docWordCount');
+    if (wc) wc.textContent = words + (words === 1 ? ' palavra' : ' palavras');
+  });
+}
+
+// ── HIGHLIGHT ──
+function aplicarHighlight(cor) {
+  if (!quillInstance) return;
+  const sel = quillInstance.getSelection();
+  if (!sel || sel.length === 0) { showToast('⚠️ Selecione o texto primeiro'); return; }
+  quillInstance.formatText(sel.index, sel.length, 'background', cor);
+  quillInstance.focus();
+}
+
+function removerHighlight() {
+  if (!quillInstance) return;
+  const sel = quillInstance.getSelection();
+  if (!sel || sel.length === 0) { showToast('⚠️ Selecione o texto primeiro'); return; }
+  quillInstance.formatText(sel.index, sel.length, 'background', false);
+  quillInstance.focus();
+}
+
+// ── ÍCONES VISUAIS ──
+const ICONES_VISUAIS = {
+  'Status': [
+    { label:'Concluído',  bg:'#D1FAE5', cor:'#065F46', svg:'<path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>'},
+    { label:'Em andamento', bg:'#DBEAFE', cor:'#1E40AF', svg:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'},
+    { label:'Pendente',   bg:'#FEF3C7', cor:'#92400E', svg:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'},
+    { label:'Bloqueado',  bg:'#FEE2E2', cor:'#991B1B', svg:'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'},
+    { label:'Cancelado',  bg:'#F3F4F6', cor:'#374151', svg:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'},
+    { label:'Revisão',    bg:'#EDE9FE', cor:'#5B21B6', svg:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'},
+  ],
+  'Prioridade': [
+    { label:'Urgente',  bg:'#FEE2E2', cor:'#DC2626', svg:'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'},
+    { label:'Alta',     bg:'#FFEDD5', cor:'#C2410C', svg:'<polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/>'},
+    { label:'Média',    bg:'#FEF9C3', cor:'#A16207', svg:'<line x1="5" y1="12" x2="19" y2="12"/>'},
+    { label:'Baixa',    bg:'#DCFCE7', cor:'#166534', svg:'<polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/>'},
+  ],
+  'Tipo': [
+    { label:'Tarefa',     bg:'#EFF6FF', cor:'#1D4ED8', svg:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>'},
+    { label:'Reunião',    bg:'#F5F3FF', cor:'#7C3AED', svg:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>'},
+    { label:'Documento',  bg:'#F0FDF4', cor:'#166534', svg:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>'},
+    { label:'Projeto',    bg:'#FFF7ED', cor:'#C2410C', svg:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>'},
+    { label:'Nota',       bg:'#FAFAF9', cor:'#44403C', svg:'<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>'},
+    { label:'Bug',        bg:'#FEF2F2', cor:'#DC2626', svg:'<path d="M8 6l4-4 4 4"/><path d="M6 10h12a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2a2 2 0 012-2z"/><line x1="12" y1="14" x2="12" y2="20"/>'},
+    { label:'Ideia',      bg:'#FFFBEB', cor:'#D97706', svg:'<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/>'},
+    { label:'Atenção',    bg:'#FFFBEB', cor:'#B45309', svg:'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>'},
+  ],
+  'Indicadores': [
+    { label:'Meta',       bg:'#F0FDF4', cor:'#166534', svg:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>'},
+    { label:'Gráfico',    bg:'#EFF6FF', cor:'#1D4ED8', svg:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'},
+    { label:'Tendência',  bg:'#F0FDF4', cor:'#166534', svg:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'},
+    { label:'Queda',      bg:'#FEF2F2', cor:'#DC2626', svg:'<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>'},
+    { label:'Relógio',    bg:'#F5F3FF', cor:'#7C3AED', svg:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'},
+    { label:'Calendário', bg:'#EFF6FF', cor:'#1D4ED8', svg:'<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'},
+    { label:'Estrela',    bg:'#FFFBEB', cor:'#D97706', svg:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'},
+    { label:'Foguete',    bg:'#EFF6FF', cor:'#2563EB', svg:'<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/>'},
+  ],
+  'Pessoas': [
+    { label:'Pessoa',     bg:'#F5F3FF', cor:'#7C3AED', svg:'<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>'},
+    { label:'Equipe',     bg:'#EFF6FF', cor:'#1D4ED8', svg:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>'},
+    { label:'Suporte',    bg:'#F0FDF4', cor:'#166534', svg:'<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>'},
+    { label:'Responsável',bg:'#FFF7ED', cor:'#C2410C', svg:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'},
+  ],
+  'Outros': [
+    { label:'Link',       bg:'#F0FDF4', cor:'#166534', svg:'<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>'},
+    { label:'Arquivo',    bg:'#F9FAFB', cor:'#374151', svg:'<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>'},
+    { label:'Configurar', bg:'#F5F3FF', cor:'#7C3AED', svg:'<circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 105 19.07"/>'},
+    { label:'Dinheiro',   bg:'#F0FDF4', cor:'#166534', svg:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'},
+    { label:'Email',      bg:'#EFF6FF', cor:'#1D4ED8', svg:'<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>'},
+    { label:'Notificação',bg:'#FFFBEB', cor:'#D97706', svg:'<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>'},
+  ]
+};
+
+let _iconeCategAtual = 'Status';
+
+function abrirIconePicker(e) {
+  e.stopPropagation();
+  const picker = document.getElementById('iconePicker');
+  if (!picker) return;
+  if (picker.style.display === 'block') { picker.style.display = 'none'; return; }
+
+  // Renderizar categorias
+  const cats = document.getElementById('iconeCategs');
+  cats.innerHTML = Object.keys(ICONES_VISUAIS).map(c =>
+    `<button onclick="mudarCatIcone('${c}',this)" style="padding:4px 10px;border-radius:20px;border:none;cursor:pointer;font-size:11px;font-weight:700;background:${c===_iconeCategAtual?'#4F46E5':'#F1F5F9'};color:${c===_iconeCategAtual?'#fff':'#475569'};font-family:inherit;" id="icCat_${c}">${c}</button>`
+  ).join('');
+
+  renderIconeGrid(_iconeCategAtual);
+
+  // Posicionar
+  const rect = (e.currentTarget||e.target).getBoundingClientRect();
+  picker.style.top = 'auto';
+  picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+  picker.style.left = Math.min(rect.left, window.innerWidth - 400) + 'px';
+  picker.style.display = 'block';
+
+  setTimeout(() => {
+    document.addEventListener('click', function h(ev) {
+      if (!picker.contains(ev.target) && !ev.target.closest('[onclick*="abrirIconePicker"]')) {
+        picker.style.display = 'none';
+        document.removeEventListener('click', h);
+      }
+    });
+  }, 100);
+}
+
+function mudarCatIcone(cat, btn) {
+  _iconeCategAtual = cat;
+  document.querySelectorAll('#iconeCategs button').forEach(b => {
+    b.style.background = '#F1F5F9'; b.style.color = '#475569';
+  });
+  btn.style.background = '#4F46E5'; btn.style.color = '#fff';
+  renderIconeGrid(cat);
+}
+
+function renderIconeGrid(cat) {
+  const grid = document.getElementById('iconeGrid');
+  if (!grid) return;
+  const lista = ICONES_VISUAIS[cat] || [];
+  grid.innerHTML = lista.map(ic => `
+    <button onclick="inserirIcone(${JSON.stringify(ic).replace(/"/g,'&quot;')})" title="${ic.label}"
+      style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:1.5px solid #E2E8F0;border-radius:10px;background:#fff;cursor:pointer;transition:all .15s;font-family:inherit;"
+      onmouseover="this.style.borderColor='#4F46E5';this.style.background='#EEF2FF'"
+      onmouseout="this.style.borderColor='#E2E8F0';this.style.background='#fff'">
+      <div style="width:36px;height:36px;border-radius:8px;background:${ic.bg};display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${ic.cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ic.svg}</svg>
+      </div>
+      <span style="font-size:9px;font-weight:600;color:#64748B;white-space:nowrap;overflow:hidden;max-width:52px;text-overflow:ellipsis;">${ic.label}</span>
+    </button>
+  `).join('');
+}
+
+function inserirIcone(ic) {
+  if (!quillInstance) return;
+  const sel = quillInstance.getSelection(true);
+  const idx = sel ? sel.index : quillInstance.getLength();
+  // Inserir como badge HTML inline
+  const badge = `<span contenteditable="false" style="display:inline-flex;align-items:center;gap:4px;background:${ic.bg};color:${ic.cor};border:1px solid ${ic.cor}30;border-radius:6px;padding:2px 7px 2px 4px;font-size:12px;font-weight:700;vertical-align:middle;margin:0 2px;user-select:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${ic.cor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${ic.svg}</svg>${ic.label}</span>`;
+  quillInstance.clipboard.dangerouslyPasteHTML(idx, badge);
+  quillInstance.setSelection(idx + 1);
+  document.getElementById('iconePicker').style.display = 'none';
+  quillInstance.focus();
+}
+
+function abrirEditorDoc(doc) {
+  docAtualId = doc.id;
+  const modal = document.getElementById('docEditorModal');
+  const titulo = document.getElementById('docEditorTituloInput');
+  if (!modal || !titulo) return;
+
+  // Inicializar Quill se necessário
+  if (typeof Quill !== 'undefined') {
+    initQuill();
+    if (quillInstance) {
+      quillInstance.root.innerHTML = doc.conteudo || '';
+      // Contador inicial
+      const txt = quillInstance.getText().trim();
+      const words = txt ? txt.split(/\s+/).filter(w=>w).length : 0;
+      const wc = document.getElementById('docWordCount');
+      if (wc) wc.textContent = words + (words===1?' palavra':' palavras');
+    }
+  }
+
+  titulo.value = doc.titulo || '';
+  modal.classList.add('on');
+  titulo.focus();
+  docAtualizarStatus('');
+}
+
+function fecharEditor() {
+  clearTimeout(_docSaveTimer);
+  docSalvarAgora().then(() => {
+    document.getElementById('docEditorModal')?.classList.remove('on');
+    docAtualId = null;
+    if (arqModoAtual === 'docs' || arqModoAtual === 'docs-meus') renderDocs();
+  });
+}
+
+function docAgendarSalvar() {
+  docAtualizarStatus('editando');
+  clearTimeout(_docSaveTimer);
+  _docSaveTimer = setTimeout(() => docSalvarAgora(), 1500);
+}
+
+async function docSalvarAgora() {
+  if (!docAtualId) return;
+  const titulo = document.getElementById('docEditorTituloInput')?.value.trim() || 'Sem título';
+  const conteudo = quillInstance ? quillInstance.root.innerHTML : '';
+  try {
+    const upd = { titulo, conteudo, updated_at: new Date().toISOString() };
+    await safeDb.from('documentos').update(upd).eq('id', docAtualId);
+    const doc = docsCache.find(d => d.id === docAtualId);
+    if (doc) { doc.titulo = titulo; doc.conteudo = conteudo; doc.updated_at = upd.updated_at; }
+    docAtualizarStatus('salvo');
+    setTimeout(() => docAtualizarStatus(''), 2500);
+  } catch(e) {
+    console.error('Erro ao salvar doc:', e);
+    docAtualizarStatus('erro');
+  }
+}
+
+function docAtualizarStatus(estado) {
+  const s1 = document.getElementById('docSaveStatus');
+  const s2 = document.getElementById('docSaveStatusFooter');
+  const msgs = {
+    '':        { txt:'', bg:'transparent', cor:'transparent', footer:'' },
+    'salvo':   { txt:'✓ Salvo', bg:'#F0FDF4', cor:'#10B981', footer:'✅ Salvo automaticamente' },
+    'editando':{ txt:'...', bg:'#FEF3C7', cor:'#D97706', footer:'✏️ Salvando...' },
+    'erro':    { txt:'⚠ Erro', bg:'#FEF2F2', cor:'#EF4444', footer:'⚠️ Erro ao salvar' },
+  };
+  const m = msgs[estado] || msgs[''];
+  if (s1) {
+    s1.textContent = m.txt;
+    s1.style.opacity = m.txt ? '1' : '0';
+    s1.style.background = m.bg;
+    s1.style.color = m.cor;
+  }
+  if (s2 && m.footer) s2.textContent = m.footer;
+}
+
+function docFormatBlock(tag) { /* mantido para compatibilidade */ }
+function docInserirLink() { /* Quill tem link nativo */ }
+
+async function excluirDoc(id) {
+  if (!confirm('Excluir este documento permanentemente?')) return;
+  await safeDb.from('documentos').delete().eq('id', id);
+  docsCache = docsCache.filter(d => d.id !== id);
+  renderDocs();
+  showToast('🗑 Documento excluído');
 }
 
 // ── Upload ───────────────────────────────────────────────────────
@@ -9445,64 +9942,44 @@ function pedirPermissaoNotif() {
 
 async function entrarNoApp(usuario) {
   curUser = usuario;
-
-  // 1. Esconder login
-  try {
-    var ls = document.getElementById('loginScreen');
-    if (ls) ls.style.display = 'none';
-  } catch(e) {}
-
-  // 2. Mostrar app
-  try {
-    var ma = document.getElementById('body-wrap');
-    if (ma) { ma.style.display = 'flex'; ma.style.flexDirection = 'column'; ma.style.height = '100vh'; }
-  } catch(e) {}
-
-  // 3. Avatar
-  try {
-    var avEl = document.getElementById('userAv');
-    if (avEl) { avEl.textContent = usuario.av||'?'; avEl.style.background=(usuario.cor||'#4F46E5')+'33'; avEl.style.color=usuario.cor||'#4F46E5'; }
-  } catch(e) {}
-
-  // 4. Carregar dados do Supabase
-  try { await loadAll(); } catch(e) { console.warn('loadAll:', e); }
-
-  // 5. Esconder loading
-  try { showLoading(false); } catch(e) {}
-
-  // 6. Saudação
-  try {
-    var h = new Date().getHours();
-    var saud = h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE';
-    var wname = document.getElementById('wname');
-    if (wname) wname.textContent = saud + ', ' + (usuario.nome?.split(' ')[0]||usuario.av||'Você').toUpperCase();
-    var wdate = document.getElementById('wdate');
-    if (wdate) wdate.textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  } catch(e) {}
-
-  // 7. Renderizar tudo
-  try { renderAll(); } catch(e) { console.warn('renderAll:', e); }
-  
-  // 8. Navegar para home
-  try { sw('home', document.querySelector('.ni.on')); } catch(e) {}
-
-  // 9. Scroll para o topo
-  try { var c=document.querySelector('.content'); if(c) c.scrollTop=0; } catch(e) {}
-
-  // 10. Serviços em background
-  setTimeout(function() {
-    try { iniciarChatGlobal(); } catch(e) {}
-    try { pedirPermissaoNotif(); } catch(e) {}
-  }, 1000);
+  // Atualizar avatar
+  const avEl = document.getElementById('userAv');
+  if (avEl) { 
+    avEl.textContent = usuario.av||'?'; 
+    avEl.style.background = (usuario.cor||'#4F46E5')+'33'; 
+    avEl.style.color = usuario.cor||'#4F46E5'; 
+  }
+  // Esconder login e mostrar app
+  const ls = document.getElementById('loginScreen');
+  if (ls) ls.style.display = 'none';
+  // Mostrar o app — tenta mainApp primeiro, depois body-wrap
+  const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
+  if (ma) {
+    ma.style.display = 'block';
+  }
+  try { await loadAll(); } catch(e) { console.error(e); }
+  showLoading(false);
+  // Garantir nome correto no dashboard
+  const wname = document.getElementById('wname');
+  if (wname) {
+    const h = new Date().getHours();
+    const saud = h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE';
+    wname.textContent = saud + ', ' + (usuario.nome?.split(' ')[0]||usuario.av||'Você').toUpperCase();
+  }
+  renderAll();
+  sw('home', document.querySelector('.ni.on'));
+  try { renderNova(); } catch(e) {}
+  // Iniciar listener global de mensagens
+  setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); }, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
   showLoading(true);
-  const sessao = localStorage.getItem('dae_user_email');
-  if (sessao) {
+  const emailSalvo = localStorage.getItem('dae_user_email');
+  if (emailSalvo) {
     try {
       const { data: todos } = await safeDb.from('membros').select('*');
-      const usuario = (todos||[]).find(m => m.av === sessao || (m.email && m.email.toLowerCase() === sessao.toLowerCase()));
+      const usuario = (todos||[]).find(m => m.av===emailSalvo || (m.email && m.email.trim().toLowerCase()===emailSalvo.toLowerCase()));
       if (usuario) { await entrarNoApp(usuario); return; }
     } catch(e) { console.warn('Auto-login falhou:', e); }
     localStorage.removeItem('dae_user_email');
