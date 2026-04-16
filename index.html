@@ -2201,6 +2201,35 @@ select.sel{
 
 
 </style>
+<script>
+// sw disponível globalmente desde o início
+function sw(name, el) {
+  var dp = document.getElementById('detPanel');
+  if(dp) dp.classList.remove('on');
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  document.querySelectorAll('.ni').forEach(function(n){ n.classList.remove('on'); });
+  var tabEl = document.getElementById('t-'+name);
+  if(!tabEl) return;
+  tabEl.classList.add('on');
+  if(el) el.classList.add('on');
+  var titles = {home:'Dashboard',proj:'Estações & Espaços',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
+  var ttEl = document.getElementById('topbar-page-title');
+  if(ttEl) ttEl.textContent = titles[name] || '';
+  // Renderizar aba se função disponível
+  var renders = {
+    home: function(){ try{renderDashInteligente();}catch(e){} try{renderUrgent();}catch(e){} try{renderAct();}catch(e){} try{renderFeriasMini();}catch(e){} },
+    arquivos: function(){ try{carregarArquivos();renderArquivos();}catch(e){} },
+    tasks: function(){ try{renderTasks();}catch(e){} },
+    proj: function(){ try{renderHierarquia();}catch(e){} },
+    meet: function(){ try{renderMeet();}catch(e){} },
+    team: function(){ try{renderMembers();}catch(e){} },
+    risk: function(){ try{renderRiscos();}catch(e){} },
+    nova: function(){ try{renderNova();}catch(e){} }
+  };
+  if(renders[name]) try{ renders[name](); }catch(e){}
+}
+window.sw = sw;
+</script>
 </head>
 
 
