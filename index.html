@@ -2251,8 +2251,6 @@ function _selecionarMembro(av) {
     if(t>100) clearInterval(iv);
   },100);
 }
-// Chamar imediatamente
-_carregarMembrosLogin();
 </script>
 </head>
 
@@ -2277,6 +2275,7 @@ _carregarMembrosLogin();
     </div>
   </div>
 </div>
+<script>_carregarMembrosLogin();</script>
 
 
   <!-- BOTTOM NAV MOBILE -->
