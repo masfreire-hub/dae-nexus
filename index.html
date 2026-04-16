@@ -2209,80 +2209,79 @@ select.sel{
 
 <!-- TELA DE LOGIN -->
 <div id="loginScreen" style="display:flex">
-  <div style="width:100%;max-width:400px;z-index:1">
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#4F46E5,#6366F1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 8px 24px rgba(79,70,229,0.4)">
+  <div style="width:100%;max-width:460px;z-index:1">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#4F46E5,#6366F1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(79,70,229,0.4)">
         <svg width="28" height="28" viewBox="0 0 96 100" fill="none"><path d="M48 3 L88 19 L88 52 Q88 76 48 97 Q8 76 8 52 L8 19 Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="3"/><text x="48" y="62" text-anchor="middle" font-family="sans-serif" font-size="34" fill="white" font-weight="800">D</text></svg>
       </div>
-      <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px">DAE Nexus.AI</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px">Inteligência, Gestão e Resultado</div>
+      <div style="font-size:24px;font-weight:800;color:#fff">DAE Nexus.AI</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px">Quem é você?</div>
     </div>
-    <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px">
-      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">E-mail</label>
-      <input id="lemail" type="email" placeholder="seu@email.com.br"
-        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:16px"
-        onkeydown="if(event.key==='Enter') _btnLogin()">
-      <input id="lpass" type="hidden" value="">
-      <button id="btnLoginEl" onclick="_btnLogin()" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px">
-        Entrar no sistema
-      </button>
-      <div id="loginMsg" style="text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,.5)">
-        Use o e-mail cadastrado pela gestora
+    <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px">
+      <div id="loginMembrosList" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;">
+        <div style="text-align:center;color:rgba(255,255,255,.4);font-size:13px;padding:20px">Carregando equipe...</div>
       </div>
+      <div id="loginMsg" style="text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,.4)"></div>
     </div>
   </div>
 </div>
 <script>
-// LOGIN DEFINITIVO
-function _btnLogin() {
-  var email = (document.getElementById('lemail').value||'').trim();
-  if(!email) return;
-  var btn = document.getElementById('btnLoginEl');
-  var msg = document.getElementById('loginMsg');
-  btn.textContent='Entrando...'; btn.disabled=true;
-  if(msg) msg.textContent='Verificando...';
-  
-  var SUPA_URL = 'https://fjfggqdwlxmtpzhtdepq.supabase.co';
-  var SUPA_KEY = 'sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF';
-  
-  var attempt = function() {
-    if(typeof supabase === 'undefined') { setTimeout(attempt, 100); return; }
-    var db2 = supabase.createClient(SUPA_URL, SUPA_KEY);
-    db2.from('membros').select('*').then(function(res) {
-      if(res.error) {
-        if(msg) msg.textContent = 'Erro: '+res.error.message;
-        btn.textContent='Entrar no sistema'; btn.disabled=false;
-        return;
-      }
-      var usuario = (res.data||[]).filter(function(m){
-        return m.email && m.email.trim().toLowerCase()===email.toLowerCase();
-      })[0];
-      if(!usuario) {
-        if(msg) msg.innerHTML='❌ E-mail não encontrado';
-        btn.textContent='Entrar no sistema'; btn.disabled=false;
-        return;
-      }
-      // ACHOU — entrar
-      localStorage.setItem('dae_user_email', usuario.email);
-      window._usuario = usuario;
-      
-      // Esconder login e mostrar app AGORA
-      var ls = document.getElementById('loginScreen');
-      if(ls) ls.style.cssText='display:none!important;visibility:hidden!important;';
-      var bw = document.getElementById('body-wrap');
-      if(bw) bw.style.cssText='display:flex!important;flex-direction:column;height:100vh;';
-      
-      // Esperar entrarNoApp ficar disponível
-      var wait = setInterval(function(){
-        if(typeof entrarNoApp==='function'){
-          clearInterval(wait);
-          entrarNoApp(usuario).catch(function(e){ console.warn(e); });
-        }
-      }, 50);
+// Carregar lista de membros assim que Supabase estiver pronto
+var _loginCarregado = false;
+function _carregarMembrosLogin() {
+  if(_loginCarregado) return;
+  if(typeof supabase === 'undefined') { setTimeout(_carregarMembrosLogin, 100); return; }
+  _loginCarregado = true;
+  var db2 = supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF');
+  db2.from('membros').select('*').order('nome').then(function(res) {
+    var lista = document.getElementById('loginMembrosList');
+    if(!lista) return;
+    if(res.error || !res.data || !res.data.length) {
+      lista.innerHTML = '<div style="color:rgba(255,80,80,.8);text-align:center;padding:16px">Erro ao carregar equipe.</div>';
+      return;
+    }
+    window._membrosLogin = res.data;
+    lista.innerHTML = '';
+    res.data.forEach(function(m) {
+      var cor = m.cor || '#4F46E5';
+      var btn = document.createElement('button');
+      btn.dataset.av = m.av;
+      btn.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-family:inherit;width:100%;text-align:left;margin-bottom:6px;';
+      btn.innerHTML = '<div style="width:38px;height:38px;border-radius:10px;background:'+cor+'33;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">'+m.av+'</div>'
+        + '<div><div style="font-size:13px;font-weight:700;color:#fff;">'+m.nome+'</div>'
+        + (m.cargo ? '<div style="font-size:11px;color:rgba(255,255,255,.4);">'+m.cargo+'</div>' : '')
+        + '</div>';
+      btn.addEventListener('mouseover', function(){ this.style.background='rgba(79,70,229,0.25)'; this.style.borderColor='rgba(79,70,229,0.6)'; });
+      btn.addEventListener('mouseout', function(){ this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'; });
+      btn.addEventListener('click', function(){ _entrarComo(this.dataset.av); });
+      lista.appendChild(btn);
     });
-  };
-  attempt();
+  });
 }
+
+function _entrarComo(av) {
+  var usuario = (window._membrosLogin||[]).find(function(m){ return m.av===av; });
+  if(!usuario) return;
+  var msg = document.getElementById('loginMsg');
+  if(msg) msg.textContent = 'Entrando como '+usuario.nome.split(' ')[0]+'...';
+  localStorage.setItem('dae_user_email', usuario.email||av);
+  window._curUser = usuario;
+  // Esconder login e mostrar app
+  var ls = document.getElementById('loginScreen');
+  if(ls) ls.style.cssText = 'display:none!important;';
+  var bw = document.getElementById('body-wrap');
+  if(bw) bw.style.cssText = 'display:flex!important;flex-direction:column;height:100vh;';
+  // Chamar entrarNoApp
+  var wait = setInterval(function(){
+    if(typeof entrarNoApp==='function'){
+      clearInterval(wait);
+      entrarNoApp(usuario).catch(function(e){ console.warn(e); });
+    }
+  }, 50);
+}
+
+// Iniciar carregamento
+_carregarMembrosLogin();
 </script>
 
 
@@ -10046,16 +10045,21 @@ async function entrarNoApp(usuario) {
 
 document.addEventListener('DOMContentLoaded', async function(){
   showLoading(true);
-  const emailSalvo = localStorage.getItem('dae_user_email');
-  if (emailSalvo) {
+  // Verificar se há sessão salva (av ou email)
+  const sessao = localStorage.getItem('dae_user_email');
+  if (sessao) {
     try {
       const { data: todos } = await safeDb.from('membros').select('*');
-      const usuario = (todos||[]).find(m => m.email && m.email.trim().toLowerCase() === emailSalvo.toLowerCase());
+      const usuario = (todos||[]).find(function(m){
+        return m.av === sessao || (m.email && m.email.toLowerCase() === sessao.toLowerCase());
+      });
       if (usuario) { await entrarNoApp(usuario); return; }
     } catch(e) { console.warn('Auto-login falhou:', e); }
     localStorage.removeItem('dae_user_email');
   }
   showLoading(false);
+  // Mostrar lista de membros
+  _carregarMembrosLogin();
   const ls = document.getElementById('loginScreen');
   if (ls) ls.style.display = 'flex';
 });
