@@ -2229,33 +2229,48 @@ select.sel{
 // Carregar lista de membros assim que Supabase estiver pronto
 var _loginCarregado = false;
 function _carregarMembrosLogin() {
-  if(_loginCarregado) return;
-  if(typeof supabase === 'undefined') { setTimeout(_carregarMembrosLogin, 100); return; }
-  _loginCarregado = true;
-  var db2 = supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF');
-  db2.from('membros').select('*').order('nome').then(function(res) {
-    var lista = document.getElementById('loginMembrosList');
-    if(!lista) return;
-    if(res.error || !res.data || !res.data.length) {
-      lista.innerHTML = '<div style="color:rgba(255,80,80,.8);text-align:center;padding:16px">Erro ao carregar equipe.</div>';
-      return;
-    }
-    window._membrosLogin = res.data;
-    lista.innerHTML = '';
-    res.data.forEach(function(m) {
-      var cor = m.cor || '#4F46E5';
-      var btn = document.createElement('button');
-      btn.dataset.av = m.av;
-      btn.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-family:inherit;width:100%;text-align:left;margin-bottom:6px;';
-      btn.innerHTML = '<div style="width:38px;height:38px;border-radius:10px;background:'+cor+'33;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">'+m.av+'</div>'
-        + '<div><div style="font-size:13px;font-weight:700;color:#fff;">'+m.nome+'</div>'
-        + (m.cargo ? '<div style="font-size:11px;color:rgba(255,255,255,.4);">'+m.cargo+'</div>' : '')
-        + '</div>';
-      btn.addEventListener('mouseover', function(){ this.style.background='rgba(79,70,229,0.25)'; this.style.borderColor='rgba(79,70,229,0.6)'; });
-      btn.addEventListener('mouseout', function(){ this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'; });
-      btn.addEventListener('click', function(){ _entrarComo(this.dataset.av); });
-      lista.appendChild(btn);
-    });
+  // Membros fixos para carregar instantaneamente
+  var fixos = [
+    {av:'MA', nome:'Mabiane Andrade de Souza', cargo:'Gestora', cor:'#4F46E5'},
+    {av:'AC', nome:'Ana Carolina', cargo:'', cor:'#10B981'},
+    {av:'AL', nome:'Anderson Luis', cargo:'', cor:'#F59E0B'},
+    {av:'YL', nome:'Yuri Leal', cargo:'', cor:'#EF4444'},
+    {av:'ME', nome:'Maria Eduarda Pamponet', cargo:'', cor:'#8B5CF6'}
+  ];
+  window._membrosLogin = fixos;
+  _renderMembrosLogin(fixos);
+
+  // Tentar atualizar do Supabase em background
+  if(typeof supabase !== 'undefined') {
+    try {
+      var db2 = supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF');
+      db2.from('membros').select('*').order('nome').then(function(res) {
+        if(!res.error && res.data && res.data.length) {
+          window._membrosLogin = res.data;
+          _renderMembrosLogin(res.data);
+        }
+      });
+    } catch(e) {}
+  }
+}
+
+function _renderMembrosLogin(membros) {
+  var lista = document.getElementById('loginMembrosList');
+  if(!lista) return;
+  lista.innerHTML = '';
+  membros.forEach(function(m) {
+    var cor = m.cor || '#4F46E5';
+    var btn = document.createElement('button');
+    btn.dataset.av = m.av;
+    btn.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-family:inherit;width:100%;text-align:left;margin-bottom:6px;';
+    btn.innerHTML = '<div style="width:38px;height:38px;border-radius:10px;background:'+cor+'33;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">'+m.av+'</div>'
+      + '<div><div style="font-size:13px;font-weight:700;color:#fff;">'+m.nome+'</div>'
+      + (m.cargo ? '<div style="font-size:11px;color:rgba(255,255,255,.4);">'+m.cargo+'</div>' : '')
+      + '</div>';
+    btn.addEventListener('mouseover', function(){ this.style.background='rgba(79,70,229,0.25)'; this.style.borderColor='rgba(79,70,229,0.6)'; });
+    btn.addEventListener('mouseout', function(){ this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'; });
+    btn.addEventListener('click', function(){ _entrarComo(this.dataset.av); });
+    lista.appendChild(btn);
   });
 }
 
