@@ -2221,17 +2221,60 @@ select.sel{
       <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">E-mail</label>
       <input id="lemail" type="email" placeholder="seu@email.com.br"
         style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:16px"
-        onkeydown="if(event.key==='Enter') doLogin()">
+        onkeydown="if(event.key==='Enter') _btnLogin()">
       <input id="lpass" type="hidden" value="">
-      <button onclick="doLogin()" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px">
+      <button id="btnLoginEl" onclick="_btnLogin()" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px">
         Entrar no sistema
       </button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:rgba(255,255,255,.3)">
+      <div id="loginMsg" style="text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,.5)">
         Use o e-mail cadastrado pela gestora
       </div>
     </div>
   </div>
 </div>
+<script>
+// Login inline — funciona independente de quando o script principal carrega
+function _btnLogin() {
+  const btn = document.getElementById('btnLoginEl');
+  const msg = document.getElementById('loginMsg');
+  const email = (document.getElementById('lemail').value || '').trim();
+  if (!email) { if(msg) msg.textContent = '⚠️ Digite seu e-mail'; return; }
+  if (btn) { btn.textContent = 'Entrando...'; btn.disabled = true; }
+  if (msg) msg.textContent = 'Verificando...';
+  // Aguardar Supabase estar disponível
+  const tryLogin = async () => {
+    try {
+      const db = window._db || (typeof supabase !== 'undefined' ? supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF') : null);
+      if (!db) { setTimeout(tryLogin, 200); return; }
+      const { data, error } = await db.from('membros').select('*');
+      if (error) throw error;
+      const usuario = (data||[]).find(m => m.email && m.email.trim().toLowerCase() === email.toLowerCase());
+      if (!usuario) {
+        if (msg) msg.innerHTML = '❌ E-mail não encontrado.<br><small style="opacity:.6">Verifique o cadastro em Equipe</small>';
+        if (btn) { btn.textContent = 'Entrar no sistema'; btn.disabled = false; }
+        return;
+      }
+      localStorage.setItem('dae_user_email', usuario.email);
+      if (typeof entrarNoApp === 'function') {
+        await entrarNoApp(usuario);
+      } else {
+        // entrarNoApp ainda não carregou, aguardar
+        const waitApp = setInterval(async () => {
+          if (typeof entrarNoApp === 'function') {
+            clearInterval(waitApp);
+            await entrarNoApp(usuario);
+          }
+        }, 100);
+      }
+    } catch(e) {
+      console.error('Login error:', e);
+      if (msg) msg.textContent = '❌ Erro: ' + (e.message || 'verifique a conexão');
+      if (btn) { btn.textContent = 'Entrar no sistema'; btn.disabled = false; }
+    }
+  };
+  tryLogin();
+}
+</script>
 
 
   <!-- BOTTOM NAV MOBILE -->
@@ -3940,6 +3983,7 @@ function sw(name, el) {
 const SUPA_URL='https://fjfggqdwlxmtpzhtdepq.supabase.co';
 const SUPA_KEY='sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF';
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
+window._db = db;
 
 // Paleta de cores
 const CL = ['#4F46E5','#10B981','#F59E0B','#EF4444','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#06B6D4'];
