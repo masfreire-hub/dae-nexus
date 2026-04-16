@@ -110,7 +110,7 @@
 /* ── BASE ──────────────────────────────────────────────────────── */
 body{
   font-family:var(--fb);background:var(--bg);color:var(--tx);
-  height:100dvh;overflow:hidden;
+  min-height:100dvh;overflow-x:hidden;
   -webkit-font-smoothing:antialiased;
 }
 #app{min-height:100dvh;position:relative;}
@@ -267,9 +267,8 @@ body{
 
 /* ── BODY WRAP ───────────────────────────────────────────────── */
 #body-wrap{
-  height:calc(100dvh - var(--topbar-h));padding-top:var(--topbar-h);
+  min-height:100dvh;padding-top:var(--topbar-h);
   position:relative;
-  display:block;
 }
 
 /* ── SIDEBAR ─────────────────────────────────────────────────── */
@@ -317,11 +316,10 @@ body{
 
 /* ── CONTENT ─────────────────────────────────────────────────── */
 .content{
-  margin-left:var(--sidebar-w);
+  flex:1;margin-left:var(--sidebar-w);
   padding:24px 24px 100px;
-  height:calc(100dvh - var(--topbar-h));
+  min-height:calc(100dvh - var(--topbar-h));
   overflow-y:auto;
-  overflow-x:hidden;
 }
 .content:has(#t-arquivos.on){
   overflow:hidden;
@@ -339,8 +337,6 @@ body{
 /* ── TABS (conteúdo) ─────────────────────────────────────────── */
 .tab{display:none;animation:fadeUp .25s var(--ease) both;}
 .tab.on{display:block;}
-/* Garantir que content sempre começa do topo */
-.content{overflow-anchor:none;}
 
 /* ═══════════════════════════════════════════════════════════════
    CARDS BASE
@@ -2206,9 +2202,7 @@ select.sel{
 
 </style>
 <script>
-// Login por lista de membros
 var _membrosLogin = [];
-
 function _carregarMembrosLogin() {
   var fixos = [
     {av:'MA',nome:'Mabiane Andrade de Souza',cargo:'Gestora',cor:'#4F46E5',email:'mabiane.souza@sudoesteinformatica.com.br'},
@@ -2219,18 +2213,16 @@ function _carregarMembrosLogin() {
   ];
   _membrosLogin = fixos;
   _renderListaMembros(fixos);
-  // Atualizar do Supabase em background
   setTimeout(function(){
     if(typeof supabase==='undefined') return;
     try {
-      var _db2=supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF');
-      _db2.from('membros').select('*').order('nome').then(function(r){
+      var db2=supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF');
+      db2.from('membros').select('*').order('nome').then(function(r){
         if(!r.error&&r.data&&r.data.length){_membrosLogin=r.data;_renderListaMembros(r.data);}
       });
     }catch(e){}
-  },500);
+  },800);
 }
-
 function _renderListaMembros(lista) {
   var el=document.getElementById('loginMembrosList');
   if(!el) return;
@@ -2240,41 +2232,27 @@ function _renderListaMembros(lista) {
     btn.dataset.av=m.av;
     var cor=m.cor||'#4F46E5';
     btn.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-family:inherit;width:100%;text-align:left;margin-bottom:6px;';
-    btn.innerHTML='<div style="width:40px;height:40px;border-radius:10px;background:'+cor+'33;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">'+m.av+'</div>'
-      +'<div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
-      +(m.cargo?'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">'+m.cargo+'</div>':'')
-      +'</div><div style="margin-left:auto;opacity:.3">›</div>';
+    btn.innerHTML='<div style="width:40px;height:40px;border-radius:10px;background:'+cor+'33;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">'+m.av+'</div><div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'+(m.cargo?'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">'+m.cargo+'</div>':'')+'</div><div style="margin-left:auto;opacity:.3;font-size:18px">›</div>';
     btn.addEventListener('mouseover',function(){this.style.background='rgba(79,70,229,0.2)';this.style.borderColor='rgba(99,102,241,0.5)';});
     btn.addEventListener('mouseout',function(){this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.12)';});
     btn.addEventListener('click',function(){_selecionarMembro(this.dataset.av);});
     el.appendChild(btn);
   });
 }
-
 function _selecionarMembro(av) {
-  var usuario=_membrosLogin.find(function(m){return m.av===av;});
-  if(!usuario) return;
-  // Salvar sessão
-  localStorage.setItem('dae_user_email', usuario.email||av);
-  // Esconder login
+  var u=_membrosLogin.find(function(m){return m.av===av;});
+  if(!u) return;
+  localStorage.setItem('dae_user_email', u.email||av);
   var ls=document.getElementById('loginScreen');
   if(ls) ls.style.display='none';
-  // Chamar doLogin com o usuário já encontrado
-  if(typeof entrarNoApp==='function'){
-    entrarNoApp(usuario).catch(function(e){console.warn(e);});
-  } else {
-    // Esperar entrarNoApp carregar
-    var t=0;
-    var iv=setInterval(function(){
-      t++;
-      if(typeof entrarNoApp==='function'){
-        clearInterval(iv);
-        entrarNoApp(usuario).catch(function(e){console.warn(e);});
-      }
-      if(t>100) clearInterval(iv);
-    },100);
-  }
+  var t=0,iv=setInterval(function(){
+    t++;
+    if(typeof entrarNoApp==='function'){clearInterval(iv);entrarNoApp(u).catch(function(e){console.warn(e);});}
+    if(t>100) clearInterval(iv);
+  },100);
 }
+// Chamar imediatamente
+_carregarMembrosLogin();
 </script>
 </head>
 
@@ -2294,25 +2272,74 @@ function _selecionarMembro(av) {
     </div>
     <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px">
       <div id="loginMembrosList" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto">
-        <div style="text-align:center;color:rgba(255,255,255,.4);font-size:13px;padding:20px">Carregando equipe...</div>
+        <div style="text-align:center;color:rgba(255,255,255,.4);font-size:13px;padding:20px">Carregando...</div>
       </div>
     </div>
   </div>
 </div>
-<script>
-// Chamar imediatamente quando o DOM desta parte estiver pronto
-(function(){ 
-  var t=0;
-  var iv=setInterval(function(){
-    t++;
-    if(typeof _carregarMembrosLogin==='function'){
-      clearInterval(iv);
-      _carregarMembrosLogin();
-    }
-    if(t>50) clearInterval(iv);
-  },50);
-})();
-</script>
+
+
+  <!-- BOTTOM NAV MOBILE -->
+  <nav id="bottom-nav">
+    <div class="bni on" onclick="sw('home',document.querySelectorAll('#sidebar .ni')[0]);setBottomNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Início</span><div class="bni-dot"></div>
+    </div>
+    <div class="bni" onclick="sw('proj',document.querySelectorAll('#sidebar .ni')[1]);setBottomNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      <span>Estações</span><div class="bni-dot"></div>
+    </div>
+    <div class="bni" onclick="sw('tasks',document.querySelectorAll('#sidebar .ni')[2]);setBottomNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Tarefas</span><div class="bni-dot"></div>
+    </div>
+    <div class="bni" onclick="sw('risk',document.querySelectorAll('#sidebar .ni')[5]);setBottomNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Riscos</span><div class="bni-dot"></div>
+    </div>
+    <div class="bni" onclick="sw('nova',document.querySelectorAll('#sidebar .ni')[8]);setBottomNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span>Nova IA</span><div class="bni-dot"></div>
+    </div>
+  </nav>
+  <div class="topbar" style="padding-left:0;">
+    <div class="tbl" style="padding:0 16px;border-right:1px solid var(--border);height:100%;background:var(--sb-bg);">
+      <div class="tblogo" style="background:transparent;">
+        <svg width="28" height="28" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gg2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#818CF8"/>
+              <stop offset="50%" stop-color="#4F46E5"/>
+              <stop offset="100%" stop-color="#3730A3"/>
+            </linearGradient>
+            <linearGradient id="gg2a" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#C7D2FE"/>
+              <stop offset="100%" stop-color="#818CF8"/>
+            </linearGradient>
+          </defs>
+          <polygon points="28,3 50,15.5 50,40.5 28,53 6,40.5 6,15.5" fill="url(#gg2)" opacity="0.2"/>
+          <polygon points="28,3 50,15.5 50,40.5 28,53 6,40.5 6,15.5" fill="none" stroke="url(#gg2)" stroke-width="2"/>
+          <polygon points="28,11 43,19.5 43,36.5 28,45 13,36.5 13,19.5" fill="none" stroke="url(#gg2a)" stroke-width="1" opacity="0.6"/>
+          <text x="28" y="38" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="24" font-weight="900" fill="url(#gg2a)" letter-spacing="-1">D</text>
+          <circle cx="40" cy="14" r="3" fill="#818CF8"/>
+          <circle cx="40" cy="14" r="1.5" fill="#C7D2FE"/>
+        </svg>
+      </div>
+      <div><div class="tbname" style="color:#FFFFFF;font-size:13px;font-weight:800;">DAE NEXUS.AI</div></div>
+    </div>
+    <div style="flex:1;padding:0 20px;">
+      <div id="topbar-page-title" style="font-size:13px;font-weight:600;color:var(--tx2);">Dashboard</div>
+    </div>
+    <div class="tbr" style="padding-right:16px;">
+      <div class="gsearch-wrap" id="gsearchWrap">
+        <span class="gsearch-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input class="gsearch-inp" id="gsearchInp" placeholder="Buscar projetos, tarefas..." oninput="gsearch(this.value)" onfocus="if(this.value)gsearch(this.value)" onblur="setTimeout(()=>document.getElementById('gsearchDrop').classList.remove('on'),180)">
+        <div class="gsearch-drop" id="gsearchDrop"></div>
+      </div>
+      <div class="ibtn" onclick="showAlerts()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="nbd" id="alertCount">2</div></div>
+      <div class="uav" id="userAv" onclick="menuUsuario()" title="Clique para sair">MA</div>
+    </div>
+  </div>
 
   <div id="body-wrap" style="display:none">
   <div id="sidebar">
@@ -3929,14 +3956,16 @@ function sw(name, el) {
   const titles = {home:'Dashboard',proj:'Estações & Espaços',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
   const ttEl = document.getElementById('topbar-page-title');
   if (ttEl) ttEl.textContent = titles[name] || '';
+  // Renderizar aba ativa
   const renders = {
     home:    () => { try{renderDashInteligente();}catch(e){} try{renderUrgent();}catch(e){} try{renderAct();}catch(e){} try{renderFeriasMini();}catch(e){} },
-    arquivos: () => { try{renderArquivos();}catch(e){} },
-    tasks:   () => { try{renderTasks();}catch(e){} },
+    arquivos: () => { try{renderArquivos();}catch(e){console.error('renderArquivos',e)} },
+    tasks:   () => { try{renderTasks();}catch(e){console.error('renderTasks',e)} },
     proj:    () => { try{renderHierarquia();}catch(e){} },
     meet:    () => { try{renderMeet();}catch(e){} },
     team:    () => { 
       try{renderMembers();}catch(e){}
+      // Recarregar membros do Supabase ao abrir aba
       safeDb.from('membros').select('*').order('nome').then(({data}) => {
         if(data?.length) { memb = data; renderMembers(); renderChatDMs(); }
       });
@@ -3948,14 +3977,8 @@ function sw(name, el) {
     config:  () => { try{renderCadastros();}catch(e){} try{updateSelects();}catch(e){} },
     chat:    () => { const cw=document.getElementById('chatWin'); const ce=document.getElementById('chatEmpty'); if(!curChId){if(cw)cw.style.display='none';if(ce)ce.style.display='flex';} }
   };
-  if (renders[name]) try{ renders[name](); }catch(e){}
-  // Resetar scroll APÓS render usando requestAnimationFrame
-  requestAnimationFrame(function() {
-    const _c = document.querySelector('.content');
-    if (_c) _c.scrollTop = 0;
-  });
+  setTimeout(() => { if (renders[name]) renders[name](); }, 30);
 }
-
 
 // ── CHART DASHBOARD ───────────────────────────────────────────────
 
@@ -9963,7 +9986,9 @@ async function entrarNoApp(usuario) {
   // Mostrar o app — tenta mainApp primeiro, depois body-wrap
   const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
   if (ma) {
-    ma.style.display = 'block';
+    ma.style.display = 'flex';
+    ma.style.flexDirection = 'column';
+    if (ma.id === 'body-wrap') ma.style.height = '100vh';
   }
   try { await loadAll(); } catch(e) { console.error(e); }
   showLoading(false);
@@ -9977,26 +10002,17 @@ async function entrarNoApp(usuario) {
   renderAll();
   sw('home', document.querySelector('.ni.on'));
   try { renderNova(); } catch(e) {}
-  // Forçar scroll para o topo
-  requestAnimationFrame(function() {
-    var c = document.querySelector('.content');
-    if(c) c.scrollTop = 0;
-    requestAnimationFrame(function() {
-      if(c) c.scrollTop = 0;
-    });
-  });
   // Iniciar listener global de mensagens
   setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); }, 1000);
 }
 
-if('scrollRestoration' in history) history.scrollRestoration = 'manual';
 document.addEventListener('DOMContentLoaded', async function(){
   showLoading(true);
   const emailSalvo = localStorage.getItem('dae_user_email');
   if (emailSalvo) {
     try {
       const { data: todos } = await safeDb.from('membros').select('*');
-      const usuario = (todos||[]).find(m => m.av===emailSalvo || (m.email && m.email.trim().toLowerCase()===emailSalvo.toLowerCase()));
+      const usuario = (todos||[]).find(m => m.email && m.email.trim().toLowerCase() === emailSalvo.toLowerCase());
       if (usuario) { await entrarNoApp(usuario); return; }
     } catch(e) { console.warn('Auto-login falhou:', e); }
     localStorage.removeItem('dae_user_email');
