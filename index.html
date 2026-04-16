@@ -2241,42 +2241,61 @@ function _btnLogin() {
   if (!email) { if(msg) msg.textContent = '⚠️ Digite seu e-mail'; return; }
   if (btn) { btn.textContent = 'Entrando...'; btn.disabled = true; }
   if (msg) msg.textContent = 'Verificando...';
-  // Aguardar Supabase estar disponível
+
   const tryLogin = async () => {
     try {
-      const db = window._db || (typeof supabase !== 'undefined' ? supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF') : null);
-      if (!db) { setTimeout(tryLogin, 200); return; }
-      const { data, error } = await db.from('membros').select('*');
+      const dbConn = window._db || (typeof supabase !== 'undefined'
+        ? supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF')
+        : null);
+      if (!dbConn) { setTimeout(tryLogin, 200); return; }
+
+      const { data, error } = await dbConn.from('membros').select('*');
       if (error) throw error;
-      const usuario = (data||[]).find(m => m.email && m.email.trim().toLowerCase() === email.toLowerCase());
+
+      const usuario = (data||[]).find(function(m) {
+        return m.email && m.email.trim().toLowerCase() === email.toLowerCase();
+      });
+
       if (!usuario) {
-        if (msg) msg.innerHTML = '❌ E-mail não encontrado.<br><small style="opacity:.6">Verifique o cadastro em Equipe</small>';
+        if (msg) msg.innerHTML = '❌ E-mail não encontrado.';
         if (btn) { btn.textContent = 'Entrar no sistema'; btn.disabled = false; }
         return;
       }
+
+      // SUCESSO — salvar e mostrar app
       localStorage.setItem('dae_user_email', usuario.email);
-      // Esconder login imediatamente
-      const ls = document.getElementById('loginScreen');
-      if (ls) ls.style.display = 'none';
-      const bw = document.getElementById('body-wrap');
-      if (bw) { bw.style.display = 'flex'; bw.style.flexDirection = 'column'; bw.style.height = '100vh'; }
-      // Guardar usuário globalmente
       window._curUser = usuario;
-      // Chamar entrarNoApp quando disponível
-      const _tryEnter = async () => {
+
+      // Remover tela de login
+      const ls = document.getElementById('loginScreen');
+      if (ls) ls.parentNode.removeChild(ls);
+
+      // Mostrar app
+      const bw = document.getElementById('body-wrap');
+      if (bw) {
+        bw.style.display = 'flex';
+        bw.style.flexDirection = 'column';
+        bw.style.height = '100vh';
+      }
+
+      // Entrar no app (quando disponível)
+      const doEnter = async function() {
         if (typeof entrarNoApp === 'function') {
-          try { await entrarNoApp(usuario); } catch(e) { console.error('entrarNoApp:', e); }
+          try { await entrarNoApp(usuario); }
+          catch(e) { console.warn('entrarNoApp erro (ignorado):', e); }
         } else {
-          setTimeout(_tryEnter, 100);
+          setTimeout(doEnter, 150);
         }
       };
-      _tryEnter();
+      doEnter();
+
     } catch(e) {
-      console.error('Login error:', e);
-      if (msg) msg.textContent = '❌ Erro: ' + (e.message || 'verifique a conexão');
+      console.error('Login erro:', e);
+      if (msg) msg.textContent = '❌ Erro: ' + (e.message||'tente novamente');
       if (btn) { btn.textContent = 'Entrar no sistema'; btn.disabled = false; }
     }
   };
+
   tryLogin();
 }
 </script>
