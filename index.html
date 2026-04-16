@@ -4260,14 +4260,16 @@ async function loadAll() {
     carregarLocal();
   }
 
-  await loadNotifs();
-  renderAll();
+  await loadNotifs().catch(e => console.warn('notifs:', e));
+  try { renderAll(); } catch(e) { console.warn('renderAll:', e); }
   setTimeout(() => {
-    const projAtivos = proj.filter(p=>p.status!=='concluido');
-    animCounter(document.getElementById('statProjAtivos'), projAtivos.length);
-    animCounter(document.getElementById('statUrgentes'), tar.filter(t=>!t.ok&&t.prior==='urgente').length);
-    animCounter(document.getElementById('statMembros'), memb.length);
-    animCounter(document.getElementById('statRiscos'), riscos.length);
+    try {
+      const projAtivos = proj.filter(p=>p.status!=='concluido');
+      animCounter(document.getElementById('statProjAtivos'), projAtivos.length);
+      animCounter(document.getElementById('statUrgentes'), tar.filter(t=>!t.ok&&t.prior==='urgente').length);
+      animCounter(document.getElementById('statMembros'), memb.length);
+      animCounter(document.getElementById('statRiscos'), riscos.length);
+    } catch(e) {}
   }, 300);
   showLoading(false);
 }
@@ -4276,13 +4278,17 @@ async function loadAll() {
 async function loadNotifs() {
   if (!curUser) return;
   if (!db) return;
-  const { data } = await safeDb.from('notificacoes')
-    .select('*').eq('destinatario', curUser.av)
-    .eq('lida', false).order('created_at', { ascending: false });
-  notifs = data || [];
-  const cnt = document.getElementById('alertCount');
-  if (cnt) cnt.textContent = notifs.length || '';
-  cnt.style.display = notifs.length ? 'flex' : 'none';
+  try {
+    const { data } = await safeDb.from('notificacoes')
+      .select('*').eq('destinatario', curUser.av)
+      .eq('lida', false).order('created_at', { ascending: false });
+    notifs = data || [];
+    const cnt = document.getElementById('alertCount');
+    if (cnt) {
+      cnt.textContent = notifs.length || '';
+      cnt.style.display = notifs.length ? 'flex' : 'none';
+    }
+  } catch(e) { console.warn('loadNotifs:', e); }
 }
 
 function renderAll() {
