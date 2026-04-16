@@ -2233,70 +2233,55 @@ select.sel{
   </div>
 </div>
 <script>
-// Login inline — funciona independente de quando o script principal carrega
+// LOGIN DEFINITIVO
 function _btnLogin() {
-  const btn = document.getElementById('btnLoginEl');
-  const msg = document.getElementById('loginMsg');
-  const email = (document.getElementById('lemail').value || '').trim();
-  if (!email) { if(msg) msg.textContent = '⚠️ Digite seu e-mail'; return; }
-  if (btn) { btn.textContent = 'Entrando...'; btn.disabled = true; }
-  if (msg) msg.textContent = 'Verificando...';
-
-  const tryLogin = async () => {
-    try {
-      const dbConn = window._db || (typeof supabase !== 'undefined'
-        ? supabase.createClient('https://fjfggqdwlxmtpzhtdepq.supabase.co','sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF')
-        : null);
-      if (!dbConn) { setTimeout(tryLogin, 200); return; }
-
-      const { data, error } = await dbConn.from('membros').select('*');
-      if (error) throw error;
-
-      const usuario = (data||[]).find(function(m) {
-        return m.email && m.email.trim().toLowerCase() === email.toLowerCase();
-      });
-
-      if (!usuario) {
-        if (msg) msg.innerHTML = '❌ E-mail não encontrado.';
-        if (btn) { btn.textContent = 'Entrar no sistema'; btn.disabled = false; }
+  var email = (document.getElementById('lemail').value||'').trim();
+  if(!email) return;
+  var btn = document.getElementById('btnLoginEl');
+  var msg = document.getElementById('loginMsg');
+  btn.textContent='Entrando...'; btn.disabled=true;
+  if(msg) msg.textContent='Verificando...';
+  
+  var SUPA_URL = 'https://fjfggqdwlxmtpzhtdepq.supabase.co';
+  var SUPA_KEY = 'sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF';
+  
+  var attempt = function() {
+    if(typeof supabase === 'undefined') { setTimeout(attempt, 100); return; }
+    var db2 = supabase.createClient(SUPA_URL, SUPA_KEY);
+    db2.from('membros').select('*').then(function(res) {
+      if(res.error) {
+        if(msg) msg.textContent = 'Erro: '+res.error.message;
+        btn.textContent='Entrar no sistema'; btn.disabled=false;
         return;
       }
-
-      // SUCESSO — salvar e mostrar app
-      localStorage.setItem('dae_user_email', usuario.email);
-      window._curUser = usuario;
-
-      // Remover tela de login
-      const ls = document.getElementById('loginScreen');
-      if (ls) ls.parentNode.removeChild(ls);
-
-      // Mostrar app
-      const bw = document.getElementById('body-wrap');
-      if (bw) {
-        bw.style.display = 'flex';
-        bw.style.flexDirection = 'column';
-        bw.style.height = '100vh';
+      var usuario = (res.data||[]).filter(function(m){
+        return m.email && m.email.trim().toLowerCase()===email.toLowerCase();
+      })[0];
+      if(!usuario) {
+        if(msg) msg.innerHTML='❌ E-mail não encontrado';
+        btn.textContent='Entrar no sistema'; btn.disabled=false;
+        return;
       }
-
-      // Entrar no app (quando disponível)
-      const doEnter = async function() {
-        if (typeof entrarNoApp === 'function') {
-          try { await entrarNoApp(usuario); }
-          catch(e) { console.warn('entrarNoApp erro (ignorado):', e); }
-        } else {
-          setTimeout(doEnter, 150);
+      // ACHOU — entrar
+      localStorage.setItem('dae_user_email', usuario.email);
+      window._usuario = usuario;
+      
+      // Esconder login e mostrar app AGORA
+      var ls = document.getElementById('loginScreen');
+      if(ls) ls.style.cssText='display:none!important;visibility:hidden!important;';
+      var bw = document.getElementById('body-wrap');
+      if(bw) bw.style.cssText='display:flex!important;flex-direction:column;height:100vh;';
+      
+      // Esperar entrarNoApp ficar disponível
+      var wait = setInterval(function(){
+        if(typeof entrarNoApp==='function'){
+          clearInterval(wait);
+          entrarNoApp(usuario).catch(function(e){ console.warn(e); });
         }
-      };
-      doEnter();
-
-    } catch(e) {
-      console.error('Login erro:', e);
-      if (msg) msg.textContent = '❌ Erro: ' + (e.message||'tente novamente');
-      if (btn) { btn.textContent = 'Entrar no sistema'; btn.disabled = false; }
-    }
+      }, 50);
+    });
   };
-
-  tryLogin();
+  attempt();
 }
 </script>
 
