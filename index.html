@@ -2333,10 +2333,16 @@ function _entrarComo(av) {
   // Ir para home
   sw('home', document.querySelector('#sidebar .ni'));
 
-  // Carregar dados do Supabase
-  if(typeof loadAll === 'function') {
-    loadAll().catch(function(e){ console.warn(e); });
-  }
+  // Carregar dados do Supabase — esperar loadAll estar disponível
+  var _tentativas = 0;
+  var _waitLoad = setInterval(function() {
+    _tentativas++;
+    if(typeof loadAll === 'function') {
+      clearInterval(_waitLoad);
+      loadAll().catch(function(e){ console.warn(e); });
+    }
+    if(_tentativas > 100) clearInterval(_waitLoad);
+  }, 50);
 }
 
 // Iniciar carregamento
