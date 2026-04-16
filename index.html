@@ -3171,7 +3171,89 @@ select.sel{
   text-align:center; padding:60px 20px; color:var(--tx3);
 }
 
-.arq-dropzone-active { border:2px dashed var(--brand) !important; background:rgba(79,70,229,.03) !important; }
+/* ── DOCS ── */
+.doc-card {
+  background:var(--surface);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 16px;cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;gap:6px;position:relative;
+}
+.doc-card:hover { border-color:var(--brand);transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,70,229,.1); }
+.doc-card-icon { font-size:24px;line-height:1; }
+.doc-card-title { font-size:13px;font-weight:700;color:var(--tx);line-height:1.3; }
+.doc-card-meta { font-size:10px;color:var(--tx3); }
+.doc-card-preview { font-size:11px;color:var(--tx2);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; }
+.doc-card-acoes { display:flex;gap:4px;opacity:0;transition:opacity .15s;position:absolute;top:10px;right:10px; }
+.doc-card:hover .doc-card-acoes { opacity:1; }
+
+/* ── EDITOR MODAL ── */
+#docEditorModal {
+  position:fixed;inset:0;z-index:500;
+  background:rgba(10,18,35,.6);backdrop-filter:blur(4px);
+  display:none;align-items:stretch;justify-content:flex-end;
+}
+#docEditorModal.on { display:flex; }
+#docEditorBox {
+  width:780px;max-width:100vw;background:var(--surface);
+  display:flex;flex-direction:column;
+  box-shadow:-12px 0 48px rgba(0,0,0,.2);
+  animation:slideInRight .25s cubic-bezier(.16,1,.3,1);
+}
+#docEditorHeader {
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  background:var(--surface);
+}
+#docEditorTituloInput {
+  flex:1;font-size:20px;font-weight:800;color:var(--tx);
+  border:none;outline:none;background:transparent;font-family:var(--fh);
+  padding:0;
+}
+#docEditorTituloInput::placeholder { color:var(--tx4); }
+.doc-toolbar {
+  display:flex;align-items:center;gap:2px;
+  padding:8px 14px;border-bottom:1px solid var(--border);
+  flex-shrink:0;flex-wrap:wrap;background:var(--surface2);
+}
+.doc-tb-btn {
+  width:30px;height:30px;border:none;background:transparent;
+  border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;
+  color:var(--tx2);display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.doc-tb-btn:hover { background:var(--surface3);color:var(--tx); }
+.doc-tb-btn.on { background:var(--brand-light);color:var(--brand); }
+.doc-tb-sep { width:1px;height:20px;background:var(--border);margin:0 4px; }
+.doc-tb-select {
+  padding:4px 8px;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface);color:var(--tx2);font-size:11px;cursor:pointer;
+  font-family:var(--fh);
+}
+#docEditorContent {
+  flex:1;overflow-y:auto;padding:24px 32px;
+  font-size:14px;line-height:1.8;color:var(--tx);
+  outline:none;
+}
+#docEditorContent:empty:before {
+  content:attr(data-placeholder);color:var(--tx4);pointer-events:none;
+}
+#docEditorContent h1 { font-size:24px;font-weight:800;margin:16px 0 8px;color:var(--tx); }
+#docEditorContent h2 { font-size:19px;font-weight:700;margin:14px 0 6px;color:var(--tx); }
+#docEditorContent h3 { font-size:16px;font-weight:700;margin:12px 0 4px;color:var(--tx); }
+#docEditorContent ul,#docEditorContent ol { padding-left:24px;margin:8px 0; }
+#docEditorContent li { margin:4px 0; }
+#docEditorContent blockquote {
+  border-left:3px solid var(--brand);padding-left:14px;
+  color:var(--tx2);font-style:italic;margin:10px 0;
+}
+#docEditorContent hr { border:none;border-top:1px solid var(--border);margin:16px 0; }
+#docEditorContent a { color:var(--brand);text-decoration:underline; }
+.doc-editor-footer {
+  padding:10px 18px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  background:var(--surface2);
+}
+.doc-save-status { font-size:11px;color:var(--tx3);flex:1; }
+
 #arq-view-toggle button { padding:5px 10px; font-size:11px; border:1px solid var(--border); background:transparent; cursor:pointer; color:var(--tx2); }
 #arq-view-toggle button.on { background:var(--brand); color:#fff; border-color:var(--brand); }
 #arq-view-toggle button:first-child { border-radius:6px 0 0 6px; }
@@ -3185,6 +3267,9 @@ select.sel{
     <div style="font-size:11px;color:var(--tx3);margin-top:1px">Central de documentos da equipe</div>
   </div>
   <input type="file" id="arqFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.mp3,.wav,.zip,.txt" style="display:none" onchange="uploadArquivos(this.files)">
+  <button onclick="novoDocumento()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--tx);font-family:var(--fh);display:flex;align-items:center;gap:6px">
+    📝 Novo documento
+  </button>
   <button onclick="abrirUploadArquivo()" style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);display:flex;align-items:center;gap:6px">
     ⬆ Enviar arquivo
   </button>
@@ -3198,8 +3283,17 @@ select.sel{
 
   <!-- SIDEBAR -->
   <div id="arq-sidebar">
-    <div class="arq-sidebar-section">Navegação</div>
-    <div class="arq-folder-item on" onclick="arqNavPasta('',this)" id="arqFolderRaiz">
+    <div class="arq-sidebar-section">Documentos</div>
+    <div class="arq-folder-item" onclick="arqModoView('docs',this)" id="arqNavDocs">
+      <span>📝</span> Todos os docs
+      <span class="arq-folder-count" id="arqDocsCount">0</span>
+    </div>
+    <div class="arq-folder-item" onclick="arqModoView('docs-meus',this)" id="arqNavDocsMeus">
+      <span>👤</span> Meus documentos
+    </div>
+
+    <div class="arq-sidebar-section" style="margin-top:8px">Arquivos</div>
+    <div class="arq-folder-item on" onclick="arqModoView('arquivos',this)" id="arqFolderRaiz">
       <span>🏠</span> Todos os arquivos
     </div>
     <div class="arq-folder-item" onclick="arqNavPasta('favoritos',this)" id="arqFolderFav">
@@ -3256,6 +3350,60 @@ select.sel{
   </div><!-- /arq-main -->
 </div><!-- /arq-wrap -->
 </div><!-- /t-arquivos -->
+
+<!-- MODAL EDITOR DE DOCUMENTOS -->
+<div id="docEditorModal" onclick="if(event.target===this)fecharEditor()">
+  <div id="docEditorBox">
+    <div id="docEditorHeader">
+      <span style="font-size:20px">📝</span>
+      <input id="docEditorTituloInput" placeholder="Título do documento..." oninput="docAgendarSalvar()">
+      <span id="docSaveStatus" style="font-size:10px;color:var(--tx3);white-space:nowrap;opacity:0;transition:opacity .3s">✓ Salvo</span>
+      <button onclick="fecharEditor()" style="width:30px;height:30px;border:none;border-radius:8px;background:var(--surface3);color:var(--tx2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+
+    <!-- TOOLBAR FORMATAÇÃO -->
+    <div class="doc-toolbar">
+      <select class="doc-tb-select" onchange="docFormatBlock(this.value);this.value=''" style="width:110px">
+        <option value="">Parágrafo</option>
+        <option value="h1">Título 1</option>
+        <option value="h2">Título 2</option>
+        <option value="h3">Título 3</option>
+        <option value="blockquote">Citação</option>
+      </select>
+      <div class="doc-tb-sep"></div>
+      <button class="doc-tb-btn" onclick="document.execCommand('bold')" title="Negrito"><strong>B</strong></button>
+      <button class="doc-tb-btn" onclick="document.execCommand('italic')" title="Itálico"><em>I</em></button>
+      <button class="doc-tb-btn" onclick="document.execCommand('underline')" title="Sublinhado"><u>U</u></button>
+      <button class="doc-tb-btn" onclick="document.execCommand('strikeThrough')" title="Tachado"><s>S</s></button>
+      <div class="doc-tb-sep"></div>
+      <button class="doc-tb-btn" onclick="document.execCommand('insertUnorderedList')" title="Lista com marcadores">☰</button>
+      <button class="doc-tb-btn" onclick="document.execCommand('insertOrderedList')" title="Lista numerada">1.</button>
+      <div class="doc-tb-sep"></div>
+      <button class="doc-tb-btn" onclick="document.execCommand('justifyLeft')" title="Alinhar à esquerda">⬅</button>
+      <button class="doc-tb-btn" onclick="document.execCommand('justifyCenter')" title="Centralizar">↔</button>
+      <button class="doc-tb-btn" onclick="document.execCommand('justifyRight')" title="Alinhar à direita">➡</button>
+      <div class="doc-tb-sep"></div>
+      <button class="doc-tb-btn" onclick="document.execCommand('insertHorizontalRule')" title="Linha separadora">─</button>
+      <button class="doc-tb-btn" onclick="docInserirLink()" title="Link">🔗</button>
+      <div class="doc-tb-sep"></div>
+      <button class="doc-tb-btn" onclick="document.execCommand('undo')" title="Desfazer">↩</button>
+      <button class="doc-tb-btn" onclick="document.execCommand('redo')" title="Refazer">↪</button>
+    </div>
+
+    <!-- EDITOR -->
+    <div id="docEditorContent" contenteditable="true"
+      data-placeholder="Comece a escrever aqui... Use a barra acima para formatar o texto."
+      oninput="docAgendarSalvar()"
+      style="flex:1;overflow-y:auto;padding:28px 40px;font-size:14px;line-height:1.8;color:var(--tx);outline:none;">
+    </div>
+
+    <div class="doc-editor-footer">
+      <span class="doc-save-status" id="docSaveStatusFooter">💾 Salvamento automático ativado</span>
+      <button onclick="docSalvarAgora()" style="padding:7px 16px;border-radius:8px;background:var(--brand);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--fh)">💾 Salvar agora</button>
+      <button onclick="fecharEditor()" style="padding:7px 14px;border-radius:8px;background:var(--surface3);color:var(--tx2);border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fh)">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <div class="tab" id="t-nova">
   <div class="nova-wrap" style="display:flex;flex-direction:column;height:calc(100dvh - var(--topbar-h));overflow:hidden">
@@ -6401,22 +6549,18 @@ function arqExcluirPasta(nome) {
 }
 
 function arqNavPasta(pasta, el) {
+  arqModoAtual = 'arquivos';
   arqPastaAtual = pasta;
   arqFiltroTipoAtivo = '';
-  // Atualizar sidebar ativo
   document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
-  if (el) { el.classList.add('on'); }
-  else {
-    const r = document.getElementById('arqFolderRaiz');
-    if (r) r.classList.add('on');
-  }
-  // Breadcrumb
-  const extra = document.getElementById('arqBreadExtra');
-  const nome  = document.getElementById('arqBreadNome');
-  if (extra && nome) {
-    if (pasta && pasta !== 'favoritos') { extra.style.display='inline'; nome.textContent = pasta; }
-    else if (pasta === 'favoritos') { extra.style.display='inline'; nome.textContent = '⭐ Favoritos'; }
-    else { extra.style.display='none'; }
+  if (el) el.classList.add('on');
+  else { document.getElementById('arqFolderRaiz')?.classList.add('on'); }
+  const breadExtra = document.getElementById('arqBreadExtra');
+  const breadNome  = document.getElementById('arqBreadNome');
+  if (breadExtra && breadNome) {
+    if (pasta && pasta !== 'favoritos') { breadExtra.style.display='inline'; breadNome.style.display='inline'; breadNome.textContent = pasta; }
+    else if (pasta === 'favoritos') { breadExtra.style.display='inline'; breadNome.style.display='inline'; breadNome.textContent = '⭐ Favoritos'; }
+    else { breadExtra.style.display='none'; breadNome.style.display='none'; }
   }
   renderArquivos();
 }
@@ -6617,6 +6761,199 @@ async function renderArquivos() {
   }
 
   container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DOCUMENTOS DE TEXTO — Editor rico com Supabase
+// ══════════════════════════════════════════════════════════════════
+let docsCache = [];
+let docAtualId = null;
+let _docSaveTimer = null;
+let arqModoAtual = 'arquivos'; // 'arquivos' | 'docs' | 'docs-meus'
+
+// Modo de visualização (docs vs arquivos)
+function arqModoView(modo, el) {
+  arqModoAtual = modo;
+  document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
+  if (el) el.classList.add('on');
+
+  if (modo === 'arquivos') {
+    arqPastaAtual = '';
+    const tituloEl = document.getElementById('arqPastaTituloNome');
+    if (tituloEl) tituloEl.textContent = 'Todos os arquivos';
+    renderArquivos();
+  } else {
+    renderDocs();
+  }
+}
+
+// Carregar documentos do Supabase
+async function carregarDocs() {
+  try {
+    const { data, error } = await safeDb.from('documentos').select('*').order('updated_at', { ascending: false });
+    if (!error && data) docsCache = data;
+  } catch(e) { console.warn('Erro ao carregar docs:', e); }
+}
+
+// Renderizar lista de documentos
+async function renderDocs() {
+  const container = document.getElementById('arq-content');
+  const tituloEl  = document.getElementById('arqPastaTituloNome');
+  if (!container) return;
+
+  if (tituloEl) tituloEl.textContent = arqModoAtual === 'docs-meus' ? '👤 Meus documentos' : '📝 Todos os documentos';
+
+  container.innerHTML = '<div class="arq-empty"><div style="font-size:32px;margin-bottom:8px">⏳</div><div>Carregando...</div></div>';
+  await carregarDocs();
+
+  let lista = docsCache;
+  if (arqModoAtual === 'docs-meus') {
+    lista = lista.filter(d => d.autor === curUser?.av);
+  }
+
+  // Atualizar contador sidebar
+  const countEl = document.getElementById('arqDocsCount');
+  if (countEl) countEl.textContent = docsCache.length;
+
+  if (!lista.length) {
+    container.innerHTML = `<div class="arq-empty">
+      <div style="font-size:48px;margin-bottom:12px;opacity:.4">📝</div>
+      <div style="font-size:14px;font-weight:700;color:var(--tx2);margin-bottom:8px">Nenhum documento ainda</div>
+      <div style="font-size:12px;margin-bottom:16px">Crie documentos de texto com formatação</div>
+      <button onclick="novoDocumento()" style="padding:9px 20px;border-radius:10px;background:var(--brand);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);">📝 Criar primeiro documento</button>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="arq-files-section-title">📝 DOCUMENTOS <span style="font-weight:400;opacity:.6">(${lista.length})</span></div>
+    <div class="arq-pastas-grid">
+      ${lista.map(d => {
+        const autor = memb.find(m => m.av === d.autor);
+        const preview = d.conteudo ? d.conteudo.replace(/<[^>]+>/g,'').slice(0,80) : '';
+        const data = d.updated_at ? new Date(d.updated_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+        return `<div class="doc-card" onclick="abrirDoc('${d.id}')">
+          <div class="doc-card-icon">📄</div>
+          <div class="doc-card-title">${d.titulo || 'Sem título'}</div>
+          ${preview ? `<div class="doc-card-preview">${preview}${preview.length>=80?'…':''}</div>` : ''}
+          <div class="doc-card-meta">${autor?autor.nome.split(' ')[0]:d.autor||'—'} · ${data}</div>
+          <div class="doc-card-acoes">
+            <button class="arq-btn red" onclick="event.stopPropagation();excluirDoc('${d.id}')" title="Excluir">🗑</button>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="arq-pasta-card" onclick="novoDocumento()" style="border-style:dashed;align-items:center;justify-content:center;min-height:100px;">
+        <div style="font-size:28px;opacity:.3">+</div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx3)">Novo documento</div>
+      </div>
+    </div>`;
+}
+
+// Criar novo documento
+async function novoDocumento() {
+  const novo = {
+    titulo: '',
+    conteudo: '',
+    autor: curUser?.av || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  try {
+    const { data, error } = await safeDb.from('documentos').insert([novo]).select().single();
+    if (error) throw error;
+    docsCache.unshift(data);
+    abrirEditorDoc(data);
+    // Mudar para modo docs
+    arqModoAtual = 'docs';
+    document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
+    document.getElementById('arqNavDocs')?.classList.add('on');
+  } catch(e) {
+    console.error('Erro ao criar doc:', e);
+    showToast('❌ Erro ao criar documento');
+  }
+}
+
+// Abrir documento existente
+async function abrirDoc(id) {
+  const doc = docsCache.find(d => d.id === id);
+  if (doc) { abrirEditorDoc(doc); return; }
+  try {
+    const { data } = await safeDb.from('documentos').select('*').eq('id', id).single();
+    if (data) abrirEditorDoc(data);
+  } catch(e) { showToast('❌ Erro ao abrir documento'); }
+}
+
+// Abrir editor
+function abrirEditorDoc(doc) {
+  docAtualId = doc.id;
+  const modal = document.getElementById('docEditorModal');
+  const titulo = document.getElementById('docEditorTituloInput');
+  const content = document.getElementById('docEditorContent');
+  if (!modal || !titulo || !content) return;
+  titulo.value = doc.titulo || '';
+  content.innerHTML = doc.conteudo || '';
+  modal.classList.add('on');
+  titulo.focus();
+  docAtualizarStatus('');
+}
+
+// Fechar editor
+function fecharEditor() {
+  clearTimeout(_docSaveTimer);
+  docSalvarAgora().then(() => {
+    document.getElementById('docEditorModal')?.classList.remove('on');
+    docAtualId = null;
+    if (arqModoAtual === 'docs' || arqModoAtual === 'docs-meus') renderDocs();
+  });
+}
+
+// Agendar salvamento automático
+function docAgendarSalvar() {
+  docAtualizarStatus('Editando...');
+  clearTimeout(_docSaveTimer);
+  _docSaveTimer = setTimeout(() => docSalvarAgora(), 1500);
+}
+
+// Salvar agora
+async function docSalvarAgora() {
+  if (!docAtualId) return;
+  const titulo  = document.getElementById('docEditorTituloInput')?.value.trim() || 'Sem título';
+  const conteudo = document.getElementById('docEditorContent')?.innerHTML || '';
+  try {
+    const upd = { titulo, conteudo, updated_at: new Date().toISOString() };
+    await safeDb.from('documentos').update(upd).eq('id', docAtualId);
+    const doc = docsCache.find(d => d.id === docAtualId);
+    if (doc) { doc.titulo = titulo; doc.conteudo = conteudo; }
+    docAtualizarStatus('✓ Salvo');
+    setTimeout(() => docAtualizarStatus(''), 2000);
+  } catch(e) { docAtualizarStatus('⚠ Erro ao salvar'); }
+}
+
+function docAtualizarStatus(txt) {
+  const s1 = document.getElementById('docSaveStatus');
+  const s2 = document.getElementById('docSaveStatusFooter');
+  if (s1) { s1.textContent = txt; s1.style.opacity = txt ? '1' : '0'; }
+  if (s2 && txt) s2.textContent = txt === '✓ Salvo' ? '✅ Salvo automaticamente' : txt === 'Editando...' ? '✏️ Salvando...' : txt;
+}
+
+function docFormatBlock(tag) {
+  if (!tag) return;
+  document.getElementById('docEditorContent')?.focus();
+  document.execCommand('formatBlock', false, tag);
+}
+
+function docInserirLink() {
+  const url = prompt('URL do link:');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+}
+
+async function excluirDoc(id) {
+  if (!confirm('Excluir este documento permanentemente?')) return;
+  await safeDb.from('documentos').delete().eq('id', id);
+  docsCache = docsCache.filter(d => d.id !== id);
+  renderDocs();
+  showToast('🗑 Documento excluído');
 }
 
 // ── Upload ───────────────────────────────────────────────────────
