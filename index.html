@@ -2288,7 +2288,28 @@ select.sel{
         <input class="gsearch-inp" id="gsearchInp" placeholder="Buscar projetos, tarefas..." oninput="gsearch(this.value)" onfocus="if(this.value)gsearch(this.value)" onblur="setTimeout(()=>document.getElementById('gsearchDrop').classList.remove('on'),180)">
         <div class="gsearch-drop" id="gsearchDrop"></div>
       </div>
-      <div class="ibtn" onclick="showAlerts()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="nbd" id="alertCount">2</div></div>
+      <div style="position:relative;">
+        <div class="ibtn" onclick="toggleNotifDrop(event)" style="position:relative;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="nbd" id="alertCount">2</div>
+        </div>
+        <div id="notifDrop" style="display:none;position:fixed;top:calc(var(--topbar-h) + 8px);right:60px;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.15);z-index:600;overflow:hidden;animation:scaleIn .15s var(--ease) both;transform-origin:top right;">
+          <div style="padding:16px 18px 12px;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:16px;">🔔</div>
+              <div>
+                <div style="font-size:14px;font-weight:800;color:#fff;">Notificações</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.6);" id="notifSubtitle">—</div>
+              </div>
+            </div>
+            <button onclick="marcarTodasLidas()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;">✓ TODAS LIDAS</button>
+          </div>
+          <div id="notifList" style="max-height:380px;overflow-y:auto;"></div>
+          <div style="padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2);text-align:center;">
+            <span style="font-size:11px;color:var(--tx3);">DAE Nexus · Notificações em tempo real</span>
+          </div>
+        </div>
+      </div>
       <div class="uav" id="userAv" onclick="menuUsuario()" title="Clique para sair">MA</div>
     </div>
   </div>
@@ -8387,20 +8408,63 @@ async function delRisco(id) {
 // ══════════════════════════════════════════════════════════════════
 // NOTIFICAÇÕES
 // ══════════════════════════════════════════════════════════════════
+function toggleNotifDrop(e) {
+  e.stopPropagation();
+  const drop = document.getElementById('notifDrop');
+  const isOpen = drop.style.display === 'block';
+  drop.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    renderNotifDrop();
+    setTimeout(() => document.addEventListener('click', () => { document.getElementById('notifDrop').style.display='none'; }, {once:true}), 10);
+  }
+}
+
+function renderNotifDrop() {
+  const lista = document.getElementById('notifList');
+  const sub = document.getElementById('notifSubtitle');
+  if (!lista) return;
+  if (sub) sub.textContent = notifs.length ? `${notifs.length} não lida${notifs.length>1?'s':''}` : 'Tudo em dia ✨';
+  if (!notifs.length) {
+    lista.innerHTML = `<div style="padding:40px 20px;text-align:center;"><div style="font-size:48px;margin-bottom:12px;opacity:.3;">🔔</div><div style="font-size:14px;font-weight:700;color:var(--tx2);margin-bottom:4px;">Tudo em dia!</div><div style="font-size:12px;color:var(--tx3);">Nenhuma notificação pendente</div></div>`;
+    return;
+  }
+  const icones = {urgente:'🔴',alerta:'🟡',info:'🔵',sucesso:'🟢',reuniao:'📅',tarefa:'✅'};
+  const cores = {urgente:'#EF4444',alerta:'#F59E0B',info:'#3B82F6',sucesso:'#10B981',reuniao:'#8B5CF6',tarefa:'#10B981'};
+  const bgCores = {urgente:'#FEF2F2',alerta:'#FFFBEB',info:'#EFF6FF',sucesso:'#F0FDF4',reuniao:'#F5F3FF',tarefa:'#F0FDF4'};
+  lista.innerHTML = notifs.map(n => {
+    const tipo = n.tipo||'info';
+    const ic = icones[tipo]||'🔵';
+    const cor = cores[tipo]||'#3B82F6';
+    const bg = bgCores[tipo]||'#EFF6FF';
+    const diff = Math.floor((Date.now()-new Date(n.created_at))/1000);
+    const tempo = diff<60?'agora mesmo':diff<3600?Math.floor(diff/60)+'min atrás':diff<86400?Math.floor(diff/3600)+'h atrás':Math.floor(diff/86400)+'d atrás';
+    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <div style="width:38px;height:38px;border-radius:11px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${ic}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:3px;">${n.titulo||''}</div>
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:5px;">${n.texto||''}</div>
+        <div style="font-size:10px;color:var(--tx3);">🕐 ${tempo}</div>
+      </div>
+      <button onclick="marcarLida('${n.id}')" style="width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">✓</button>
+    </div>`;
+  }).join('');
+}
+
+async function marcarTodasLidas() {
+  if (!notifs.length) return;
+  const ids = notifs.map(n => n.id);
+  await safeDb.from('notificacoes').update({lida:true}).in('id', ids);
+  notifs = [];
+  const cnt = document.getElementById('alertCount');
+  if (cnt) { cnt.textContent=''; cnt.style.display='none'; }
+  renderNotifDrop();
+  showToast('✅ Todas marcadas como lidas');
+}
+
 async function showAlerts() {
   await loadNotifs();
-  const panel = document.getElementById('detPanel');
-  panel.classList.add('on');
-  document.getElementById('detTitle').textContent = '🔔 Notificações';
-  document.getElementById('detContent').innerHTML = notifs.length ? notifs.map(n => `<div style="padding:10px 0;border-bottom:1px solid var(--br);display:flex;gap:8px;align-items:flex-start">
-    <div style="font-size:18px">${n.tipo==='urgente'?'🔴':n.tipo==='alerta'?'🟡':'🔵'}</div>
-    <div style="flex:1">
-      <div style="font-size:12px;font-weight:700;margin-bottom:2px">${n.titulo}</div>
-      <div style="font-size:11px;color:var(--tx3)">${n.texto||''}</div>
-      <div style="font-size:9px;color:var(--tx3);margin-top:3px">${fmtDate(n.created_at)}</div>
-    </div>
-    <button onclick="marcarLida('${n.id}')" style="background:var(--surface3);border:none;border-radius:6px;padding:4px 7px;font-size:10px;color:var(--tx2);cursor:pointer">✓</button>
-  </div>`).join('') : '<div style="text-align:center;padding:30px;color:var(--tx3)">✅ Nenhuma notificação</div>';
+  const drop = document.getElementById('notifDrop');
+  if (drop) { drop.style.display='block'; renderNotifDrop(); }
 }
 
 async function marcarLida(id) {
