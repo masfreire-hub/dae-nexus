@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>DAE Nexus.AI — Inteligência, Gestão e Resultado</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -132,11 +135,6 @@ body{
 ══════════════════════════════════════════════════════════════ */
 #loginScreen{display:flex;flex-direction:column;min-height:100dvh;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);position:fixed;inset:0;z-index:9999;}
 #mainApp{display:none;flex-direction:column;height:100vh;overflow:hidden;}
-  min-height:100dvh;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:32px;
-  background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);
-  animation:fadeUp .5s var(--ease) both;
-}
 #loginScreen::before{
   content:'';position:fixed;inset:0;pointer-events:none;
   background:
@@ -191,7 +189,7 @@ body{
 /* ══════════════════════════════════════════════════════════════
    APP PRINCIPAL — DESKTOP LAYOUT
 ══════════════════════════════════════════════════════════════ */
-#mainApp{min-height:100dvh;flex-direction:column;overflow:hidden;}
+#mainApp{min-height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── TOPBAR ─────────────────────────────────────────────────── */
 .topbar{
@@ -317,7 +315,7 @@ body{
 .content{
   flex:1;margin-left:var(--sidebar-w);
   padding:24px 24px 100px;
-  min-height:calc(100dvh - var(--topbar-h));
+  height:calc(100dvh - var(--topbar-h));
   overflow-y:auto;
 }
 .content:has(#t-arquivos.on){
@@ -2247,9 +2245,9 @@ select.sel{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       <span>Tarefas</span><div class="bni-dot"></div>
     </div>
-    <div class="bni" onclick="sw('risk',document.querySelectorAll('#sidebar .ni')[5]);setBottomNav(this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <span>Riscos</span><div class="bni-dot"></div>
+    <div class="bni" onclick="sw('chat',document.querySelectorAll('#sidebar .ni')[3]);setBottomNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Chat</span><div class="bni-dot"></div>
     </div>
     <div class="bni" onclick="sw('nova',document.querySelectorAll('#sidebar .ni')[8]);setBottomNav(this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -2464,7 +2462,7 @@ select.sel{
     <!-- ESTAÇÕES -->
     <div class="tab" id="t-proj">
       <div class="page-header">
-        <div class="page-title">Estações &amp; Espaços</div>
+        <div class="page-title" id="proj-page-title">Estações &amp; Setores</div>
         <div class="page-sub">Hierarquia de estações, setores e projetos</div>
       </div>
       <div class="ph">
@@ -2520,25 +2518,14 @@ select.sel{
           </div>
 
           <!-- CANAIS POR ESPAÇO -->
-          <div class="chat-section-label">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            ESPAÇOS
+          <div class="chat-section-label" style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="display:flex;align-items:center;gap:4px;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              CANAIS
+            </span>
+            <span onclick="abrirNovoCanal()" title="Novo canal" style="cursor:pointer;opacity:.6;font-size:15px;line-height:1;padding:0 2px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">+</span>
           </div>
           <div id="chatCanaisList"></div>
-
-          <!-- GERAL -->
-          <div class="chat-section-label">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            GERAL
-          </div>
-          <div class="chat-canal" id="canal-geral" onclick="openCh('geral','💬','Geral','geral')">
-            <div class="chat-canal-ic" style="background:rgba(99,102,241,0.15);">💬</div>
-            <div class="chat-canal-info">
-              <div class="chat-canal-nome">geral</div>
-              <div class="chat-canal-preview" id="prev-canal-geral">Canal geral da equipe</div>
-            </div>
-            <div class="chat-canal-meta"><div class="chat-canal-time">agora</div><div class="chat-badge">1</div></div>
-          </div>
 
           <!-- MENSAGENS DIRETAS -->
           <div class="chat-section-label" style="margin-top:8px;">
@@ -2574,12 +2561,27 @@ select.sel{
                 <div class="chat-win-nome" id="chName"></div>
                 <div class="chat-win-sub" id="chSub">Canal ativo</div>
               </div>
-              <div style="display:flex;gap:6px;">
+              <div style="display:flex;gap:6px;position:relative;">
                 <div class="ibtn" onclick="buscarNoChatAtual()" title="Buscar na conversa">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </div>
                 <div class="ibtn" onclick="verInfoCanal()" title="Informações">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div class="ibtn" id="btnCanalOpts" onclick="toggleCanalMenu(event)" title="Gerenciar canal" style="display:none;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </div>
+                <div id="canalMenu" style="display:none;position:absolute;top:36px;right:0;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--sh3);z-index:500;min-width:180px;padding:6px;animation:scaleIn .15s var(--ease) both;transform-origin:top right;">
+                  <div onclick="editarCanal()" style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--tx);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+                    <span>✏️</span> Editar canal
+                  </div>
+                  <div onclick="gerenciarMembrosCanal()" style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--tx);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+                    <span>👥</span> Membros do canal
+                  </div>
+                  <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+                  <div onclick="excluirCanal()" style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#EF4444;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
+                    <span>🗑</span> Excluir canal
+                  </div>
                 </div>
               </div>
             </div>
@@ -2683,6 +2685,31 @@ select.sel{
           <button class="btncanc" onclick="closeM('mNovoDM')">Cancelar</button>
         </div>
       </div>
+
+      <!-- MODAL NOVO/EDITAR CANAL -->
+      <div class="ov" id="mNovoCanal">
+        <div class="modal">
+          <div class="mhandle"></div>
+          <div class="mtitle" id="mNovoCanalTitle">NOVO CANAL</div>
+          <input type="hidden" id="mNovoCanalId">
+          <label class="lbl">Nome do canal</label>
+          <input class="inp" placeholder="Ex: suporte, financeiro..." id="mNovoCanalNome">
+          <label class="lbl">Descrição (opcional)</label>
+          <input class="inp" placeholder="Sobre o que é este canal?" id="mNovoCanalDesc">
+          <label class="lbl">Ícone</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="mNovoCanalIcones">
+            ${['💬','📢','🎯','⚡','🔧','📊','🧾','💡','🔔','🗂'].map(ic => `<div onclick="selecionarIconeCanal('${ic}',this)" style="width:36px;height:36px;border-radius:9px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="if(!this.classList.contains('sel'))this.style.borderColor='var(--border)'">${ic}</div>`).join('')}
+          </div>
+          <input type="hidden" id="mNovoCanalIcone" value="💬">
+          <label class="lbl">Membros</label>
+          <div id="mNovoCanalMembros" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:16px;"></div>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btncanc" onclick="closeM('mNovoCanal')" style="flex:1">Cancelar</button>
+            <button class="btnsave" onclick="salvarCanal()" style="flex:1">Salvar</button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- REUNIÕES / AGENDA -->
@@ -3408,9 +3435,9 @@ select.sel{
 
 <!-- MODAL: NOVO ESPAÇO (setor/filho dentro da estação) -->
 <div class="ov" id="mEspaco"><div class="modal">
-  <div class="mhandle"></div><div class="mtitle" id="mEspacoTitle">NOVO ESPAÇO</div>
+  <div class="mhandle"></div><div class="mtitle" id="mEspacoTitle">NOVO SETOR</div>
   <input type="hidden" id="mEspacoId">
-  <label class="lbl">Nome do Espaço</label><input class="inp" placeholder="Ex: NOVOS SISTEMAS, SIAFIC..." id="mEspacoNome">
+  <label class="lbl">Nome do Setor</label><input class="inp" placeholder="Ex: NOVOS SISTEMAS, SIAFIC..." id="mEspacoNome">
   <label class="lbl">Descrição</label><textarea class="ta" placeholder="Descreva o setor..." id="mEspacoDesc"></textarea>
   <label class="lbl">Estação</label>
   <select class="sel" id="mEspacoEstacao"><option value="">Selecione a estação...</option></select>
@@ -3791,7 +3818,7 @@ function sw(name, el) {
     home:    () => { try{renderDashInteligente();}catch(e){} try{renderUrgent();}catch(e){} try{renderAct();}catch(e){} try{renderFeriasMini();}catch(e){} },
     arquivos: () => { try{renderArquivos();}catch(e){console.error('renderArquivos',e)} },
     tasks:   () => { try{renderTasks();}catch(e){console.error('renderTasks',e)} },
-    proj:    () => { try{renderHierarquia();}catch(e){} },
+    proj:    () => { try{renderHierarquia();}catch(e){} const _pt=document.getElementById('proj-page-title');if(_pt)_pt.textContent='Estações & Setores'; },
     meet:    () => { try{renderMeet();}catch(e){} },
     team:    () => { 
       try{renderMembers();}catch(e){}
@@ -4148,26 +4175,45 @@ function renderAll() {
   renderDashInteligente();
   renderUrgent(); renderAct(); renderFeriasMini();
   try{renderHierarquia();}catch(e){} try{renderProj();}catch(e){} try{renderTasks();}catch(e){} try{renderMeet();}catch(e){} try{renderMembers();}catch(e){} try{renderFerias();}catch(e){} try{renderCarga();}catch(e){} try{renderRiscos();}catch(e){} try{renderNova();}catch(e){} try{popSels();}catch(e){}
-  try{renderChatDMs();}catch(e){} try{renderChatCanais();}catch(e){}
+  try{renderChatDMs();}catch(e){} try{carregarCanaisCustom();}catch(e){}
+}
+
+// Canais customizados carregados do Supabase
+let canaisCustom = [];
+
+async function carregarCanaisCustom() {
+  // Canais são linhas na tabela chats com tipo='canal_meta' e autor='__sistema__'
+  const { data } = await safeDb.from('chats')
+    .select('*')
+    .eq('tipo', 'canal_meta')
+    .eq('autor', '__sistema__')
+    .order('created_at', { ascending: true });
+  if (data) {
+    canaisCustom = data.map(d => {
+      try { return { ...JSON.parse(d.texto), _id: d.id, canal_id: d.canal_id }; }
+      catch(e) { return null; }
+    }).filter(Boolean);
+  }
+  renderChatCanais();
 }
 
 function renderChatCanais() {
   const lista = document.getElementById('chatCanaisList');
   if (!lista) return;
-  if (!espacos.length) {
-    lista.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.3);padding:6px 8px">Nenhum setor criado</div>';
+  if (!canaisCustom.length) {
+    lista.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.3);padding:6px 8px 2px">Nenhum canal criado</div>';
     return;
   }
-  const cores = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(139,92,246,0.15)','rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(239,68,68,0.15)'];
-  lista.innerHTML = espacos.map((e, i) => {
-    const canalId = 'espaco_' + e.id;
-    const cor = cores[i % cores.length];
-    const ic = e.icone || '📁';
-    return `<div class="chat-canal" id="canal-${canalId}" onclick="openCh('${canalId}','${ic}','${e.nome}','projeto','','${e.id}')">
-      <div class="chat-canal-ic" style="background:${cor}">${ic}</div>
+  const coresBg = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(139,92,246,0.15)','rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(239,68,68,0.15)'];
+  lista.innerHTML = canaisCustom.map((c, i) => {
+    const canalId = c.canal_id;
+    const ic = c.icone || '💬';
+    const bg = coresBg[i % coresBg.length];
+    return `<div class="chat-canal" id="canal-${canalId}" onclick="openCh('${canalId}','${ic}','${encodeURIComponent(c.nome)}','projeto','')">
+      <div class="chat-canal-ic" style="background:${bg}">${ic}</div>
       <div class="chat-canal-info">
-        <div class="chat-canal-nome">${e.nome}</div>
-        <div class="chat-canal-preview" id="prev-${canalId}">${e.estacao} · Canal do setor</div>
+        <div class="chat-canal-nome">${c.nome}</div>
+        <div class="chat-canal-preview" id="prev-${canalId}">${c.desc || 'Canal da equipe'}</div>
       </div>
       <div class="chat-canal-meta"><div class="chat-canal-time" id="time-${canalId}"></div></div>
     </div>`;
@@ -5479,7 +5525,7 @@ const MSGS_DEMO = {
 
 function openCh(id, icon, name, tipo, cor) {
   curChId = id;
-  curChName = name;
+  curChName = decodeURIComponent(name);
   // Pegar info do canal
   const info = CANAIS_INFO[id] || {};
   const nomeReal = info.nome || name;
@@ -5494,7 +5540,7 @@ function openCh(id, icon, name, tipo, cor) {
 
   // Carregar mensagens do Supabase
   chatMsgs[id] = [];
-  safeDb.from('chats').select('*').eq('canal_id', id).order('created_at', {ascending:true}).limit(100)
+  safeDb.from('chats').select('*').eq('canal_id', id).neq('tipo','canal_meta').order('created_at', {ascending:true}).limit(100)
     .then(({ data }) => {
       if (data?.length) {
         chatMsgs[id] = data.map(m => {
@@ -5524,6 +5570,7 @@ function openCh(id, icon, name, tipo, cor) {
       (payload) => {
         const m = payload.new;
         if (m.autor === curUser?.av) return; // já renderizou localmente via sendChat
+        if (m.tipo === 'canal_meta') return; // metadado de canal, ignorar
         const mb = memb.find(x => x.av === m.autor);
         const now = new Date(m.created_at);
         const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
@@ -5586,6 +5633,10 @@ function openCh(id, icon, name, tipo, cor) {
   }
   document.getElementById('chName').textContent = nomeReal;
 
+  // Mostrar botão de opções só em canais de setor
+  const btnOpts = document.getElementById('btnCanalOpts');
+  if (btnOpts) btnOpts.style.display = (tipoReal === 'projeto') ? 'flex' : 'none';
+
   // Mostrar janela
   const win = document.getElementById('chatWin');
   const empty = document.getElementById('chatEmpty');
@@ -5608,6 +5659,125 @@ function closeCh() {
   document.getElementById('chatWin').style.display = 'none';
   document.getElementById('chatEmpty').style.display = 'flex';
   document.querySelectorAll('.chat-canal, .chat-dm').forEach(el => el.classList.remove('active'));
+}
+
+// ── GESTÃO DE CANAIS ──────────────────────────────────────────────
+
+function toggleCanalMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('canalMenu');
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    setTimeout(() => document.addEventListener('click', () => { menu.style.display='none'; }, {once:true}), 10);
+  }
+}
+
+function abrirNovoCanal() {
+  document.getElementById('mNovoCanalTitle').textContent = 'NOVO CANAL';
+  document.getElementById('mNovoCanalId').value = '';
+  document.getElementById('mNovoCanalNome').value = '';
+  document.getElementById('mNovoCanalDesc').value = '';
+  document.getElementById('mNovoCanalIcone').value = '💬';
+  document.getElementById('mNovoCanalMembros').innerHTML = '';
+  // Renderizar checkboxes de membros
+  _renderCheckboxMembros([]);
+  // Resetar ícones
+  document.querySelectorAll('#mNovoCanalIcones div').forEach(d => { d.classList.remove('sel'); d.style.borderColor='var(--border)'; d.style.background=''; });
+  const primeiro = document.querySelector('#mNovoCanalIcones div');
+  if (primeiro) { primeiro.classList.add('sel'); primeiro.style.borderColor='var(--brand)'; primeiro.style.background='var(--brand-light)'; }
+  openM('mNovoCanal');
+}
+
+function _renderCheckboxMembros(selecionados) {
+  const el = document.getElementById('mNovoCanalMembros');
+  if (!el) return;
+  el.innerHTML = memb.map(m => {
+    const cor = m.cor || '#4F46E5';
+    const checked = selecionados.includes(m.av);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background=''">
+      <input type="checkbox" value="${m.av}" ${checked?'checked':''} style="width:16px;height:16px;accent-color:var(--brand);cursor:pointer;flex-shrink:0;">
+      <div style="width:30px;height:30px;border-radius:9px;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${m.av}</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--tx);">${m.nome}</div>
+        <div style="font-size:11px;color:var(--tx3);">${m.cargo||'Membro'}</div>
+      </div>
+    </label>`;
+  }).join('');
+}
+
+function selecionarIconeCanal(ic, el) {
+  document.querySelectorAll('#mNovoCanalIcones div').forEach(d => { d.classList.remove('sel'); d.style.borderColor='var(--border)'; d.style.background=''; });
+  el.classList.add('sel');
+  el.style.borderColor = 'var(--brand)';
+  el.style.background = 'var(--brand-light)';
+  document.getElementById('mNovoCanalIcone').value = ic;
+}
+
+async function salvarCanal() {
+  const nome = document.getElementById('mNovoCanalNome').value.trim();
+  if (!nome) { showToast('⚠️ Informe o nome do canal'); return; }
+  const desc = document.getElementById('mNovoCanalDesc').value.trim();
+  const icone = document.getElementById('mNovoCanalIcone').value || '💬';
+  const metaId = document.getElementById('mNovoCanalId').value;
+  const membSel = [...document.querySelectorAll('#mNovoCanalMembros input[type=checkbox]:checked')].map(c => c.value);
+
+  const payload = JSON.stringify({ nome, desc, icone, membros: membSel });
+
+  if (metaId) {
+    // Editar: atualiza a linha meta e o canal_id se nome mudou
+    const canal = canaisCustom.find(c => String(c._id) === String(metaId));
+    await safeDb.from('chats').update({ texto: payload }).eq('id', metaId);
+    showToast('✅ Canal atualizado!');
+  } else {
+    // Novo canal: gera canal_id único
+    const canalId = 'canal_' + Date.now();
+    await safeDb.from('chats').insert([{
+      canal_id: canalId,
+      autor: '__sistema__',
+      texto: payload,
+      tipo: 'canal_meta'
+    }]);
+    showToast('✅ Canal criado!');
+  }
+  closeM('mNovoCanal');
+  await carregarCanaisCustom();
+}
+
+function editarCanal() {
+  document.getElementById('canalMenu').style.display = 'none';
+  const canal = canaisCustom.find(c => c.canal_id === curChId);
+  if (!canal) { showToast('⚠️ Canal não encontrado'); return; }
+  document.getElementById('mNovoCanalTitle').textContent = 'EDITAR CANAL';
+  document.getElementById('mNovoCanalId').value = canal._id;
+  document.getElementById('mNovoCanalNome').value = canal.nome || '';
+  document.getElementById('mNovoCanalDesc').value = canal.desc || '';
+  const icAtual = canal.icone || '💬';
+  document.getElementById('mNovoCanalIcone').value = icAtual;
+  document.querySelectorAll('#mNovoCanalIcones div').forEach(d => {
+    const sel = d.textContent.trim() === icAtual;
+    d.classList.toggle('sel', sel);
+    d.style.borderColor = sel ? 'var(--brand)' : 'var(--border)';
+    d.style.background = sel ? 'var(--brand-light)' : '';
+  });
+  _renderCheckboxMembros(canal.membros || []);
+  openM('mNovoCanal');
+}
+
+async function excluirCanal() {
+  document.getElementById('canalMenu').style.display = 'none';
+  const canal = canaisCustom.find(c => c.canal_id === curChId);
+  if (!canal) { showToast('⚠️ Canal não encontrado'); return; }
+  if (!confirm(`Excluir o canal "${canal.nome}"? Todas as mensagens serão perdidas.`)) return;
+  // Apaga mensagens e metadado
+  await safeDb.from('chats').delete().eq('canal_id', curChId);
+  showToast('🗑 Canal excluído');
+  closeCh();
+  await carregarCanaisCustom();
+}
+
+function gerenciarMembrosCanal() {
+  editarCanal(); // Reutiliza o modal de edição que já tem os membros
 }
 function filtrarCanais(q) {
   const ql = q.toLowerCase();
@@ -8474,16 +8644,16 @@ function renderHierarquia() {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
   // Normalizar: trim + deduplicar case-insensitive mantendo primeira ocorrência
+  // Normalizar todas as estações para MAIÚSCULO e deduplicar
   const rawEstacoes = [
     ...(cadastros?.estacao||[]),
     ...proj.map(function(p){ return p.dept; }).filter(Boolean),
     ...espacos.map(function(e){ return e.estacao; }).filter(Boolean)
-  ].map(function(e){ return e.trim(); });
-  const seenLower = new Set();
+  ].map(function(e){ return e.trim().toUpperCase(); });
+  const seenEst = new Set();
   const todasEstacoes = rawEstacoes.filter(function(e){
-    const key = e.toLowerCase();
-    if (seenLower.has(key)) return false;
-    seenLower.add(key); return true;
+    if (seenEst.has(e)) return false;
+    seenEst.add(e); return true;
   }).sort();
 
   const estacoesFiltradas = estacaoFiltroAtual === 'todas' ? todasEstacoes : [estacaoFiltroAtual];
@@ -8508,12 +8678,12 @@ function renderHierarquia() {
 
   estacoesFiltradas.forEach(function(estacao, idx) {
     const grad = GRADS[idx % GRADS.length];
-    const estLow = estacao.toLowerCase();
-    const setores = espacos.filter(function(e){ return (e.estacao||'').trim().toLowerCase() === estLow; });
+    const estNorm = estacao.toUpperCase();
+    const setores = espacos.filter(function(e){ return (e.estacao||'').trim().toUpperCase() === estNorm; });
 
     // Todos projetos desta estação
     const idsSetores = setores.map(function(e){ return e.id; });
-    const projEstacao = proj.filter(function(p){ return idsSetores.includes(p.espaco_id) || (!p.espaco_id && (p.dept||'').trim().toLowerCase() === estLow); });
+    const projEstacao = proj.filter(function(p){ return idsSetores.includes(p.espaco_id) || (!p.espaco_id && (p.dept||'').trim().toUpperCase() === estNorm); });
 
     // Atividades desta estação (sem projeto_id = atividade de setor)
     const ativsEstacao = ativs.filter(function(a){
@@ -8731,7 +8901,7 @@ function abrirNovoProjGeral() {
 
 function abrirNovoEspaco(estacao) {
   document.getElementById('mEspacoId').value = '';
-  document.getElementById('mEspacoTitle').textContent = 'NOVO ESPAÇO';
+  document.getElementById('mEspacoTitle').textContent = 'NOVO SETOR';
   document.getElementById('mEspacoNome').value = '';
   document.getElementById('mEspacoDesc').value = '';
   iconeSelecionado = '📁';
@@ -8867,7 +9037,7 @@ async function editarEspaco(id) {
   const e = espacos.find(x => x.id === id);
   if (!e) return;
   document.getElementById('mEspacoId').value = id;
-  document.getElementById('mEspacoTitle').textContent = 'EDITAR ESPAÇO';
+  document.getElementById('mEspacoTitle').textContent = 'EDITAR SETOR';
   document.getElementById('mEspacoNome').value = e.nome;
   document.getElementById('mEspacoDesc').value = e.descricao || '';
   const sel = document.getElementById('mEspacoEstacao');
