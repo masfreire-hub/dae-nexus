@@ -2215,8 +2215,8 @@ select.sel{
       <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px">Inteligência, Gestão e Resultado</div>
     </div>
     <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px">
-      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">E-mail</label>
-      <input id="lemail" type="email" placeholder="seu@email.com.br"
+      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Seu nome</label>
+      <input id="lemail" type="text" placeholder="Ex: Mabiane, MA, Ana..."
         style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:16px"
         onkeydown="if(event.key==='Enter') doLogin()">
       <input id="lpass" type="hidden" value="">
@@ -2224,7 +2224,7 @@ select.sel{
         Entrar no sistema
       </button>
       <div style="text-align:center;margin-top:16px;font-size:11px;color:rgba(255,255,255,.3)">
-        Use o e-mail cadastrado pela gestora
+        Use seu nome ou iniciais cadastradas
       </div>
     </div>
   </div>
@@ -4012,33 +4012,30 @@ let curChName = '', curTeamView = 'cards', curUser = null;
 // ── LOGIN ─────────────────────────────────────────────────────────
 async function doLogin() {
   const emailEl = document.getElementById('lemail');
-  const emailDigitado = emailEl ? emailEl.value.trim() : '';
-  if (!emailDigitado) { showToast('⚠️ Digite seu e-mail'); return; }
+  const digitado = emailEl ? emailEl.value.trim() : '';
+  if (!digitado) { showToast('⚠️ Digite seu nome ou iniciais'); return; }
 
   const btnLogin = document.querySelector('#loginScreen button');
   if (btnLogin) { btnLogin.textContent = 'Entrando...'; btnLogin.disabled = true; }
 
   try {
-    // Buscar todos os membros e comparar email ignorando case
     const { data: todos, error } = await safeDb.from('membros').select('*');
-    
     if (error) throw error;
-    
-    const usuario = (todos||[]).find(m => 
-      m.email && m.email.trim().toLowerCase() === emailDigitado.toLowerCase()
+
+    const q = digitado.toLowerCase();
+    const usuario = (todos||[]).find(m =>
+      (m.av && m.av.toLowerCase() === q) ||
+      (m.nome && m.nome.toLowerCase().startsWith(q)) ||
+      (m.email && m.email.toLowerCase() === q)
     );
 
     if (!usuario) {
-      // Mostrar quais emails existem para debug
-      const emails = (todos||[]).map(m => m.email).filter(Boolean);
-      console.log('Emails cadastrados:', emails);
-      console.log('Email digitado:', emailDigitado);
-      showToast('❌ Email não encontrado. Verifique o cadastro.');
+      showToast('❌ Usuário não encontrado. Tente seu nome ou iniciais.');
       if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
       return;
     }
 
-    localStorage.setItem('dae_user_email', usuario.email);
+    localStorage.setItem('dae_user_av', usuario.av);
     await entrarNoApp(usuario);
     showToast('✅ Bem-vindo, ' + (usuario.nome||'').split(' ')[0] + '!');
   } catch(err) {
