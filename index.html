@@ -2465,7 +2465,7 @@ select.sel{
     <div class="tab" id="t-proj">
       <div class="page-header">
         <div class="page-title">Estações &amp; Espaços</div>
-        <div class="page-sub">Hierarquia de estações, espaços e projetos</div>
+        <div class="page-sub">Hierarquia de estações, setores e projetos</div>
       </div>
       <div class="ph">
         <div>
@@ -2474,7 +2474,7 @@ select.sel{
         </div>
         <div style="display:flex;gap:8px">
           <button class="btnadd" onclick="openM('mEstacao')">+ ESTAÇÃO</button>
-          <button class="btnadd" onclick="openM('mEspaco')">+ ESPAÇO</button>
+          <button class="btnadd" onclick="openM('mEspaco')">+ SETOR</button>
         </div>
       </div>
 
@@ -3185,6 +3185,9 @@ select.sel{
     <div style="font-size:11px;color:var(--tx3);margin-top:1px">Central de documentos da equipe</div>
   </div>
   <input type="file" id="arqFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.mp3,.wav,.zip,.txt" style="display:none" onchange="uploadArquivos(this.files)">
+  <button onclick="novoDocumento()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--tx);font-family:var(--fh);display:flex;align-items:center;gap:6px">
+    📝 Novo doc
+  </button>
   <button onclick="abrirUploadArquivo()" style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);display:flex;align-items:center;gap:6px">
     ⬆ Enviar arquivo
   </button>
@@ -3198,7 +3201,11 @@ select.sel{
 
   <!-- SIDEBAR -->
   <div id="arq-sidebar">
-    <div class="arq-sidebar-section">Navegação</div>
+    <div class="arq-sidebar-section">Documentos</div>
+    <div class="arq-folder-item" onclick="arqVerDocs(this)" id="arqNavDocs">
+      <span>📝</span> Todos os docs
+    </div>
+    <div class="arq-sidebar-section" style="margin-top:8px">Arquivos</div>
     <div class="arq-folder-item on" onclick="arqNavPasta('',this)" id="arqFolderRaiz">
       <span>🏠</span> Todos os arquivos
     </div>
@@ -3255,6 +3262,58 @@ select.sel{
 
   </div><!-- /arq-main -->
 </div><!-- /arq-wrap -->
+
+<!-- MODAL EDITOR DE DOCUMENTOS -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+#docModal{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;}
+#docModal.on{display:flex;}
+#docBox{width:860px;max-width:96vw;height:90vh;background:#fff;border-radius:16px;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:hidden;}
+#docHeader{padding:12px 18px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:10px;flex-shrink:0;background:#FAFBFD;}
+#docTituloInput{flex:1;font-size:18px;font-weight:800;color:#0F172A;border:none;outline:none;background:transparent;font-family:inherit;}
+#docTituloInput::placeholder{color:#CBD5E1;}
+#docSaveStatus{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#F0FDF4;color:#10B981;opacity:0;transition:opacity .3s;}
+#docQuill{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+#docQuill .ql-toolbar{border:none;border-bottom:1px solid #E2E8F0;background:#FAFBFD;flex-shrink:0;}
+#docQuill .ql-container{flex:1;overflow-y:auto;border:none;font-size:14px;}
+#docQuill .ql-editor{min-height:100%;padding:28px 40px;line-height:1.8;}
+#docQuill .ql-editor.ql-blank::before{color:#CBD5E1;font-style:normal;}
+.doc-hl-bar{display:flex;align-items:center;gap:4px;padding:6px 14px;border-bottom:1px solid #E2E8F0;background:#F8FAFD;flex-shrink:0;flex-wrap:wrap;}
+.doc-hl-btn{padding:4px 10px;border-radius:6px;border:1.5px solid transparent;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+#docFooter{padding:8px 18px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#FAFBFD;}
+.doc-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .2s;position:relative;}
+.doc-card:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,70,229,.1);}
+</style>
+<div id="docModal" onclick="if(event.target===this)fecharDoc()">
+  <div id="docBox">
+    <div id="docHeader">
+      <span style="font-size:20px;flex-shrink:0">📝</span>
+      <input id="docTituloInput" placeholder="Título do documento..." oninput="docAgendar()">
+      <select id="docPastaSelect" style="padding:5px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#fff;font-size:12px;color:#475569;font-family:inherit;cursor:pointer;min-width:120px">
+        <option value="">📁 Sem pasta</option>
+      </select>
+      <span id="docSaveStatus">✓ Salvo</span>
+      <button onclick="docSalvar()" style="padding:6px 14px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Salvar</button>
+      <button onclick="fecharDoc()" style="width:30px;height:30px;border:none;border-radius:8px;background:#F1F5F9;color:#64748B;cursor:pointer;font-size:15px;">✕</button>
+    </div>
+    <!-- Barra de highlight -->
+    <div class="doc-hl-bar">
+      <span style="font-size:10px;font-weight:700;color:#94A3B8;margin-right:4px;">DESTAQUE:</span>
+      <button class="doc-hl-btn" onclick="docHL('#FEF08A','#713F12')" style="background:#FEF08A;border-color:#EAB308;color:#713F12">Amarelo</button>
+      <button class="doc-hl-btn" onclick="docHL('#BBF7D0','#14532D')" style="background:#BBF7D0;border-color:#22C55E;color:#14532D">Verde</button>
+      <button class="doc-hl-btn" onclick="docHL('#BAE6FD','#0C4A6E')" style="background:#BAE6FD;border-color:#0EA5E9;color:#0C4A6E">Azul</button>
+      <button class="doc-hl-btn" onclick="docHL('#FECACA','#7F1D1D')" style="background:#FECACA;border-color:#EF4444;color:#7F1D1D">Vermelho</button>
+      <button class="doc-hl-btn" onclick="docHL('#E9D5FF','#581C87')" style="background:#E9D5FF;border-color:#A855F7;color:#581C87">Roxo</button>
+      <button class="doc-hl-btn" onclick="docHL('#FED7AA','#7C2D12')" style="background:#FED7AA;border-color:#F97316;color:#7C2D12">Laranja</button>
+      <button class="doc-hl-btn" onclick="docHL(false,false)" style="background:#fff;border-color:#CBD5E1;color:#475569">✕ Remover</button>
+    </div>
+    <div id="docQuill"></div>
+    <div id="docFooter">
+      <span style="flex:1;font-size:11px;color:#94A3B8" id="docStatus">💾 Salvamento automático</span>
+      <span style="font-size:10px;color:#CBD5E1" id="docWords">0 palavras</span>
+    </div>
+  </div>
+</div>
 </div><!-- /t-arquivos -->
 
 <div class="tab" id="t-nova">
@@ -3341,7 +3400,7 @@ select.sel{
 <!-- MODAL: NOVA ESTAÇÃO (pai/macro, ex: DAE) -->
 <div class="ov" id="mEstacao"><div class="modal">
   <div class="mhandle"></div><div class="mtitle">NOVA ESTAÇÃO</div>
-  <p style="font-size:12px;color:var(--tx3);margin-bottom:16px">A estação é o agrupador principal (ex: DAE). Dentro dela ficam os espaços (setores).</p>
+  <p style="font-size:12px;color:var(--tx3);margin-bottom:16px">A estação é o agrupador principal (ex: DAE). Dentro dela ficam os setores (setores).</p>
   <label class="lbl">Nome da Estação</label><input class="inp" placeholder="Ex: DAE, Comercial, TI..." id="mEstacaoNomeNovo">
   <button class="btnp" onclick="saveNovaEstacao()">CRIAR ESTAÇÃO</button>
   <button class="btncanc" onclick="closeM('mEstacao')">Cancelar</button>
@@ -3352,7 +3411,7 @@ select.sel{
   <div class="mhandle"></div><div class="mtitle" id="mEspacoTitle">NOVO ESPAÇO</div>
   <input type="hidden" id="mEspacoId">
   <label class="lbl">Nome do Espaço</label><input class="inp" placeholder="Ex: NOVOS SISTEMAS, SIAFIC..." id="mEspacoNome">
-  <label class="lbl">Descrição</label><textarea class="ta" placeholder="Descreva o espaço..." id="mEspacoDesc"></textarea>
+  <label class="lbl">Descrição</label><textarea class="ta" placeholder="Descreva o setor..." id="mEspacoDesc"></textarea>
   <label class="lbl">Estação</label>
   <select class="sel" id="mEspacoEstacao"><option value="">Selecione a estação...</option></select>
   <label class="lbl">Ícone</label>
@@ -3420,7 +3479,7 @@ select.sel{
   <div class="mhandle"></div>
   <div class="mtitle" id="mMembrosEspacoTitle">👥 MEMBROS DO ESPAÇO</div>
   <input type="hidden" id="mMembrosEspacoId">
-  <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Selecione quem faz parte deste espaço e participará do canal de chat.</div>
+  <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Selecione quem faz parte deste setor e participará do canal de chat.</div>
   <div id="mMembrosEspacoLista" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;margin-bottom:16px"></div>
   <button class="btnp" onclick="salvarMembrosEspaco()">💾 SALVAR MEMBROS</button>
   <button class="btncanc" onclick="closeM('mMembrosEspaco')">Cancelar</button>
@@ -3439,7 +3498,7 @@ select.sel{
     <div>
       <label class="lbl">Espaço</label>
       <select class="sel" id="ntEspaco" onchange="filtrarProjetosPorEspaco()">
-        <option value="">Selecione o espaço...</option>
+        <option value="">Selecione o setor...</option>
       </select>
     </div>
   </div>
@@ -3713,6 +3772,7 @@ select.sel{
   <button class="btncanc" onclick="closeM('mCadastro')">Cancelar</button>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
 function sw(name, el) {
   const _dp = document.getElementById('detPanel');
@@ -3723,7 +3783,7 @@ function sw(name, el) {
   if (!tabEl) return;
   tabEl.classList.add('on');
   if (el) el.classList.add('on');
-  const titles = {home:'Dashboard',proj:'Estações & Espaços',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
+  const titles = {home:'Dashboard',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
   const ttEl = document.getElementById('topbar-page-title');
   if (ttEl) ttEl.textContent = titles[name] || '';
   // Renderizar aba ativa
@@ -3747,7 +3807,15 @@ function sw(name, el) {
     config:  () => { try{renderCadastros();}catch(e){} try{updateSelects();}catch(e){} },
     chat:    () => { const cw=document.getElementById('chatWin'); const ce=document.getElementById('chatEmpty'); if(!curChId){if(cw)cw.style.display='none';if(ce)ce.style.display='flex';} }
   };
-  setTimeout(() => { if (renders[name]) renders[name](); }, 30);
+  // Resetar scroll antes de renderizar
+  const _c = document.querySelector('.content');
+  if (_c) _c.scrollTop = 0;
+  setTimeout(() => { 
+    if (renders[name]) renders[name]();
+    // Garantir scroll no topo após render
+    const _c2 = document.querySelector('.content');
+    if (_c2) _c2.scrollTop = 0;
+  }, 30);
 }
 
 // ── CHART DASHBOARD ───────────────────────────────────────────────
@@ -4087,7 +4155,7 @@ function renderChatCanais() {
   const lista = document.getElementById('chatCanaisList');
   if (!lista) return;
   if (!espacos.length) {
-    lista.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.3);padding:6px 8px">Nenhum espaço criado</div>';
+    lista.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.3);padding:6px 8px">Nenhum setor criado</div>';
     return;
   }
   const cores = ['rgba(16,185,129,0.15)','rgba(59,130,246,0.15)','rgba(139,92,246,0.15)','rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(239,68,68,0.15)'];
@@ -4099,7 +4167,7 @@ function renderChatCanais() {
       <div class="chat-canal-ic" style="background:${cor}">${ic}</div>
       <div class="chat-canal-info">
         <div class="chat-canal-nome">${e.nome}</div>
-        <div class="chat-canal-preview" id="prev-${canalId}">${e.estacao} · Canal do espaço</div>
+        <div class="chat-canal-preview" id="prev-${canalId}">${e.estacao} · Canal do setor</div>
       </div>
       <div class="chat-canal-meta"><div class="chat-canal-time" id="time-${canalId}"></div></div>
     </div>`;
@@ -4402,6 +4470,72 @@ async function delProj(id) {
   try { renderDashInteligente(); } catch(e) {}
   try { popSels(); } catch(e) {}
   showToast('✅ Projeto excluído!');
+}
+
+// ── Excluir Estação ──────────────────────────────────────────────
+function excluirEstacaoNome(btn) {
+  const nome = btn.getAttribute('data-est');
+  if (nome) excluirEstacao(nome);
+}
+function excluirEstacao(nome) {
+  const setoresEst = espacos.filter(e => (e.estacao||'').trim().toLowerCase() === nome.trim().toLowerCase());
+  const projEst = proj.filter(p => setoresEst.some(s => s.id === p.espaco_id) || (p.dept||'').trim().toLowerCase() === nome.trim().toLowerCase());
+  const msg = `Excluir a estação "${nome}"?\n\nIsso também vai excluir:\n- ${setoresEst.length} setor(es)\n- ${projEst.length} projeto(s)\n\nEssa ação não pode ser desfeita.`;
+  if (!confirm(msg)) return;
+  // Remover do cadastros local
+  if (cadastros?.estacao) {
+    cadastros.estacao = cadastros.estacao.filter(e => e.trim().toLowerCase() !== nome.trim().toLowerCase());
+    localStorage.setItem('daeCadastros', JSON.stringify(cadastros));
+  }
+  // Remover espaços e projetos
+  const idsSetores = setoresEst.map(s => s.id);
+  espacos = espacos.filter(e => !idsSetores.includes(e.id));
+  proj = proj.filter(p => !projEst.some(pe => pe.id === p.id));
+  // Atualizar no banco
+  Promise.all([
+    ...idsSetores.map(id => safeDb.from('espacos').delete().eq('id', id)),
+    ...projEst.map(p => safeDb.from('projetos').delete().eq('id', p.id))
+  ]).then(() => {
+    salvarLocal();
+    renderHierarquia();
+    renderDashInteligente();
+    showToast('✅ Estação excluída!');
+  });
+}
+
+// ── Excluir Espaço/Setor ─────────────────────────────────────────
+function excluirEspacoById(id) {
+  const setor = espacos.find(e => e.id === id);
+  if (!setor) return;
+  excluirEspaco(id, setor.nome);
+}
+async function excluirEspaco(id, nome) {
+  const projSetor = proj.filter(p => p.espaco_id === id);
+  const msg = `Excluir o setor "${nome}"?\n\nIsso também vai excluir ${projSetor.length} projeto(s).\n\nEssa ação não pode ser desfeita.`;
+  if (!confirm(msg)) return;
+  showToast('⏳ Excluindo...');
+  // Excluir projetos do setor
+  for (const p of projSetor) {
+    await safeDb.from('projetos').delete().eq('id', p.id);
+  }
+  await safeDb.from('espacos').delete().eq('id', id);
+  espacos = espacos.filter(e => e.id !== id);
+  proj = proj.filter(p => p.espaco_id !== id);
+  salvarLocal();
+  renderHierarquia();
+  renderDashInteligente();
+  showToast('✅ Setor excluído!');
+}
+
+// ── Excluir Atividade ────────────────────────────────────────────
+async function excluirAtividade(id) {
+  if (!confirm('Excluir esta atividade?')) return;
+  await safeDb.from('atividades').delete().eq('id', id);
+  ativs = ativs.filter(a => a.id !== id);
+  salvarLocal();
+  renderHierarquia();
+  renderDashInteligente();
+  showToast('✅ Atividade excluída!');
 }
 
 function openEditProj(id) {
@@ -5448,7 +5582,7 @@ function openCh(id, icon, name, tipo, cor) {
     avEl.style.color = 'transparent';
     avEl.style.fontSize = '18px';
     avEl.className = 'chat-win-av';
-    subEl.textContent = tipoReal === 'geral' ? 'Canal geral da equipe' : 'Canal do espaço';
+    subEl.textContent = tipoReal === 'geral' ? 'Canal geral da equipe' : 'Canal do setor';
   }
   document.getElementById('chName').textContent = nomeReal;
 
@@ -6401,6 +6535,8 @@ function arqExcluirPasta(nome) {
 
 function arqNavPasta(pasta, el) {
   arqPastaAtual = pasta;
+  // Se estava vendo documentos, agora vai para arquivos
+  _modoArquivos = true;
   arqFiltroTipoAtivo = '';
   // Atualizar sidebar ativo
   document.querySelectorAll('.arq-folder-item').forEach(i => i.classList.remove('on'));
@@ -6616,6 +6752,200 @@ async function renderArquivos() {
   }
 
   container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+// EDITOR DE DOCUMENTOS
+// ══════════════════════════════════════════════
+let _docsCache = [];
+let _docId = null;
+let _docTimer = null;
+let _quill = null;
+let _modoArquivos = true;
+let _docPastaFiltro = '';
+
+function arqVerDocs(el) {
+  _modoArquivos = false;
+  _docPastaFiltro = '';
+  document.querySelectorAll('.arq-folder-item').forEach(i=>i.classList.remove('on'));
+  if(el) el.classList.add('on');
+  const tit = document.getElementById('arqPastaTituloNome');
+  if(tit) tit.textContent = 'Todos os documentos';
+  _renderDocs('');
+}
+
+function arqVerDocsPasta(pasta, el) {
+  _modoArquivos = false;
+  _docPastaFiltro = pasta;
+  document.querySelectorAll('.arq-folder-item').forEach(i=>i.classList.remove('on'));
+  if(el) el.classList.add('on');
+  const tit = document.getElementById('arqPastaTituloNome');
+  if(tit) tit.textContent = '📁 ' + pasta;
+  _renderDocs(pasta);
+}
+
+async function _renderDocs(pastaFiltro) {
+  const el = document.getElementById('arq-content');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx3)">Carregando...</div>';
+  try {
+    const {data} = await safeDb.from('documentos').select('*').order('updated_at',{ascending:false});
+    _docsCache = data||[];
+  } catch(e) { _docsCache = []; }
+
+  // Filtrar por pasta se necessário
+  const docs = (pastaFiltro !== undefined && pastaFiltro !== '')
+    ? _docsCache.filter(d => d.pasta === pastaFiltro)
+    : _docsCache;
+
+  if(!docs.length) {
+    el.innerHTML = `<div style="text-align:center;padding:60px;color:var(--tx3)">
+      <div style="font-size:48px;margin-bottom:12px;opacity:.3">📝</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px">Nenhum documento ainda</div>
+      <button onclick="novoDocumento()" style="padding:9px 20px;border-radius:10px;background:var(--brand);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh)">📝 Criar primeiro documento</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div style="padding:16px"><div style="font-size:11px;font-weight:800;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">📝 DOCUMENTOS (${docs.length})</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+  ${docs.map(d=>{
+    const preview = d.conteudo ? d.conteudo.replace(/<[^>]+>/g,'').slice(0,80) : '';
+    const data = d.updated_at ? new Date(d.updated_at).toLocaleDateString('pt-BR') : '';
+    return `<div class="doc-card" onclick="abrirDoc('${d.id}')">
+      <div style="font-size:22px;margin-bottom:6px">📄</div>
+      <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">${d.titulo||'Sem título'}</div>
+      ${preview?`<div style="font-size:11px;color:var(--tx3);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${preview}</div>`:''}
+      ${d.pasta?`<div style="font-size:10px;color:var(--brand);margin-top:4px;font-weight:600">📁 ${d.pasta}</div>`:''}
+      <div style="font-size:10px;color:var(--tx4);margin-top:4px">${data}</div>
+      <button onclick="event.stopPropagation();excluirDoc('${d.id}')" style="position:absolute;top:8px;right:8px;width:24px;height:24px;border:none;border-radius:6px;background:var(--surface3);color:var(--tx3);cursor:pointer;font-size:11px;opacity:0;transition:opacity .15s" class="doc-del">🗑</button>
+    </div>`;
+  }).join('')}
+  <div class="doc-card" onclick="novoDocumento()" style="border-style:dashed;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;min-height:100px">
+    <div style="font-size:24px;opacity:.3">+</div>
+    <div style="font-size:12px;font-weight:700;color:var(--tx3)">Novo documento</div>
+  </div>
+  </div></div>`;
+
+  // Mostrar botão excluir no hover
+  el.querySelectorAll('.doc-card').forEach(c=>{
+    c.addEventListener('mouseover',()=>{ const b=c.querySelector('.doc-del'); if(b) b.style.opacity='1'; });
+    c.addEventListener('mouseout',()=>{ const b=c.querySelector('.doc-del'); if(b) b.style.opacity='0'; });
+  });
+}
+
+async function novoDocumento() {
+  try {
+    const {data} = await safeDb.from('documentos').insert([{
+      titulo:'', conteudo:'', autor:curUser?.av||'',
+      created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+    }]).select().single();
+    if(data) { _docsCache.unshift(data); abrirDoc(data.id); }
+  } catch(e) { showToast('❌ Erro ao criar documento'); }
+}
+
+async function abrirDoc(id) {
+  const doc = _docsCache.find(d=>d.id===id);
+  if(!doc) return;
+  _docId = id;
+  const modal = document.getElementById('docModal');
+  const titulo = document.getElementById('docTituloInput');
+  if(!modal||!titulo) return;
+  titulo.value = doc.titulo||'';
+  // Popular select de pastas
+  const sel = document.getElementById('docPastaSelect');
+  if(sel) {
+    sel.innerHTML = '<option value="">📁 Sem pasta</option>';
+    (arqPastas||[]).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = '📁 ' + p;
+      if(doc.pasta === p) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+  modal.classList.add('on');
+
+  // Inicializar Quill se necessário
+  if(!_quill && typeof Quill!=='undefined') {
+    _quill = new Quill('#docQuill', {
+      theme:'snow',
+      placeholder:'Comece a escrever aqui...',
+      modules:{toolbar:[
+        [{header:[1,2,3,false]}],
+        [{font:[]},{size:['small',false,'large','huge']}],
+        ['bold','italic','underline','strike'],
+        [{color:[]},{background:[]}],
+        [{list:'ordered'},{list:'bullet'},{list:'check'}],
+        [{align:[]}],
+        ['blockquote','code-block'],
+        ['link'],['clean']
+      ]}
+    });
+    _quill.on('text-change',()=>{
+      docAgendar();
+      const txt=_quill.getText().trim();
+      const w=txt?txt.split(/\s+/).filter(x=>x).length:0;
+      const el=document.getElementById('docWords');
+      if(el) el.textContent=w+' palavra'+(w!==1?'s':'');
+    });
+  }
+  if(_quill) _quill.root.innerHTML = doc.conteudo||'';
+  titulo.focus();
+  _docStatus('');
+}
+
+function fecharDoc() {
+  clearTimeout(_docTimer);
+  docSalvar().then(()=>{
+    document.getElementById('docModal')?.classList.remove('on');
+    _docId=null;
+    _renderDocs(_docPastaFiltro);
+  });
+}
+
+function docAgendar() {
+  _docStatus('editando');
+  clearTimeout(_docTimer);
+  _docTimer=setTimeout(docSalvar,1500);
+}
+
+async function docSalvar() {
+  if(!_docId) return;
+  const titulo=document.getElementById('docTituloInput')?.value.trim()||'Sem título';
+  const conteudo=_quill?_quill.root.innerHTML:'';
+  const pasta=document.getElementById('docPastaSelect')?.value||'';
+  try {
+    await safeDb.from('documentos').update({titulo,conteudo,pasta,updated_at:new Date().toISOString()}).eq('id',_docId);
+    const doc=_docsCache.find(d=>d.id===_docId);
+    if(doc){doc.titulo=titulo;doc.conteudo=conteudo;}
+    _docStatus('salvo');
+    setTimeout(()=>_docStatus(''),2500);
+  } catch(e){_docStatus('erro');}
+}
+
+function _docStatus(s) {
+  const el=document.getElementById('docSaveStatus');
+  const st=document.getElementById('docStatus');
+  const m={salvo:{txt:'✓ Salvo',bg:'#F0FDF4',cor:'#10B981',footer:'✅ Salvo'},editando:{txt:'...',bg:'#FEF3C7',cor:'#D97706',footer:'✏️ Salvando...'},erro:{txt:'⚠',bg:'#FEF2F2',cor:'#EF4444',footer:'⚠️ Erro'}};
+  const d=m[s];
+  if(el){el.textContent=d?d.txt:'';el.style.opacity=d?'1':'0';if(d){el.style.background=d.bg;el.style.color=d.cor;}}
+  if(st&&d) st.textContent=d.footer;
+}
+
+function docHL(cor,textCor) {
+  if(!_quill) return;
+  const sel=_quill.getSelection();
+  if(!sel||sel.length===0){showToast('⚠️ Selecione o texto primeiro');return;}
+  _quill.formatText(sel.index,sel.length,'background',cor||false);
+  _quill.focus();
+}
+
+async function excluirDoc(id) {
+  if(!confirm('Excluir este documento?')) return;
+  await safeDb.from('documentos').delete().eq('id',id);
+  _docsCache=_docsCache.filter(d=>d.id!==id);
+  _renderDocs(_docPastaFiltro);
+  showToast('🗑 Documento excluído');
 }
 
 // ── Upload ───────────────────────────────────────────────────────
@@ -8217,7 +8547,10 @@ function renderHierarquia() {
     h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1;">';
     h += '<div><div class="setor-titulo">'+estacao+'</div>';
     h += '<div class="setor-sub">'+setores.length+' setor'+(setores.length!==1?'es':'')+' · '+projEstacao.length+' projeto'+(projEstacao.length!==1?'s':'')+' · '+ativsEstacao.length+' atividade'+(ativsEstacao.length!==1?'s':'')+'</div></div>';
+    h += '<div style="display:flex;gap:6px;flex-shrink:0">';
     h += '<button class="setor-btn-add" onclick="abrirNovoEspaco(\''+estacao.replace(/'/g,"\\'")+'\')" style="flex-shrink:0">+ Setor</button>';
+    h += '<button onclick="excluirEstacaoNome(this)" data-est="'+estacao+'" style="width:32px;height:32px;border-radius:8px;background:rgba(239,68,68,.2);border:none;color:#fff;cursor:pointer;font-size:14px;flex-shrink:0;" title="Excluir estação">🗑</button>';
+    h += '</div>';
     h += '</div>';
     h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;position:relative;z-index:1;">';
     h += '<div style="display:flex;align-items:center;">'+mbHtml+(mbIds.length ? '<span style="font-size:10px;color:rgba(255,255,255,.7);margin-left:14px;font-weight:600;">'+mbIds.length+' membro'+(mbIds.length!==1?'s':'')+'</span>' : '<span style="font-size:10px;color:rgba(255,255,255,.5);">Sem membros</span>')+'</div>';
@@ -8258,6 +8591,7 @@ function renderHierarquia() {
       h += '<button onclick="abrirNovaAtivSetor(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="padding:6px 12px;border-radius:8px;background:#10B981;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">⚡ + Atividade</button>';
       h += '<span onclick="gerenciarMembrosEspaco(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;" title="Membros">👥</span>';
       h += '<span onclick="editarEspaco(\''+setor.id+'\')" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;" title="Editar">✏️</span>';
+      h += '<span onclick="excluirEspacoById(\''+setor.id+'\')" style="width:30px;height:30px;border-radius:8px;background:#FEF2F2;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;" title="Excluir setor">🗑️</span>';
       h += '</div></div>';
 
       // Projetos do setor
@@ -8286,6 +8620,7 @@ function renderHierarquia() {
           h += '</div>';
           if (autor) h += '<div style="width:26px;height:26px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="'+autor.nome+'">'+autor.av+'</div>';
           h += '<div style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+cor+'14;color:'+cor+';">'+( a.tipo||'atividade')+'</div>';
+          h += '<button onclick="excluirAtividade(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#FEF2F2;border:none;cursor:pointer;font-size:11px;flex-shrink:0;" title="Excluir">🗑</button>';
           h += '</div>';
         });
         h += '</div></div>';
@@ -8501,13 +8836,13 @@ async function salvarMembrosEspaco() {
   }
   closeM('mMembrosEspaco');
   renderChatCanais();
-  showToast(`✅ ${selecionados.length} membro(s) salvos no espaço!`);
+  showToast(`✅ ${selecionados.length} membro(s) salvos no setor!`);
 }
 
 async function saveEspaco() {
   const nome = document.getElementById('mEspacoNome').value.trim();
   const estacao = document.getElementById('mEspacoEstacao').value;
-  if (!nome) { showToast('⚠️ Digite o nome do espaço'); return; }
+  if (!nome) { showToast('⚠️ Digite o nome do setor'); return; }
   if (!estacao) { showToast('⚠️ Selecione a estação'); return; }
   const id = document.getElementById('mEspacoId').value;
   const desc = document.getElementById('mEspacoDesc').value.trim();
@@ -8567,7 +8902,7 @@ function popTaskEstacoes() {
   ])].sort();
   sel.innerHTML = '<option value="">Selecione a estação...</option>' +
     estacoes.map(e => `<option value="${e}">${e}</option>`).join('');
-  document.getElementById('ntEspaco').innerHTML = '<option value="">Selecione o espaço...</option>';
+  document.getElementById('ntEspaco').innerHTML = '<option value="">Selecione o setor...</option>';
   document.getElementById('ntPj').innerHTML = '<option value="">Selecione o projeto...</option>';
 }
 
@@ -8575,11 +8910,11 @@ function filtrarEspacosPorEstacao() {
   const estacao = document.getElementById('ntEstacao').value;
   const espSel = document.getElementById('ntEspaco');
   const projSel = document.getElementById('ntPj');
-  espSel.innerHTML = '<option value="">Selecione o espaço...</option>';
+  espSel.innerHTML = '<option value="">Selecione o setor...</option>';
   projSel.innerHTML = '<option value="">Selecione o projeto...</option>';
   if (!estacao) return;
   const espacosFiltrados = espacos.filter(e => e.estacao === estacao);
-  espSel.innerHTML = '<option value="">Selecione o espaço...</option>' +
+  espSel.innerHTML = '<option value="">Selecione o setor...</option>' +
     espacosFiltrados.map(e => `<option value="${e.id}">${e.icone||'📁'} ${e.nome}</option>`).join('');
   // Se não há espaços, mostrar projetos diretamente pelo dept
   if (!espacosFiltrados.length) {
@@ -9033,7 +9368,7 @@ function popSels() {
   document.getElementById('nrP').innerHTML = '<option value="">Selecione o projeto...</option>' + projValidos.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
   document.getElementById('nrR').innerHTML = memb.map(m=>`<option value="${m.av}">${m.nome}</option>`).join('');
   const espSel = document.getElementById('npEspaco');
-  if (espSel) espSel.innerHTML = '<option value="">Selecione o espaço...</option>' + espacos.map(e=>`<option value="${e.id}">${e.estacao} › ${e.nome}</option>`).join('');
+  if (espSel) espSel.innerHTML = '<option value="">Selecione o setor...</option>' + espacos.map(e=>`<option value="${e.id}">${e.estacao} › ${e.nome}</option>`).join('');
   const estSel = document.getElementById('mEspacoEstacao');
   if (estSel) estSel.innerHTML = '<option value="">Selecione a estação...</option>' + cadastros.estacao.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
@@ -9377,11 +9712,7 @@ async function entrarNoApp(usuario) {
   if (ls) ls.style.display = 'none';
   // Mostrar o app — tenta mainApp primeiro, depois body-wrap
   const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
-  if (ma) {
-    ma.style.display = 'flex';
-    ma.style.flexDirection = 'column';
-    if (ma.id === 'body-wrap') ma.style.height = '100vh';
-  }
+  if (ma) { ma.style.display = 'block'; }
   try { await loadAll(); } catch(e) { console.error(e); }
   showLoading(false);
   // Garantir nome correto no dashboard
@@ -9394,6 +9725,11 @@ async function entrarNoApp(usuario) {
   renderAll();
   sw('home', document.querySelector('.ni.on'));
   try { renderNova(); } catch(e) {}
+  // Forçar scroll no topo
+  setTimeout(() => {
+    const _c = document.querySelector('.content');
+    if (_c) _c.scrollTop = 0;
+  }, 500);
   // Iniciar listener global de mensagens
   setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); }, 1000);
 }
