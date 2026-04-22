@@ -10509,6 +10509,129 @@ function meEditar(id, tipo) {
 
 // sw integrado abaixo
 
+// ── LEMBRETE AUTOMÁTICO 30 MIN ANTES DA REUNIÃO ──────────────────
+const _lembretes30Disparados = new Set();
+
+function _checarLembretes30min() {
+  if (!reun || !reun.length) return;
+  const agora = new Date();
+  const anoAtual = agora.getFullYear();
+
+  reun.forEach(r => {
+    if (!r.dia || !r.hora) return;
+    const id = r.id;
+    if (_lembretes30Disparados.has(id)) return;
+
+    // Montar data da reunião
+    const meses = {JAN:0,FEV:1,MAR:2,ABR:3,MAI:4,JUN:5,JUL:6,AGO:7,SET:8,OUT:9,NOV:10,DEZ:11};
+    const mesIdx = meses[(r.mes||'').toUpperCase()] ?? (parseInt(r.mes)-1);
+    const [hh, mm] = (r.hora||'00:00').split(':').map(Number);
+    const dtReuniao = new Date(anoAtual, mesIdx, parseInt(r.dia), hh, mm, 0);
+
+    // Se a data já passou, ignorar
+    if (dtReuniao < agora) return;
+
+    const diffMs = dtReuniao - agora;
+    const diffMin = diffMs / 60000;
+
+    // Janela: entre 30 e 31 minutos antes
+    if (diffMin <= 31 && diffMin >= 29) {
+      _lembretes30Disparados.add(id);
+      _dispararLembrete30(r);
+    }
+  });
+}
+
+async function _dispararLembrete30(r) {
+  const participantes = (r.participantes || []);
+  const nomesPartic = participantes.map(av => memb.find(m => m.av === av)?.nome?.split(' ')[0] || av).join(', ');
+  const linkTxt = r.link ? `\n🔗 ${r.link}` : '';
+  const msgTexto = `⏰ *Lembrete — falta 30 minutos!*\n\n*${r.tit}*\n🗓 ${r.dia}/${r.mes} às ${r.hora}\n📍 ${r.local||'Google Meet'}${linkTxt}`;
+
+  // 1. Notificação interna para todos os participantes
+  if (participantes.length && db) {
+    const notifs = participantes.map(av => ({
+      destinatario: av,
+      titulo: `⏰ Em 30 min: ${r.tit}`,
+      texto: `${r.dia}/${r.mes} às ${r.hora} · ${r.local||'Google Meet'}${r.link ? ' · ' + r.link : ''}`,
+      tipo: 'info', projeto_id: null, tarefa_id: null
+    }));
+    await safeDb.from('notificacoes').insert(notifs);
+    await loadNotifs();
+  }
+
+  // 2. Mensagem no chat (canal geral ou primeiro canal disponível)
+  const canalLembrete = canaisCustom[0]?.canal_id || 'geral';
+  if (db) {
+    await safeDb.from('chats').insert([{
+      canal_id: canalLembrete,
+      autor: curUser?.av || 'MA',
+      texto: `⏰ *Lembrete automático* — Reunião *"${r.tit}"* começa em 30 minutos! (${r.hora}) ${r.link ? '→ ' + r.link : ''}`,
+      tipo: 'texto'
+    }]);
+  }
+
+  // 3. Toast visual
+  showToast(`⏰ Lembrete: "${r.tit}" em 30 min!`);
+
+  // 4. Notificação do navegador (se permitido)
+  if (Notification.permission === 'granted') {
+    new Notification(`⏰ Em 30 min: ${r.tit}`, {
+      body: `${r.dia}/${r.mes} às ${r.hora} · ${r.local||'Google Meet'}`,
+      icon: '/dae-nexus/icon.png'
+    });
+  }
+
+  // 5. E-mail via mailto para todos com e-mail cadastrado
+  const comEmail = participantes.map(av => memb.find(m => m.av === av)).filter(m => m?.email);
+  if (comEmail.length) {
+    const emails = comEmail.map(m => m.email).join(',');
+    const assunto = encodeURIComponent(`⏰ Lembrete: "${r.tit}" começa em 30 minutos`);
+    const corpo = encodeURIComponent(
+`Olá,
+
+Este é um lembrete automático do DAE Nexus:
+
+⏰ A reunião "${r.tit}" começa em 30 minutos!
+
+🗓 Data: ${r.dia}/${r.mes}
+⏰ Hora: ${r.hora}
+📍 Local: ${r.local||'Google Meet'}${r.link ? '\n🔗 Link: ' + r.link : ''}
+
+Participantes: ${nomesPartic}
+
+_Lembrete automático — DAE Nexus_ ✨`);
+    window.open(`mailto:${emails}?subject=${assunto}&body=${corpo}`, '_blank');
+  }
+
+  // 6. Abrir modal de disparo WhatsApp automaticamente
+  if (participantes.length) {
+    const comWpp = participantes.map(av => memb.find(m => m.av === av)).filter(m => m?.whatsapp);
+    if (comWpp.length) {
+      setTimeout(() => {
+        const msgWpp = encodeURIComponent(msgTexto + `\n\nParticipantes: ${nomesPartic}\n\n_Lembrete automático — DAE Nexus_ ✨`);
+        abrirModalWhatsapp(comWpp, msgWpp);
+      }, 1000);
+    }
+  }
+}
+
+function _iniciarMonitorLembretes() {
+  // Pedir permissão de notificação do navegador
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  // Verificar a cada minuto
+  setInterval(_checarLembretes30min, 60000);
+  // Verificar imediatamente ao iniciar
+  setTimeout(_checarLembretes30min, 5000);
+}
+
+// Iniciar monitor quando app carregar
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(_iniciarMonitorLembretes, 8000);
+});
+
 </script>
 </body>
 </html>
