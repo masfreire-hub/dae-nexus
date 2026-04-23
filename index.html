@@ -4867,7 +4867,11 @@ function trow(t) {
 
 function renderTasks() {
   let l = [...tar];
-  if (curTF==='minhas') l = l.filter(t => t.resp===curUser?.av);
+  if (curTF==='minhas') l = l.filter(t => {
+    if (t.resp === curUser?.av) return true;
+    if (t.resp_original === curUser?.av) return true;
+    try { const co = JSON.parse(t.co_responsaveis || '[]'); return co.includes(curUser?.av); } catch(e) { return false; }
+  });
   if (curTF==='urgente') l = l.filter(t => t.prior==='urgente' && !t.ok);
   if (curTF==='andamento') l = l.filter(t => !t.ok && ((t.status||'').includes('andamento')||(t.status||'').includes('desenvolv')));
   if (curTF==='concluidas') l = l.filter(t => t.ok);
@@ -4997,21 +5001,45 @@ function filterT(f,b) { curTF=f; document.querySelectorAll('#tChips .chip').forE
 function setView(v,b) { curView=v; document.querySelectorAll('#viewChips .chip').forEach(c=>c.classList.remove('on')); b.classList.add('on'); renderTasks(); }
 
 async function addTask() {
+  const btn = document.getElementById('btnSaveTask');
+  if (btn?.disabled) return; // Evitar duplo clique
+  if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
+
   const tEl = document.getElementById('ntT');
   const t = (tEl?.value||'').trim();
-  if (!t || t === 'undefined') { showToast('⚠️ Digite o título da tarefa'); tEl?.focus(); return; }
+  if (!t || t === 'undefined') { 
+    showToast('⚠️ Digite o título da tarefa'); tEl?.focus(); 
+    if (btn) { btn.disabled = false; btn.textContent = 'CRIAR TAREFA'; }
+    return; 
+  }
 
   const estacao = document.getElementById('ntEstacao')?.value || '';
-  if (!estacao) { showToast('⚠️ Selecione a estação'); document.getElementById('ntEstacao')?.focus(); return; }
+  if (!estacao) { 
+    showToast('⚠️ Selecione a estação'); document.getElementById('ntEstacao')?.focus(); 
+    if (btn) { btn.disabled = false; btn.textContent = 'CRIAR TAREFA'; }
+    return; 
+  }
 
   const espaco = document.getElementById('ntEspaco')?.value || '';
-  if (!espaco) { showToast('⚠️ Selecione o setor'); document.getElementById('ntEspaco')?.focus(); return; }
+  if (!espaco) { 
+    showToast('⚠️ Selecione o setor'); document.getElementById('ntEspaco')?.focus(); 
+    if (btn) { btn.disabled = false; btn.textContent = 'CRIAR TAREFA'; }
+    return; 
+  }
 
   const projId = document.getElementById('ntPj').value || null;
-  if (!projId) { showToast('⚠️ Selecione o projeto'); document.getElementById('ntPj')?.focus(); return; }
+  if (!projId) { 
+    showToast('⚠️ Selecione o projeto'); document.getElementById('ntPj')?.focus(); 
+    if (btn) { btn.disabled = false; btn.textContent = 'CRIAR TAREFA'; }
+    return; 
+  }
 
   const prazo = document.getElementById('ntD').value || '';
-  if (!prazo) { showToast('⚠️ Informe o prazo'); document.getElementById('ntD')?.focus(); return; }
+  if (!prazo) { 
+    showToast('⚠️ Informe o prazo'); document.getElementById('ntD')?.focus(); 
+    if (btn) { btn.disabled = false; btn.textContent = 'CRIAR TAREFA'; }
+    return; 
+  }
   // Validar se projeto existe no Supabase antes de inserir
   if (projId) {
     const { data: projCheck, error: projErr } = await safeDb.from('projetos').select('id').eq('id', projId).single();
@@ -5023,7 +5051,12 @@ async function addTask() {
   }
   const nova = { titulo:t, descricao:'', projeto_id:projId, resp:document.getElementById('ntR').value||curUser?.av, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value||'to do', ok:false };
   const { data, error } = await safeDb.from('tarefas').insert([nova]).select().single();
-  if (error) { showToast('❌ Erro: ' + error.message); return; }
+  if (error) { 
+    showToast('❌ Erro: ' + error.message); 
+    const btnErr = document.getElementById('btnSaveTask');
+    if (btnErr) { btnErr.disabled = false; btnErr.textContent = 'CRIAR TAREFA'; }
+    return; 
+  }
   tar.unshift(data);
   // Log da ação
   await logAtividade('tarefa_criada', 'Tarefa criada', `"${t}" criada por ${curUser?.nome||curUser?.av}`, curUser?.av, data.projeto_id, data.id, '#4F46E5');
@@ -5039,6 +5072,8 @@ async function addTask() {
   }
   closeM('mTask'); renderTasks(); renderUrgent(); renderChart(); popSels();
   document.getElementById('ntT').value = '';
+  const btnFinal = document.getElementById('btnSaveTask');
+  if (btnFinal) { btnFinal.disabled = false; btnFinal.textContent = 'CRIAR TAREFA'; }
   await calcularProgressoAuto(nova.projeto_id);
   showToast('✅ Tarefa criada!');
 }
@@ -5180,12 +5215,16 @@ async function openDet(type, id) {
     const esp        = espacos.find(e => e.id === (p?.espaco_id));
 
     // Meta row no header
+    const coResp = (() => { try { return JSON.parse(t.co_responsaveis || '[]'); } catch(e) { return []; } })();
     const metaRow = document.getElementById('detMetaRow');
     if (metaRow) metaRow.innerHTML = `
       <div class="det-meta-chip">
         <div class="det-meta-av">${t.resp||'—'}</div>
         <strong>${m?m.nome.split(' ')[0]:t.resp||'—'}</strong>
       </div>
+      ${coResp.length ? `<div class="det-meta-chip" style="background:rgba(99,102,241,0.2);gap:4px;" title="Co-responsáveis">
+        👥 ${coResp.map(av => { const mb = memb.find(x=>x.av===av); return `<span style="font-size:10px;">${mb?.nome?.split(' ')[0]||av}</span>`; }).join(', ')}
+      </div>` : ''}
       ${p ? `<div class="det-meta-chip">📌 <strong>${p.nome}</strong></div>` : ''}
       ${t.prazo ? `<div class="det-meta-chip">📅 <strong>${new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</strong></div>` : ''}
       <div style="margin-left:auto">
@@ -5599,16 +5638,22 @@ function toggleTimer(tarefaId) {
 function iniciarTimer(tarefaId) {
   timerTarefaId = tarefaId;
   timerInicio = Date.now();
+  // Salvar estado do timer no localStorage para não perder ao trocar de aba
+  localStorage.setItem('dae_timer', JSON.stringify({ tarefaId, inicio: timerInicio }));
   const t = tar.find(x => x.id === tarefaId);
   const base = t?.tempo_gasto || 0;
   if (timerInterval) clearInterval(timerInterval);
-  // Atualizar display a cada segundo
   timerInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
     const el = document.getElementById('tempoDisplay');
     if (el) el.textContent = fmtTempo(base + elapsed);
+    // Salvar tempo atual no localStorage a cada 10s para não perder
+    if (elapsed % 10 === 0 && t) {
+      const tarLocal = JSON.parse(localStorage.getItem('dae_tar') || '[]');
+      const idx = tarLocal.findIndex(x => String(x.id) === String(tarefaId));
+      if (idx >= 0) { tarLocal[idx].tempo_gasto = base + elapsed; localStorage.setItem('dae_tar', JSON.stringify(tarLocal)); }
+    }
   }, 1000);
-  // Atualizar bloco visual para running
   const tb = document.getElementById('detTimerBlock');
   if (tb) {
     tb.classList.add('running');
@@ -5634,6 +5679,8 @@ async function pararTimer(tarefaId) {
   const t = tar.find(x => x.id === tarefaId);
   const base = t?.tempo_gasto || 0;
   const total = base + elapsed;
+  // Limpar estado do timer no localStorage
+  localStorage.removeItem('dae_timer');
   // Salvar no Supabase se ID real
   if (!String(tarefaId).startsWith('local_')) {
     await safeDb.from('tarefas').update({ tempo_gasto: total }).eq('id', tarefaId);
@@ -5795,15 +5842,46 @@ async function confirmarTransferencia(tarefaId, overlay) {
   const motivo = document.getElementById('transMotivo').value.trim();
   const t = tar.find(x => x.id === tarefaId);
   if (!t || !novoResp) return;
-  const respAnterior = memb.find(m => m.av === t.resp)?.nome || t.resp || '—';
+  const respAnterior = t.resp;
+  const respAnteriorNome = memb.find(m => m.av === respAnterior)?.nome || respAnterior || '—';
   const novoNome = memb.find(m => m.av === novoResp)?.nome || novoResp;
+
+  // Manter resp_original (quem abriu) para co-acesso
+  const respOriginal = t.resp_original || respAnterior;
+
+  // Histórico de transferências
   const historico = JSON.parse(t.historico_resp || '[]');
-  historico.push({ data: new Date().toLocaleDateString('pt-BR'), de: respAnterior, para: novoNome, motivo });
-  await safeDb.from('tarefas').update({ resp: novoResp, historico_resp: JSON.stringify(historico), updated_at: new Date().toISOString() }).eq('id', tarefaId);
-  t.resp = novoResp; t.historico_resp = JSON.stringify(historico);
+  historico.push({ data: new Date().toLocaleDateString('pt-BR'), de: respAnteriorNome, para: novoNome, motivo });
+
+  // Co-responsáveis: quem já teve a tarefa continua com acesso
+  let coResp = t.co_responsaveis ? JSON.parse(t.co_responsaveis) : [];
+  if (respAnterior && !coResp.includes(respAnterior)) coResp.push(respAnterior);
+
+  await safeDb.from('tarefas').update({
+    resp: novoResp,
+    resp_original: respOriginal,
+    co_responsaveis: JSON.stringify(coResp),
+    historico_resp: JSON.stringify(historico),
+    updated_at: new Date().toISOString()
+  }).eq('id', tarefaId);
+
+  t.resp = novoResp;
+  t.resp_original = respOriginal;
+  t.co_responsaveis = JSON.stringify(coResp);
+  t.historico_resp = JSON.stringify(historico);
+
+  // Notificar novo responsável
+  await safeDb.from('notificacoes').insert([{
+    destinatario: novoResp,
+    titulo: `↔️ Tarefa transferida para você`,
+    texto: `"${t.titulo}" foi transferida por ${respAnteriorNome}${motivo ? ': ' + motivo : ''}`,
+    tipo: 'info', tarefa_id: tarefaId
+  }]);
+
   overlay.remove();
   openDet('task', tarefaId);
-  showToast(`↔️ Transferida para ${novoNome}!`);
+  renderTasks();
+  showToast(`↔️ Transferida para ${novoNome}! ${respAnteriorNome} mantém co-acesso.`);
 }
 
 function closeDet() {
@@ -10382,7 +10460,34 @@ async function entrarNoApp(usuario) {
     if (_c) _c.scrollTop = 0;
   }, 500);
   // Iniciar listener global de mensagens
-  setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); iniciarMonitorTimeline(); }, 1000);
+  setTimeout(() => { 
+    iniciarChatGlobal(); 
+    pedirPermissaoNotif(); 
+    iniciarMonitorTimeline();
+    // Restaurar timer se estava ativo
+    try {
+      const timerSalvo = JSON.parse(localStorage.getItem('dae_timer') || 'null');
+      if (timerSalvo?.tarefaId && timerSalvo?.inicio) {
+        const t = tar.find(x => String(x.id) === String(timerSalvo.tarefaId));
+        if (t) {
+          // Calcular tempo já decorrido desde que o timer foi iniciado
+          const elapsed = Math.floor((Date.now() - timerSalvo.inicio) / 1000);
+          t.tempo_gasto = (t.tempo_gasto || 0) + elapsed;
+          timerTarefaId = timerSalvo.tarefaId;
+          timerInicio = timerSalvo.inicio;
+          // Reiniciar o intervalo
+          const base = t.tempo_gasto;
+          if (timerInterval) clearInterval(timerInterval);
+          timerInterval = setInterval(() => {
+            const el = document.getElementById('tempoDisplay');
+            const el2 = Math.floor((Date.now() - timerInicio) / 1000);
+            if (el) el.textContent = fmtTempo(base + el2);
+          }, 1000);
+          showToast('⏱ Timer restaurado: ' + t.titulo?.slice(0,30));
+        }
+      }
+    } catch(e) { localStorage.removeItem('dae_timer'); }
+  }, 1500);
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
