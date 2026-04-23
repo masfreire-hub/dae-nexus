@@ -4506,7 +4506,8 @@ function filterP(f,b) { curPF=f; document.querySelectorAll('#pChips .chip').forE
 async function addProj() {
   const n = document.getElementById('npN').value.trim();
   if (!n) { showToast('Digite o nome'); return; }
-  const novo = { nome:n, descricao:document.getElementById('npD').value||'', dept:document.getElementById('npDp').value, espaco_id:espacoId||null, prior:document.getElementById('npPr').value, prog:0, fim:document.getElementById('npF').value||null, status:'planejamento', eq:[curUser?.av||curUser?.av||'?'] };
+  const espacoIdVal = document.getElementById('npEspaco')?.value || null;
+  const novo = { nome:n, descricao:document.getElementById('npD').value||'', dept:document.getElementById('npDp').value||'DAE', espaco_id:espacoIdVal||null, prior:document.getElementById('npPr').value, prog:0, fim:document.getElementById('npF').value||null, status:'planejamento', eq:[curUser?.av||'?'] };
   const { data, error } = await safeDb.from('projetos').insert([novo]).select().single();
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   proj.unshift(data);
