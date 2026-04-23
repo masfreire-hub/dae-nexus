@@ -2434,6 +2434,15 @@ select.sel{
         <div id="progSistemas"></div>
       </div>
 
+      <!-- ANDAMENTO DAS ATIVIDADES -->
+      <div class="section-card">
+        <div class="sec-header">
+          <span class="sec-title">⚡ Andamento das Atividades</span>
+          <span class="sec-badge" id="cntAtividades" style="background:var(--brand-light);color:var(--brand);">0</span>
+        </div>
+        <div id="dashAtividades"></div>
+      </div>
+
       <!-- GRID: URGENTES + RADAR -->
       <div class="dash-grid-2">
         <div class="section-card">
@@ -2853,6 +2862,7 @@ select.sel{
 .tl-proj-name{font-size:13px;font-weight:700;color:var(--tx);flex:1;}
 .tl-proj-prog{font-size:11px;color:var(--tx3);font-weight:600;}
 .tl-task-row{display:flex;align-items:center;padding:7px 16px;transition:background .15s;cursor:pointer;border-top:1px solid var(--border);}
+.tl-task-row.tl-alerta{background:linear-gradient(90deg,rgba(239,68,68,0.06),transparent);border-left:3px solid #EF4444;}
 .tl-task-row:hover{background:var(--surface2);}
 .tl-task-label{width:220px;flex-shrink:0;padding-right:16px;}
 .tl-task-name{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -3571,22 +3581,22 @@ select.sel{
 
 <div class="ov" id="mTask"><div class="modal">
   <div class="mhandle"></div><div class="mtitle" id="mTaskTitle">NOVA TAREFA</div>
-  <label class="lbl">Título</label><input class="inp" placeholder="Ex: Revisar especificação" id="ntT">
+  <label class="lbl">Título *</label><input class="inp" placeholder="Ex: Revisar especificação" id="ntT">
   <div class="fg">
     <div>
-      <label class="lbl">Estação</label>
+      <label class="lbl">Estação <span style="color:#EF4444">*</span></label>
       <select class="sel" id="ntEstacao" onchange="filtrarEspacosPorEstacao()">
         <option value="">Selecione a estação...</option>
       </select>
     </div>
     <div>
-      <label class="lbl">Espaço</label>
+      <label class="lbl">Setor <span style="color:#EF4444">*</span></label>
       <select class="sel" id="ntEspaco" onchange="filtrarProjetosPorEspaco()">
         <option value="">Selecione o setor...</option>
       </select>
     </div>
   </div>
-  <label class="lbl">Projeto</label>
+  <label class="lbl">Projeto <span style="color:#EF4444">*</span></label>
   <select class="sel" id="ntPj">
     <option value="">Selecione o projeto...</option>
   </select>
@@ -3595,7 +3605,8 @@ select.sel{
     <div><label class="lbl">Prioridade</label><select class="sel" id="ntPr"><option>urgente</option><option>alta</option><option>media</option><option>baixa</option></select></div>
   </div>
   <label class="lbl">Status</label><select class="sel" id="ntSt"><option>to do</option><option>em andamento</option><option>em revisão</option><option>pronto p/ testar</option><option>aguardando</option><option>bloqueado</option><option>feito</option></select>
-  <label class="lbl">Prazo</label><input class="inp" type="date" id="ntD">
+  <label class="lbl">Prazo <span style="color:#EF4444">*</span></label><input class="inp" type="date" id="ntD">
+  <div style="font-size:10px;color:var(--tx3);margin-bottom:12px;">* Campos obrigatórios</div>
   <button class="btnp" id="btnSaveTask" onclick="addTask()">CRIAR TAREFA</button>
   <button class="btncanc" onclick="closeM('mTask')">Cancelar</button>
 </div></div>
@@ -3788,6 +3799,7 @@ select.sel{
           <button class="det-tab on" id="detTabCom" onclick="switchDetTab('com')">💬 Comentários <span id="detComCount" style="font-weight:400;opacity:.6"></span></button>
           <button class="det-tab" id="detTabDesc" onclick="switchDetTab('desc')">📝 Descrição</button>
           <button class="det-tab" id="detTabAnexos" onclick="switchDetTab('anexos')">📎 Anexos</button>
+          <button class="det-tab" id="detTabLog" onclick="switchDetTab('log')">📋 Histórico</button>
         </div>
 
         <!-- ABA COMENTÁRIOS -->
@@ -3827,10 +3839,11 @@ select.sel{
             <div class="det-anexos-list" id="anexosBox"></div>
           </div>
         </div>
+        <!-- ABA HISTÓRICO -->
+        <div class="det-tab-content" id="detTabContentLog">
+          <div id="detLogList" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:0;"></div>
+        </div>
       </div>
-    </div>
-
-    <!-- BARRA DE AÇÕES -->
     <div class="det-actions-bar" id="detActionsBar"></div>
     <!-- Compatibilidade: proj e notificações usam detContent -->
     <div id="detContent" style="display:none"></div>
@@ -3872,7 +3885,7 @@ function sw(name, el) {
   if (ttEl) ttEl.textContent = titles[name] || '';
   // Renderizar aba ativa
   const renders = {
-    home:    () => { try{renderDashInteligente();}catch(e){} try{renderUrgent();}catch(e){} try{renderAct();}catch(e){} try{renderFeriasMini();}catch(e){} },
+    home:    () => { try{renderDashInteligente();}catch(e){} try{renderUrgent();}catch(e){} try{renderAct();}catch(e){} try{renderFeriasMini();}catch(e){} try{renderDashAtividades();}catch(e){} },
     arquivos: () => { try{renderArquivos();}catch(e){console.error('renderArquivos',e)} },
     tasks:   () => { try{renderTasks();}catch(e){console.error('renderTasks',e)} },
     proj:    () => { try{renderHierarquia();}catch(e){} const _pt=document.getElementById('proj-page-title');if(_pt)_pt.textContent='Estações & Setores'; },
@@ -3887,7 +3900,10 @@ function sw(name, el) {
     risk:    () => { try{renderRiscos();}catch(e){} },
     gantt:   () => { try{renderGantt();}catch(e){} },
     painel:  () => { try{renderPainel();}catch(e){} },
-    meuespaco: () => { try{meRenderAtual();}catch(e){} },
+    meuespaco: () => { 
+      try { swME('tarefas'); } catch(e) {}
+      try { renderMeTarefas(); } catch(e) {}
+    },
     config:  () => { try{renderCadastros();}catch(e){} try{updateSelects();}catch(e){} },
     chat:    () => { const cw=document.getElementById('chatWin'); const ce=document.getElementById('chatEmpty'); if(!curChId){if(cw)cw.style.display='none';if(ce)ce.style.display='flex';} }
   };
@@ -4151,7 +4167,21 @@ async function loadAll() {
 
       if (mm.data  && mm.data.length)  { memb    = norm(mm.data);  }
       if (pm.data  && pm.data.length)  { proj    = norm(pm.data);  }
-      if (tm.data  && tm.data.length)  { tar     = norm(tm.data);  }
+      if (tm.data  && tm.data.length)  { 
+        // Preservar tempo_gasto da tarefa com timer ativo (não sobrescrever com valor do banco)
+        const dadosBanco = norm(tm.data);
+        if (timerTarefaId && timerInicio) {
+          const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
+          dadosBanco.forEach(t => {
+            if (String(t.id) === String(timerTarefaId)) {
+              const tarefaLocal = tar.find(x => String(x.id) === String(timerTarefaId));
+              const base = tarefaLocal?.tempo_gasto || t.tempo_gasto || 0;
+              t.tempo_gasto = base + elapsed;
+            }
+          });
+        }
+        tar = dadosBanco;
+      }
       if (fm.data  && fm.data.length)  { ferias  = norm(fm.data);  }
       if (rm.data  && rm.data.length)  { riscos  = norm(rm.data);  }
       if (rem.data && rem.data.length) { reun    = norm(rem.data); }
@@ -4230,7 +4260,7 @@ function renderAll() {
   if (wname) wname.textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + `, ${nome}`;
   var _wd=document.getElementById('wdate');if(_wd)_wd.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderDashInteligente();
-  renderUrgent(); renderAct(); renderFeriasMini();
+  renderUrgent(); renderAct(); renderFeriasMini(); try{renderDashAtividades();}catch(e){}
   try{renderHierarquia();}catch(e){} try{renderProj();}catch(e){} try{renderTasks();}catch(e){} try{renderMeet();}catch(e){} try{renderMembers();}catch(e){} try{renderFerias();}catch(e){} try{renderCarga();}catch(e){} try{renderRiscos();}catch(e){} try{renderNova();}catch(e){} try{popSels();}catch(e){}
   try{renderChatDMs();}catch(e){} try{carregarCanaisCustom();}catch(e){}
 }
@@ -4465,6 +4495,44 @@ function renderAct() {
   }).join('');
 }
 
+function renderDashAtividades() {
+  const el = document.getElementById('dashAtividades');
+  const cnt = document.getElementById('cntAtividades');
+  if (!el) return;
+  if (!ativs.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px;">Nenhuma atividade cadastrada ainda</div>';
+    if (cnt) cnt.textContent = '0';
+    return;
+  }
+  if (cnt) cnt.textContent = ativs.length;
+  const statusLabel = {em_andamento:'▶ Em andamento', concluida:'✅ Concluída', pausada:'⏸ Pausada', pendente:'⏳ Pendente', cancelada:'❌ Cancelada'};
+  const statusCor = {em_andamento:'#3B82F6', concluida:'#10B981', pausada:'#F59E0B', pendente:'#8B5CF6', cancelada:'#EF4444'};
+  el.innerHTML = ativs.map(a => {
+    const autor = memb.find(m => m.av === a.autor);
+    const setor = espacos.find(e => e.id === a.espaco_id);
+    const cor = a.cor || '#4F46E5';
+    const st = a.status || 'em_andamento';
+    const stCor = statusCor[st] || '#3B82F6';
+    const updates = (a.updates || []).length;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <div style="width:4px;height:40px;border-radius:4px;background:${cor};flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:3px;">${a.titulo}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${setor ? `<span style="font-size:10px;color:var(--tx3);">📁 ${setor.nome}</span>` : ''}
+          ${updates ? `<span style="font-size:10px;color:var(--tx3);">💬 ${updates} atualização${updates>1?'ões':''}</span>` : ''}
+          ${a.descricao ? `<span style="font-size:10px;color:var(--tx3);">${a.descricao.slice(0,50)}${a.descricao.length>50?'…':''}</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:${stCor}18;color:${stCor};border:1px solid ${stCor}33;white-space:nowrap;">${statusLabel[st]||st}</span>
+        ${autor ? `<div style="width:28px;height:28px;border-radius:8px;background:${autor.cor||'#4F46E5'}22;color:${autor.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;" title="${autor.nome}">${autor.av}</div>` : ''}
+        <button onclick="abrirDetalheAtiv('${a.id}')" style="width:28px;height:28px;border-radius:8px;background:var(--surface3);border:none;cursor:pointer;font-size:12px;" title="Ver detalhes">✏️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso), now = new Date();
@@ -4473,6 +4541,14 @@ function fmtDate(iso) {
   if (diff < 60) return `${diff}min atrás`;
   if (diff < 1440) return `${Math.floor(diff/60)}h atrás`;
   return d.toLocaleDateString('pt-BR');
+}
+
+function _tempoRelativo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return 'agora mesmo';
+  if (diff < 3600) return `${Math.floor(diff/60)} min atrás`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h atrás`;
+  return `${Math.floor(diff/86400)}d atrás`;
 }
 
 // ── FÉRIAS MINI ───────────────────────────────────────────────────
@@ -4796,11 +4872,37 @@ function renderTasks() {
   if (curTF==='andamento') l = l.filter(t => !t.ok && ((t.status||'').includes('andamento')||(t.status||'').includes('desenvolv')));
   if (curTF==='concluidas') l = l.filter(t => t.ok);
   if (curView==='kanban') { renderKanban(l); return; }
+
   const ab = l.filter(t => !t.ok), dn = l.filter(t => t.ok);
   let h = '';
-  if (ab.length) { h += `<div class="sl">Abertas (${ab.length})</div>`; h += ab.map(trow).join(''); }
-  if (dn.length) { h += `<div class="sl">Concluídas (${dn.length})</div>`; h += dn.map(trow).join(''); }
-  if (!l.length) h = '<div style="text-align:center;padding:40px;color:var(--tx3)">Nenhuma tarefa</div>';
+
+  if (!l.length) {
+    h = '<div style="text-align:center;padding:40px;color:var(--tx3)">Nenhuma tarefa</div>';
+  } else {
+    // Agrupar abertas por projeto
+    if (ab.length) {
+      // Pegar projetos únicos das tarefas abertas
+      const projetosIds = [...new Set(ab.map(t => t.projeto_id))];
+      projetosIds.forEach(pid => {
+        const p = proj.find(x => x.id === pid);
+        const tarefasDoProjeto = ab.filter(t => t.projeto_id === pid);
+        const nomeProjeto = p ? p.nome : '— Sem projeto';
+        const corProjeto = p ? '#4F46E5' : '#94A3B8';
+        h += `<div style="margin-bottom:6px;margin-top:14px;display:flex;align-items:center;gap:8px;">
+          <div style="width:3px;height:16px;border-radius:2px;background:${corProjeto};"></div>
+          <span style="font-size:11px;font-weight:800;color:${corProjeto};text-transform:uppercase;letter-spacing:.8px;">${nomeProjeto}</span>
+          <span style="font-size:10px;color:var(--tx3);">${tarefasDoProjeto.length} tarefa${tarefasDoProjeto.length>1?'s':''} abertas</span>
+        </div>`;
+        h += tarefasDoProjeto.map(trow).join('');
+      });
+    }
+    // Concluídas no final sem agrupamento
+    if (dn.length) {
+      h += `<div class="sl" style="margin-top:16px;">Concluídas (${dn.length})</div>`;
+      h += dn.map(trow).join('');
+    }
+  }
+
   document.getElementById('taskList').innerHTML = h;
   document.getElementById('kanbanBoard').style.display = 'none';
   document.getElementById('taskList').style.display = 'block';
@@ -4808,32 +4910,62 @@ function renderTasks() {
 
 function renderKanban(l) {
   const cols = [
-    {key:'to do',label:'A Fazer',c:'#EF4444'},
-    {key:'andamento',label:'Em Dev',c:'#EAB308'},
-    {key:'testar',label:'P/ Testar',c:'#3B82F6'},
-    {key:'feito',label:'Feito',c:'#22C55E'},
+    {key:'to do',label:'A Fazer',c:'#EF4444',bg:'#FEF2F2',icon:'📋'},
+    {key:'andamento',label:'Em Dev',c:'#F59E0B',bg:'#FFFBEB',icon:'⚡'},
+    {key:'testar',label:'P/ Testar',c:'#3B82F6',bg:'#EFF6FF',icon:'🔍'},
+    {key:'feito',label:'Feito',c:'#10B981',bg:'#F0FDF4',icon:'✅'},
   ];
   const kmap = {'to do':'to do','em andamento':'andamento','em desenvolvimento':'andamento','em revisão':'andamento','especif. em análise':'andamento','pronto p/ testar':'testar','aguardando':'testar','liberado versão':'feito','feito':'feito','complete':'feito','concluido':'feito','backlog':'to do','bloqueado':'to do'};
   document.getElementById('taskList').style.display = 'none';
   const kb = document.getElementById('kanbanBoard'); kb.style.display = 'block';
-  kb.innerHTML = `<div class="kb">${cols.map(col => {
-    const items = l.filter(t => kmap[t.status]===col.key || (!kmap[t.status] && col.key==='to do'));
-    return `<div class="kcol" data-status="${col.key}">
-      <div class="khead" style="color:${col.c}">${col.label}<span style="background:${col.c}22;color:${col.c};padding:1px 6px;border-radius:8px;font-size:9px">${items.length}</span></div>
-      ${items.map(t => {
-        const pc = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#22C55E'}[t.prior]||'#C9920A';
-        const m = memb.find(x => x.av===t.resp);
-        return `<div class="kcard" data-id="${t.id}" onclick="openDet('task','${t.id}')">
-          <div class="kct">${t.titulo||t.tit}</div>
-          <div class="kcf">
-            <div class="kmini" style="background:${m?m.cor:pc}22;color:${m?m.cor:pc}">${t.resp||'?'}</div>
-            <div style="width:8px;height:8px;border-radius:50%;background:${pc}"></div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }).join('')}</div>`;
-  // Habilitar drag & drop após renderizar
+
+  const projetosIds = [...new Set(l.map(t => t.projeto_id))];
+
+  kb.innerHTML = projetosIds.map(pid => {
+    const p = proj.find(x => x.id === pid);
+    const nomeProjeto = p ? p.nome : '— Sem projeto';
+    const corProjeto = p ? '#4F46E5' : '#94A3B8';
+    const tarefasDoProjeto = l.filter(t => t.projeto_id === pid);
+    return `
+      <div style="margin-bottom:28px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:0 4px;">
+          <div style="width:4px;height:20px;border-radius:2px;background:${corProjeto};"></div>
+          <span style="font-size:13px;font-weight:800;color:${corProjeto};text-transform:uppercase;letter-spacing:.8px;">${nomeProjeto}</span>
+          <span style="font-size:10px;background:${corProjeto}18;color:${corProjeto};padding:2px 8px;border-radius:20px;font-weight:700;">${tarefasDoProjeto.length} tarefa${tarefasDoProjeto.length>1?'s':''}</span>
+        </div>
+        <div class="kb">
+          ${cols.map(col => {
+            const items = tarefasDoProjeto.filter(t => kmap[t.status]===col.key || (!kmap[t.status] && col.key==='to do'));
+            return `<div class="kcol" data-status="${col.key}" style="background:${col.bg};border:1.5px solid ${col.c}22;border-radius:14px;padding:10px;">
+              <div class="khead" style="color:${col.c};background:${col.c}15;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px;">
+                <span>${col.icon} ${col.label}</span>
+                <span style="background:${col.c};color:#fff;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;">${items.length}</span>
+              </div>
+              ${items.map(t => {
+                const priorCor = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'}[t.prior]||'#6B7280';
+                const priorBg = {urgente:'#FEF2F2',alta:'#FFF7ED',media:'#EFF6FF',baixa:'#F0FDF4'}[t.prior]||'#F8FAFC';
+                const m = memb.find(x => x.av===t.resp);
+                const mCor = m?.cor || priorCor;
+                return `<div class="kcard" data-id="${t.id}" onclick="openDet('task','${t.id}')"
+                  style="background:#fff;border:1.5px solid ${priorCor}33;border-left:4px solid ${priorCor};border-radius:10px;box-shadow:0 2px 8px ${priorCor}15;margin-bottom:8px;cursor:pointer;transition:all .15s;"
+                  onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px ${priorCor}25'"
+                  onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px ${priorCor}15'">
+                  <div style="padding:10px 12px;">
+                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px;line-height:1.4;">${t.titulo||t.tit}</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:${priorBg};color:${priorCor};border:1px solid ${priorCor}33;">${(t.prior||'normal').toUpperCase()}</span>
+                      <div style="width:24px;height:24px;border-radius:8px;background:${mCor}22;color:${mCor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;border:1.5px solid ${mCor}44;" title="${m?.nome||t.resp||'?'}">${t.resp||'?'}</div>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+              ${items.length === 0 ? `<div style="text-align:center;padding:20px 10px;color:${col.c}66;font-size:11px;border:1.5px dashed ${col.c}33;border-radius:10px;">Nenhuma tarefa</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
   setTimeout(enableKanbanDragDrop, 50);
 }
 
@@ -4845,6 +4977,8 @@ async function togTask(id) {
   const { error } = await safeDb.from('tarefas').update({ ok: novoOk, status: novoStatus, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   t.ok = novoOk; t.status = novoStatus;
+  // Log da ação
+  await logAtividade(novoOk?'tarefa_concluida':'tarefa_reaberta', novoOk?'Tarefa concluída':'Tarefa reaberta', `"${t.titulo||t.tit}" ${novoOk?'concluída':'reaberta'} por ${curUser?.nome||curUser?.av}`, curUser?.av, t.projeto_id, id, novoOk?'#10B981':'#F59E0B');
   // Atualizar progresso do projeto localmente
   const pTasks = tar.filter(x => x.projeto_id===t.projeto_id);
   const pOk = pTasks.filter(x => x.ok).length;
@@ -4865,13 +4999,24 @@ function setView(v,b) { curView=v; document.querySelectorAll('#viewChips .chip')
 async function addTask() {
   const tEl = document.getElementById('ntT');
   const t = (tEl?.value||'').trim();
-  if (!t || t === 'undefined') { showToast('Digite o título da tarefa'); tEl?.focus(); return; }
+  if (!t || t === 'undefined') { showToast('⚠️ Digite o título da tarefa'); tEl?.focus(); return; }
+
+  const estacao = document.getElementById('ntEstacao')?.value || '';
+  if (!estacao) { showToast('⚠️ Selecione a estação'); document.getElementById('ntEstacao')?.focus(); return; }
+
+  const espaco = document.getElementById('ntEspaco')?.value || '';
+  if (!espaco) { showToast('⚠️ Selecione o setor'); document.getElementById('ntEspaco')?.focus(); return; }
+
   const projId = document.getElementById('ntPj').value || null;
+  if (!projId) { showToast('⚠️ Selecione o projeto'); document.getElementById('ntPj')?.focus(); return; }
+
+  const prazo = document.getElementById('ntD').value || '';
+  if (!prazo) { showToast('⚠️ Informe o prazo'); document.getElementById('ntD')?.focus(); return; }
   // Validar se projeto existe no Supabase antes de inserir
   if (projId) {
     const { data: projCheck, error: projErr } = await safeDb.from('projetos').select('id').eq('id', projId).single();
     if (projErr || !projCheck) {
-      showToast('⚠️ Projeto inválido. Selecione outro ou deixe sem projeto.');
+      showToast('⚠️ Projeto inválido. Selecione outro.');
       document.getElementById('ntPj').value = '';
       return;
     }
@@ -4880,6 +5025,8 @@ async function addTask() {
   const { data, error } = await safeDb.from('tarefas').insert([nova]).select().single();
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   tar.unshift(data);
+  // Log da ação
+  await logAtividade('tarefa_criada', 'Tarefa criada', `"${t}" criada por ${curUser?.nome||curUser?.av}`, curUser?.av, data.projeto_id, data.id, '#4F46E5');
   // Atualizar progresso
   const pTasks = tar.filter(x => x.projeto_id===data.projeto_id);
   const pOk = pTasks.filter(x => x.ok).length;
@@ -4931,10 +5078,11 @@ function openEditTask(id) {
 
 async function saveEditTask(id) {
   const upd = { titulo:document.getElementById('ntT').value.trim(), projeto_id:document.getElementById('ntPj').value||null, resp:document.getElementById('ntR').value||null, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value, updated_at: new Date().toISOString() };
+  // Nunca sobrescrever tempo_gasto no update de edição
   const { error } = await safeDb.from('tarefas').update(upd).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   const idx = tar.findIndex(t => t.id===id);
-  if (idx >= 0) tar[idx] = { ...tar[idx], ...upd };
+  if (idx >= 0) tar[idx] = { ...tar[idx], ...upd }; // spread preserva tempo_gasto local
   const btn = document.querySelector('#mTask .btnp');
   btn.textContent = 'CRIAR TAREFA'; btn.onclick = addTask;
   closeM('mTask'); renderTasks();
@@ -5026,8 +5174,9 @@ async function openDet(type, id) {
     }
 
     // ── Painel ESQUERDO ────────────────────────────────────────────
-    const tempoGasto = t.tempo_gasto || 0;
     const isTimerOn  = timerTarefaId === id;
+    const elapsedAtivo = isTimerOn && timerInicio ? Math.floor((Date.now() - timerInicio) / 1000) : 0;
+    const tempoGasto = (t.tempo_gasto || 0) + elapsedAtivo;
     const esp        = espacos.find(e => e.id === (p?.espaco_id));
 
     // Meta row no header
@@ -5520,13 +5669,41 @@ async function pararTimer(tarefaId) {
 }
 
 function switchDetTab(tab) {
-  const map = {com:'Com', desc:'Desc', anexos:'Anexos'};
+  const map = {com:'Com', desc:'Desc', anexos:'Anexos', log:'Log'};
   Object.keys(map).forEach(t => {
     const tabBtn = document.getElementById('detTab'+map[t]);
     const tabContent = document.getElementById('detTabContent'+map[t]);
     if (tabBtn) tabBtn.classList.toggle('on', t===tab);
     if (tabContent) tabContent.classList.toggle('on', t===tab);
   });
+  if (tab === 'log') carregarLogTarefa(window._detTarefaId);
+}
+
+async function carregarLogTarefa(tarefaId) {
+  const el = document.getElementById('detLogList');
+  if (!el || !tarefaId) return;
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px;">Carregando...</div>';
+  const { data } = await safeDb.from('atividades')
+    .select('*').eq('tarefa_id', tarefaId).order('created_at', {ascending: false});
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tx3);font-size:12px;"><div style="font-size:32px;margin-bottom:8px;opacity:.3">📋</div>Nenhuma ação registrada ainda</div>';
+    return;
+  }
+  const tipoIcon = {tarefa_criada:'🟢', tarefa_concluida:'✅', tarefa_reaberta:'↩️', tarefa_editada:'✏️', comentario:'💬'};
+  el.innerHTML = data.map(a => {
+    const autor = memb.find(m => m.av === a.autor);
+    const cor = autor?.cor || '#4F46E5';
+    const tempo = a.created_at ? _tempoRelativo(a.created_at) : '';
+    const ic = tipoIcon[a.tipo] || '📌';
+    return `<div style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="width:32px;height:32px;border-radius:10px;background:${cor}18;color:${cor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${autor?.av||'?'}</div>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:2px;">${ic} ${a.titulo||''}</div>
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:4px;">${a.descricao||''}</div>
+        <div style="font-size:10px;color:var(--tx3);">🕐 ${tempo} · ${autor?.nome||a.autor||'?'}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 let _descTimer = null;
@@ -9322,6 +9499,68 @@ async function calcularProgressoAuto(projetoId) {
 // ══ GANTT / TIMELINE ═══════════════════════════════════════════
 function renderGantt() { renderTimeline(); }
 
+function tlAlertarWhats(tarefaId) {
+  const t = tar.find(x => x.id === tarefaId);
+  if (!t) return;
+  const resp = memb.find(m => m.av === t.resp);
+  const respNome = resp?.nome?.split(' ')[0] || t.resp || 'responsável';
+  const projeto = proj.find(p => p.id === t.projeto_id);
+  const ultimaAtu = t.updated_at ? new Date(t.updated_at) : null;
+  const horasParada = ultimaAtu ? Math.floor((Date.now() - ultimaAtu.getTime()) / 3600000) : '?';
+  const msg = encodeURIComponent(
+`⚠️ *Alerta de Gestão — DAE Nexus*
+
+A tarefa abaixo está parada há *${horasParada} horas* sem atualização:
+
+📋 *${t.titulo}*
+👤 Responsável: ${respNome}
+📁 Projeto: ${projeto?.nome || '—'}
+📊 Status: ${t.status || 'em andamento'}
+⏱ Tempo registrado: ${fmtTempo(t.tempo_gasto || 0)}
+
+Por favor, atualize o status ou informe o andamento.
+
+_Enviado por ${curUser?.nome?.split(' ')[0] || 'Gestora'} via DAE Nexus_ ✨`);
+
+  // Abrir WhatsApp com número do responsável se tiver
+  if (resp?.whatsapp) {
+    const num = resp.whatsapp.replace(/\D/g,'');
+    window.open(`https://wa.me/55${num}?text=${msg}`, '_blank');
+  } else {
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
+  }
+  showToast('📱 WhatsApp aberto para alertar sobre a tarefa!');
+}
+
+// Monitor automático — verifica a cada 30 min tarefas paradas há 4h+
+let _tlMonitorInterval = null;
+function iniciarMonitorTimeline() {
+  if (_tlMonitorInterval) return;
+  _tlMonitorInterval = setInterval(() => {
+    const hoje = new Date();
+    const tarefasParadas = tar.filter(t => {
+      if (t.ok || !t.status?.includes('andamento')) return false;
+      const ultimaAtu = t.updated_at ? new Date(t.updated_at) : null;
+      if (!ultimaAtu) return false;
+      return (hoje - ultimaAtu) / 3600000 >= 4;
+    });
+    if (tarefasParadas.length > 0) {
+      // Notificação interna para a gestora
+      safeDb.from('notificacoes').insert(tarefasParadas.map(t => ({
+        destinatario: curUser?.av || 'MA',
+        titulo: `⚠️ Tarefa parada: ${t.titulo}`,
+        texto: `"${t.titulo}" está em andamento há mais de 4h sem atualização.`,
+        tipo: 'alerta',
+        tarefa_id: t.id
+      }))).then(() => loadNotifs());
+      showToast(`⚠️ ${tarefasParadas.length} tarefa(s) parada(s) há 4h+!`);
+      // Atualizar timeline se estiver aberta
+      const tabGantt = document.getElementById('t-gantt');
+      if (tabGantt?.classList.contains('on')) renderTimeline();
+    }
+  }, 30 * 60 * 1000); // 30 min
+}
+
 function renderTimeline() {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const busca   = (document.getElementById('tlBusca')?.value || '').toLowerCase();
@@ -9459,6 +9698,18 @@ function renderTimeline() {
       const resp = memb.find(m => m.av === t.resp);
       const respNome = resp?.nome?.split(' ')[0] || t.resp || '—';
 
+      // Tempo gasto
+      const tempoSeg = t.tempo_gasto || 0;
+      const tempoH = Math.floor(tempoSeg / 3600);
+      const tempoMin = Math.floor((tempoSeg % 3600) / 60);
+      const tempoTxt = tempoSeg > 0 ? (tempoH > 0 ? `${tempoH}h${tempoMin>0?tempoMin+'min':''}` : `${tempoMin}min`) : '—';
+
+      // Alerta 4h sem progresso
+      const emAndamento = st === 'andamento';
+      const ultimaAtu = t.updated_at ? new Date(t.updated_at) : null;
+      const horasSemUpdate = ultimaAtu ? (Date.now() - ultimaAtu.getTime()) / 3600000 : 0;
+      const alertaAtivo = emAndamento && horasSemUpdate >= 4;
+
       // Calcular posição da barra
       const tIni = t.data_inicio ? new Date(t.data_inicio) : new Date(hoje);
       const tFim = t.prazo ? new Date(t.prazo) : new Date(hoje.getTime() + 7*86400000);
@@ -9466,19 +9717,25 @@ function renderTimeline() {
       const width = Math.min(100 - left, Math.max(3, Math.round((tFim - tIni) / 86400000 / totalDias * 100)));
       const prog = t.prog || 0;
 
-      html += `<div class="tl-task-row" onclick="openDet('task','${t.id}')"
+      html += `<div class="tl-task-row${alertaAtivo?' tl-alerta':''}" onclick="openDet('task','${t.id}')"
         draggable="true"
         ondragstart="tlDragStart(event,'${t.id}')"
         ondragend="tlDragEnd(event,'${t.id}')">
         <div class="tl-task-label">
-          <div class="tl-task-name" title="${t.titulo}">${t.titulo}</div>
-          <div class="tl-task-meta">${respNome} · <span style="color:${st==='atrasado'?'#EF4444':st==='concluido'?'#10B981':st==='andamento'?'#F59E0B':'#3B82F6'}">${lbl}</span></div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="tl-task-name" title="${t.titulo}">${t.titulo}</div>
+            ${alertaAtivo ? `<span onclick="event.stopPropagation();tlAlertarWhats('${t.id}')" title="Tarefa parada há ${Math.floor(horasSemUpdate)}h! Clique para alertar via WhatsApp" style="background:#EF4444;color:#fff;border-radius:6px;padding:1px 6px;font-size:9px;font-weight:800;cursor:pointer;animation:pulse 1.5s infinite;">⚠️ ${Math.floor(horasSemUpdate)}h parada</span>` : ''}
+          </div>
+          <div class="tl-task-meta" style="display:flex;gap:8px;align-items:center;">
+            <span>${respNome} · <span style="color:${st==='atrasado'?'#EF4444':st==='concluido'?'#10B981':st==='andamento'?'#F59E0B':'#3B82F6'}">${lbl}</span></span>
+            <span style="background:${tempoSeg>0?'#4F46E515':'var(--surface3)'};color:${tempoSeg>0?'#4F46E5':'var(--tx3)'};border-radius:6px;padding:1px 6px;font-size:9px;font-weight:700;">⏱ ${tempoTxt}</span>
+          </div>
         </div>
         <div class="tl-task-bar-wrap">
           <div class="tl-grid-line" style="left:${hojePos}%"></div>
           <div class="tl-today" style="left:${hojePos}%"></div>
-          <div class="tl-bar ${cls}" style="left:${Math.max(0,left)}%;width:${Math.max(8,width)}%;min-width:80px"
-            title="${(t.titulo||t.tit||'')} · ${prog}% · ${lbl}"
+          <div class="tl-bar ${cls}" style="left:${Math.max(0,left)}%;width:${Math.max(8,width)}%;min-width:80px${alertaAtivo?';box-shadow:0 0 0 2px #EF4444':''}"
+            title="${(t.titulo||t.tit||'')} · ${prog}% · ${lbl} · Tempo: ${tempoTxt}"
             ondragover="tlDragOver(event)"
             ondrop="tlDrop(event,'${t.id}')">
             <div class="tl-bar-fill" style="width:${prog}%"></div>
@@ -9577,25 +9834,37 @@ function renderPainel() {
       </div>`).join('') || '<div style="color:var(--tx3);font-size:12px">Sem dados</div>';
   }
 
-  // Por setor
+  // Por setor — usar espacos reais
   const setorEl = document.getElementById('painelSetor');
   if (setorEl) {
-    const setores = [...new Set(proj.map(p=>p.dept).filter(Boolean))];
-    setorEl.innerHTML = setores.map((s,i) => {
-      const ps = proj.filter(p=>p.dept===s);
-      const ativos = ps.filter(p=>p.status!=='concluido').length;
-      const media = ps.length ? Math.round(ps.reduce((a,p)=>a+(p.prog||0),0)/ps.length) : 0;
-      const cor = CL[i%CL.length];
-      return `<div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-          <span style="font-weight:600">${s}</span>
-          <span style="color:var(--tx3)">${ps.length} proj · ${ativos} ativos · <span style="color:${cor};font-weight:700">${media}%</span></span>
-        </div>
-        <div class="prog-bar"><div class="prog-fill" style="width:${media}%;background:${cor}"></div></div>
-      </div>`;
-    }).join('') || '<div style="color:var(--tx3);font-size:12px">Sem dados</div>';
+    if (!espacos.length) {
+      setorEl.innerHTML = '<div style="color:var(--tx3);font-size:12px">Nenhum setor cadastrado</div>';
+    } else {
+      setorEl.innerHTML = espacos.map((e, i) => {
+        const projSetor = proj.filter(p => p.espaco_id === e.id);
+        const ativsSetor = ativs.filter(a => a.espaco_id === e.id);
+        const ativos = projSetor.filter(p => p.status !== 'concluido').length;
+        const media = projSetor.length ? Math.round(projSetor.reduce((a,p)=>a+(p.prog||0),0)/projSetor.length) : 0;
+        const cor = CL[i % CL.length];
+        const tarSetor = tar.filter(t => projSetor.some(p => p.id === t.projeto_id));
+        const tarConclSetor = tarSetor.filter(t => t.ok).length;
+        return `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:${cor};flex-shrink:0;"></div>
+              <span style="font-weight:700;color:var(--tx);">${e.nome}</span>
+            </div>
+            <span style="color:var(--tx3);font-size:10px;">${projSetor.length} proj · ${ativos} ativos · ${ativsSetor.length} ativ · <span style="color:${cor};font-weight:700;">${media}%</span></span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${media}%;background:${cor}"></div></div>
+          <div style="display:flex;gap:12px;margin-top:6px;font-size:10px;color:var(--tx3);">
+            <span>✅ ${tarConclSetor} tarefas concluídas</span>
+            <span>📋 ${tarSetor.length} total</span>
+          </div>
+        </div>`;
+      }).join('') || '<div style="color:var(--tx3);font-size:12px">Sem dados</div>';
+    }
   }
-
   // Métricas
   const metEl = document.getElementById('painelMetricas');
   if (metEl) {
@@ -10001,14 +10270,16 @@ function iniciarChatGlobal() {
         const estaNoCanal = curChId === canalId;
 
         // Atualizar chatMsgs para badge na sidebar
-        if (!chatMsgs[canalId]) chatMsgs[canalId] = [];
-        const now = new Date(m.created_at || Date.now());
-        const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
-        chatMsgs[canalId].push({ av: m.autor, cor, n: mb?.nome||m.autor, t: m.texto||'', me: false, h, data:'Hoje' });
+        // SE estiver no canal, a subscription específica já cuida — não duplicar
+        if (!estaNoChat || !estaNoCanal) {
+          if (!chatMsgs[canalId]) chatMsgs[canalId] = [];
+          const now = new Date(m.created_at || Date.now());
+          const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+          chatMsgs[canalId].push({ av: m.autor, cor, n: mb?.nome||m.autor, t: m.texto||'', me: false, h, data:'Hoje' });
+        }
 
-        // Se estiver no canal aberto, renderizar
+        // Se estiver no canal aberto, não fazer nada (subscription específica já renderizou)
         if (estaNoChat && estaNoCanal) {
-          renderChat();
           return;
         }
 
@@ -10111,7 +10382,7 @@ async function entrarNoApp(usuario) {
     if (_c) _c.scrollTop = 0;
   }, 500);
   // Iniciar listener global de mensagens
-  setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); }, 1000);
+  setTimeout(() => { iniciarChatGlobal(); pedirPermissaoNotif(); iniciarMonitorTimeline(); }, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
