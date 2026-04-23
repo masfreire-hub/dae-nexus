@@ -334,6 +334,7 @@ body{
 /* ── TABS (conteúdo) ─────────────────────────────────────────── */
 .tab{display:none;animation:fadeUp .25s var(--ease) both;}
 .tab.on{display:block;}
+.tab:not(.on){height:0;overflow:hidden;margin:0;padding:0;}
 
 /* ═══════════════════════════════════════════════════════════════
    CARDS BASE
@@ -2920,7 +2921,6 @@ select.sel{
   </div>
 
 </div>
-</div>
 
 <div class="tab" id="t-meuespaco">
   <div class="ph">
@@ -3020,21 +3020,19 @@ select.sel{
 
 
 <div class="tab" id="t-painel">
-  <div class="page-header">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div>
-        <div class="page-title">Painel Estratégico</div>
-        <div class="page-sub">Visão geral de desempenho e métricas</div>
-      </div>
-      <div style="display:flex;gap:6px" id="periodoChips">
-        <span class="period-chip on" onclick="setPeriodo('tudo',this)">Tudo</span>
-        <span class="period-chip" onclick="setPeriodo('semana',this)">Semana</span>
-        <span class="period-chip" onclick="setPeriodo('mes',this)">Mês</span>
-        <span class="period-chip" onclick="setPeriodo('trimestre',this)">Trimestre</span>
-      </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+    <div>
+      <div class="page-title">Painel Estratégico</div>
+      <div class="page-sub">Visão geral de desempenho e métricas</div>
+    </div>
+    <div style="display:flex;gap:6px" id="periodoChips">
+      <span class="period-chip on" onclick="setPeriodo('tudo',this)">Tudo</span>
+      <span class="period-chip" onclick="setPeriodo('semana',this)">Semana</span>
+      <span class="period-chip" onclick="setPeriodo('mes',this)">Mês</span>
+      <span class="period-chip" onclick="setPeriodo('trimestre',this)">Trimestre</span>
     </div>
   </div>
-  <div id="painelKPIs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px"></div>
+  <div id="painelKPIs" style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
     <div class="section-card">
       <div class="sec-header"><span class="sec-title">🏆 Top Colaboradores</span></div>
@@ -3390,6 +3388,7 @@ select.sel{
   </div>
 </div>
 
+  </div><!-- /content -->
   </div><!-- /body-wrap -->
 
 <!-- GLOBAL LOADER -->
@@ -3523,6 +3522,43 @@ select.sel{
   <button class="btncanc" onclick="closeM('mAtivSetor')">Cancelar</button>
 </div></div>
 
+<div class="ov" id="mDetalheAtiv"><div class="modal" style="max-height:90vh;">
+  <div class="mhandle"></div>
+  <div class="mtitle" id="mDetalheAtivTitulo">⚡ ATIVIDADE</div>
+  <input type="hidden" id="mDetalheAtivId">
+
+  <!-- Status -->
+  <label class="lbl">Status</label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="mDetalheAtivStatus">
+    <div onclick="selStatusAtiv(this,'em_andamento')" data-status="em_andamento" style="padding:6px 14px;border-radius:20px;border:2px solid #3B82F6;background:#EFF6FF;color:#3B82F6;font-size:11px;font-weight:700;cursor:pointer;">▶ Em andamento</div>
+    <div onclick="selStatusAtiv(this,'concluida')" data-status="concluida" style="padding:6px 14px;border-radius:20px;border:2px solid var(--border);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;">✅ Concluída</div>
+    <div onclick="selStatusAtiv(this,'pausada')" data-status="pausada" style="padding:6px 14px;border-radius:20px;border:2px solid var(--border);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;">⏸ Pausada</div>
+    <div onclick="selStatusAtiv(this,'pendente')" data-status="pendente" style="padding:6px 14px;border-radius:20px;border:2px solid var(--border);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;">⏳ Pendente</div>
+    <div onclick="selStatusAtiv(this,'cancelada')" data-status="cancelada" style="padding:6px 14px;border-radius:20px;border:2px solid var(--border);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;">❌ Cancelada</div>
+  </div>
+
+  <!-- Descrição editável -->
+  <label class="lbl">Descrição</label>
+  <textarea class="inp" id="mDetalheAtivDesc" placeholder="Descreva o andamento..." style="height:70px;resize:vertical;margin-bottom:14px;"></textarea>
+
+  <!-- Nova atualização -->
+  <label class="lbl">➕ Registrar atualização</label>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <textarea class="inp" id="mDetalheAtivUpdate" placeholder="Ex: Reunião realizada, documentação enviada, aguardando aprovação..." style="height:60px;resize:vertical;flex:1;margin-bottom:0;"></textarea>
+    <button onclick="registrarUpdateAtiv()" style="padding:0 14px;background:var(--brand);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;font-family:inherit;">Registrar</button>
+  </div>
+
+  <!-- Histórico -->
+  <label class="lbl">📋 Histórico de atualizações</label>
+  <div id="mDetalheAtivHistorico" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px;margin-bottom:14px;background:var(--surface2);">
+    <div style="font-size:11px;color:var(--tx3);text-align:center;padding:16px;">Nenhuma atualização ainda</div>
+  </div>
+
+  <div style="display:flex;gap:8px;">
+    <button class="btncanc" onclick="closeM('mDetalheAtiv')" style="flex:1">Fechar</button>
+    <button class="btnp" onclick="salvarDetalheAtiv()" style="flex:1">💾 Salvar</button>
+  </div>
+</div></div>
 <div class="ov" id="mMembrosEspaco"><div class="modal">
   <div class="mhandle"></div>
   <div class="mtitle" id="mMembrosEspacoTitle">👥 MEMBROS DO ESPAÇO</div>
@@ -4507,7 +4543,9 @@ async function addProj() {
   const n = document.getElementById('npN').value.trim();
   if (!n) { showToast('Digite o nome'); return; }
   const espacoIdVal = document.getElementById('npEspaco')?.value || null;
-  const novo = { nome:n, descricao:document.getElementById('npD').value||'', dept:document.getElementById('npDp').value||'DAE', espaco_id:espacoIdVal||null, prior:document.getElementById('npPr').value, prog:0, fim:document.getElementById('npF').value||null, status:'planejamento', eq:[curUser?.av||'?'] };
+  const resps = [...document.querySelectorAll('.npRespCheck:checked')].map(c => c.value);
+  const eq = resps.length ? resps : [curUser?.av||'?'];
+  const novo = { nome:n, descricao:document.getElementById('npD').value||'', dept:document.getElementById('npDp').value||'DAE', espaco_id:espacoIdVal||null, prior:document.getElementById('npPr').value, prog:0, fim:document.getElementById('npF').value||null, status:'planejamento', eq };
   const { data, error } = await safeDb.from('projetos').insert([novo]).select().single();
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   proj.unshift(data);
@@ -4604,6 +4642,97 @@ async function excluirAtividade(id) {
   renderHierarquia();
   renderDashInteligente();
   showToast('✅ Atividade excluída!');
+}
+
+// ── DETALHE / EDIÇÃO DE ATIVIDADE ─────────────────────────────────
+function abrirDetalheAtiv(id) {
+  const a = ativs.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('mDetalheAtivId').value = id;
+  document.getElementById('mDetalheAtivTitulo').textContent = '⚡ ' + a.titulo;
+  document.getElementById('mDetalheAtivDesc').value = a.descricao || '';
+  // Status
+  const status = a.status || 'em_andamento';
+  document.querySelectorAll('#mDetalheAtivStatus div').forEach(d => {
+    const sel = d.dataset.status === status;
+    const statusCores = {em_andamento:'#3B82F6',concluida:'#10B981',pausada:'#F59E0B',pendente:'#8B5CF6',cancelada:'#EF4444'};
+    const cor = statusCores[d.dataset.status] || '#3B82F6';
+    d.style.borderColor = sel ? cor : 'var(--border)';
+    d.style.background = sel ? cor+'18' : 'var(--surface2)';
+    d.style.color = sel ? cor : 'var(--tx2)';
+  });
+  // Histórico
+  _renderHistoricoAtiv(a);
+  openM('mDetalheAtiv');
+}
+
+function selStatusAtiv(el, status) {
+  document.querySelectorAll('#mDetalheAtivStatus div').forEach(d => {
+    const statusCores = {em_andamento:'#3B82F6',concluida:'#10B981',pausada:'#F59E0B',pendente:'#8B5CF6',cancelada:'#EF4444'};
+    const cor = statusCores[d.dataset.status] || '#3B82F6';
+    const sel = d.dataset.status === status;
+    d.style.borderColor = sel ? cor : 'var(--border)';
+    d.style.background = sel ? cor+'18' : 'var(--surface2)';
+    d.style.color = sel ? cor : 'var(--tx2)';
+  });
+}
+
+function _getStatusAtivSel() {
+  const sel = document.querySelector('#mDetalheAtivStatus div[style*="18"]');
+  return sel?.dataset.status || 'em_andamento';
+}
+
+function _renderHistoricoAtiv(a) {
+  const el = document.getElementById('mDetalheAtivHistorico');
+  if (!el) return;
+  const updates = a.updates || [];
+  if (!updates.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--tx3);text-align:center;padding:16px;">Nenhuma atualização ainda</div>';
+    return;
+  }
+  el.innerHTML = updates.slice().reverse().map(u => {
+    const autor = memb.find(m => m.av === u.av);
+    const cor = autor?.cor || '#4F46E5';
+    return `<div style="display:flex;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);">
+      <div style="width:26px;height:26px;border-radius:8px;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;">${u.av}</div>
+      <div style="flex:1;">
+        <div style="font-size:12px;color:var(--tx);line-height:1.4;">${u.texto}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px;">🕐 ${u.data} · ${autor?.nome||u.av}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function registrarUpdateAtiv() {
+  const id = document.getElementById('mDetalheAtivId').value;
+  const texto = document.getElementById('mDetalheAtivUpdate').value.trim();
+  if (!texto) { showToast('⚠️ Digite a atualização'); return; }
+  const a = ativs.find(x => x.id === id);
+  if (!a) return;
+  const agora = new Date();
+  const data = agora.toLocaleDateString('pt-BR') + ' ' + agora.getHours() + ':' + String(agora.getMinutes()).padStart(2,'0');
+  const updates = [...(a.updates || []), { av: curUser?.av||'?', texto, data }];
+  const { error } = await safeDb.from('atividades').update({ updates }).eq('id', id);
+  if (error) { showToast('❌ Erro: ' + error.message); return; }
+  a.updates = updates;
+  document.getElementById('mDetalheAtivUpdate').value = '';
+  _renderHistoricoAtiv(a);
+  showToast('✅ Atualização registrada!');
+}
+
+async function salvarDetalheAtiv() {
+  const id = document.getElementById('mDetalheAtivId').value;
+  const a = ativs.find(x => x.id === id);
+  if (!a) return;
+  const status = _getStatusAtivSel();
+  const descricao = document.getElementById('mDetalheAtivDesc').value.trim();
+  const { error } = await safeDb.from('atividades').update({ status, descricao }).eq('id', id);
+  if (error) { showToast('❌ Erro: ' + error.message); return; }
+  a.status = status;
+  a.descricao = descricao;
+  closeM('mDetalheAtiv');
+  renderHierarquia();
+  showToast('✅ Atividade atualizada!');
 }
 
 function openEditProj(id) {
@@ -8856,6 +8985,7 @@ function renderHierarquia() {
           if (autor) h += '<div style="width:26px;height:26px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="'+autor.nome+'">'+autor.av+'</div>';
           h += '<div style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+cor+'14;color:'+cor+';">'+( a.tipo||'atividade')+'</div>';
           h += '<button onclick="excluirAtividade(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#FEF2F2;border:none;cursor:pointer;font-size:11px;flex-shrink:0;" title="Excluir">🗑</button>';
+          h += '<button onclick="abrirDetalheAtiv(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#EFF6FF;border:none;cursor:pointer;font-size:11px;flex-shrink:0;" title="Ver/Editar">✏️</button>';
           h += '</div>';
         });
         h += '</div></div>';
@@ -9422,10 +9552,10 @@ function renderPainel() {
   // KPIs
   const kpisEl = document.getElementById('painelKPIs');
   if (kpisEl) kpisEl.innerHTML = `
-    <div class="sc g"><div style="font-size:18px">📊</div><div class="sv">${mediaProgresso}%</div><div class="sl2">Progresso Médio</div><div class="str">${projAtivos.length} estações ativas</div></div>
-    <div class="sc re"><div style="font-size:18px">✅</div><div class="sv">${tarConcluidas}</div><div class="sl2">Tarefas Concluídas</div><div class="str">${periodoLabel}</div></div>
-    <div class="sc ye"><div style="font-size:18px">🔴</div><div class="sv">${projAtrasados.length}</div><div class="sl2">Atrasados</div><div class="str">${projConcluidos.length} concluídos</div></div>
-    <div class="sc bl"><div style="font-size:18px">⚡</div><div class="sv">${tarTotal>0?Math.round(tarConcluidas/tarTotal*100):0}%</div><div class="sl2">Taxa Conclusão</div><div class="str">${periodoLabel}</div></div>
+    <div class="sc g" style="flex:1;min-width:140px"><div style="font-size:18px">📊</div><div class="sv">${mediaProgresso}%</div><div class="sl2">Progresso Médio</div><div class="str">${projAtivos.length} estações ativas</div></div>
+    <div class="sc re" style="flex:1;min-width:140px"><div style="font-size:18px">✅</div><div class="sv">${tarConcluidas}</div><div class="sl2">Tarefas Concluídas</div><div class="str">${periodoLabel}</div></div>
+    <div class="sc ye" style="flex:1;min-width:140px"><div style="font-size:18px">🔴</div><div class="sv">${projAtrasados.length}</div><div class="sl2">Atrasados</div><div class="str">${projConcluidos.length} concluídos</div></div>
+    <div class="sc bl" style="flex:1;min-width:140px"><div style="font-size:18px">⚡</div><div class="sv">${tarTotal>0?Math.round(tarConcluidas/tarTotal*100):0}%</div><div class="sl2">Taxa Conclusão</div><div class="str">${periodoLabel}</div></div>
   `;
 
   // Top colaboradores
@@ -9596,7 +9726,6 @@ function closeM(id) {
 document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); }));
 
 function popSels() {
-  // Filtrar apenas projetos com ID real (não local_xxx)
   const projValidos = proj.filter(p => p.id && !String(p.id).startsWith('local_'));
   document.getElementById('ntPj').innerHTML = '<option value="">Selecione o projeto...</option>' + projValidos.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
   document.getElementById('ntR').innerHTML = memb.map(m=>`<option value="${m.av}">${m.nome}</option>`).join('');
@@ -9606,6 +9735,22 @@ function popSels() {
   if (espSel) espSel.innerHTML = '<option value="">Selecione o setor...</option>' + espacos.map(e=>`<option value="${e.id}">${e.estacao} › ${e.nome}</option>`).join('');
   const estSel = document.getElementById('mEspacoEstacao');
   if (estSel) estSel.innerHTML = '<option value="">Selecione a estação...</option>' + cadastros.estacao.map(s=>`<option value="${s}">${s}</option>`).join('');
+  // Popular responsáveis no modal de projeto
+  const npResp = document.getElementById('npRespCheckboxes');
+  if (npResp) {
+    npResp.innerHTML = memb.map(m => {
+      const cor = m.cor || '#4F46E5';
+      return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+        <input type="checkbox" value="${m.av}" class="npRespCheck" style="width:15px;height:15px;accent-color:${cor};cursor:pointer;flex-shrink:0;">
+        <div style="width:28px;height:28px;border-radius:8px;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">${m.av}</div>
+        <span style="font-size:12px;font-weight:600;color:var(--tx);">${m.nome}</span>
+        <span style="font-size:10px;color:var(--tx3);margin-left:auto;">${m.cargo||''}</span>
+      </label>`;
+    }).join('');
+  }
+  // Popular responsável na atividade
+  const mAtivResp = document.getElementById('mAtivResp');
+  if (mAtivResp) mAtivResp.innerHTML = memb.map(m=>`<option value="${m.av}">${m.nome}</option>`).join('');
 }
 
 function menuUsuario() {
