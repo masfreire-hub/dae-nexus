@@ -3646,7 +3646,7 @@ select.sel{
   <label class="lbl">Prazo <span style="color:#EF4444">*</span></label><input class="inp" type="date" id="ntD">
   <div style="font-size:10px;color:var(--tx3);margin-bottom:12px;">* Campos obrigatórios</div>
   <button class="btnp" id="btnSaveTask" onclick="addTask()">CRIAR TAREFA</button>
-  <button class="btncanc" onclick="closeM('mTask')">Cancelar</button>
+  <button class="btncanc" onclick="const b=document.getElementById('btnSaveTask');if(b){b.textContent='CRIAR TAREFA';b.disabled=false;b.onclick=addTask;}document.getElementById('mTaskTitle').textContent='NOVA TAREFA';closeM('mTask')">Cancelar</button>
 </div></div>
 
 <div class="ov" id="mMeet"><div class="modal">
@@ -3749,6 +3749,26 @@ select.sel{
       <input class="inp" style="margin:0;flex:1" type="tel" placeholder="71999990000" id="mmW" oninput="this.value=this.value.replace(/\D/g,'')">
       <div id="mmWPreview" style="font-size:10px;color:var(--tx3);white-space:nowrap"></div>
     </div>
+  </div>
+
+  <!-- ACESSO AO SISTEMA -->
+  <div style="background:linear-gradient(135deg,rgba(79,70,229,.06),rgba(99,102,241,.02));border:1px solid rgba(79,70,229,.18);border-radius:10px;padding:12px;margin-bottom:12px">
+    <div style="font-size:10px;font-weight:700;color:var(--brand);letter-spacing:1px;margin-bottom:10px">🔐 ACESSO AO SISTEMA</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div style="flex:1">
+        <label class="lbl">Senha de acesso</label>
+        <input class="inp" type="password" placeholder="Defina uma senha" id="mmSenha" style="margin:0;">
+      </div>
+      <div style="flex:1">
+        <label class="lbl">Status de acesso</label>
+        <select class="sel" id="mmStatusAcesso" style="margin:0;">
+          <option value="ativo">✅ Ativo</option>
+          <option value="bloqueado">🚫 Bloqueado</option>
+          <option value="pendente">⏳ Pendente</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--tx3);">⚠️ Sem senha definida, o membro não consegue entrar no sistema.</div>
   </div>
 
   <button class="btnp" id="btnSaveMember" onclick="addMember()">ADICIONAR MEMBRO</button>
@@ -4131,19 +4151,19 @@ async function doLogin() {
       return;
     }
 
-    // Verificar aprovação
+    // Verificar aprovação — bloqueia só quem foi explicitamente bloqueado ou está pendente
     if (usuario.status_acesso === 'pendente') {
-      showToast('⏳ Sua conta ainda está aguardando aprovação da gestora.');
+      showToast('⏳ Sua conta aguarda aprovação da gestora.');
       if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
       return;
     }
     if (usuario.status_acesso === 'bloqueado') {
-      showToast('🚫 Acesso bloqueado. Entre em contato com a gestora.');
+      showToast('🚫 Acesso bloqueado. Fale com a gestora.');
       if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
       return;
     }
 
-    // Verificar senha — se não tem senha, deixar entrar e pedir para criar
+    // Verificar senha — se não tem senha cadastrada, deixa entrar e pede para criar
     if (usuario.senha && usuario.senha !== senhaDigitada) {
       showToast('❌ Senha incorreta.');
       if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
@@ -4635,7 +4655,7 @@ function renderDashAtividades() {
     const st = a.status || 'em_andamento';
     const stCor = statusCor[st] || '#3B82F6';
     const updates = (a.updates || []).length;
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+    return `<div onclick="abrirDetalheAtiv('${a.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <div style="width:4px;height:40px;border-radius:4px;background:${cor};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:3px;">${a.titulo}</div>
@@ -4648,7 +4668,6 @@ function renderDashAtividades() {
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
         <span style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:${stCor}18;color:${stCor};border:1px solid ${stCor}33;white-space:nowrap;">${statusLabel[st]||st}</span>
         ${autor ? `<div style="width:28px;height:28px;border-radius:8px;background:${autor.cor||'#4F46E5'}22;color:${autor.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;" title="${autor.nome}">${autor.av}</div>` : ''}
-        <button onclick="abrirDetalheAtiv('${a.id}')" style="width:28px;height:28px;border-radius:8px;background:var(--surface3);border:none;cursor:pointer;font-size:12px;" title="Ver detalhes">✏️</button>
       </div>
     </div>`;
   }).join('');
@@ -5227,15 +5246,47 @@ async function delTask(id) {
 function openEditTask(id) {
   const t = tar.find(x => x.id===id);
   if (!t) return;
+
+  // Resetar modal primeiro
+  const btn = document.getElementById('btnSaveTask');
+  if (btn) { btn.textContent = 'SALVAR ALTERAÇÕES'; btn.disabled = false; btn.onclick = () => saveEditTask(id); }
+  document.getElementById('mTaskTitle').textContent = 'EDITAR TAREFA';
+
+  // Popular campos básicos
   document.getElementById('ntT').value = t.titulo || t.tit || '';
-  document.getElementById('ntPj').value = t.projeto_id||'';
   document.getElementById('ntR').value = t.resp||'';
   document.getElementById('ntPr').value = t.prior||'media';
   document.getElementById('ntD').value = t.prazo||'';
   document.getElementById('ntSt').value = t.status||'to do';
-  const btn = document.querySelector('#mTask .btnp');
-  btn.textContent = 'SALVAR ALTERAÇÕES';
-  btn.onclick = () => saveEditTask(id);
+
+  // Popular estação, setor e projeto em cascata
+  const p = proj.find(x => x.id === t.projeto_id);
+  const espaco = espacos.find(e => e.id === (p?.espaco_id || t.espaco_id));
+  const estacaoVal = espaco?.estacao || p?.dept || '';
+
+  // Popular estação
+  const ntEstacao = document.getElementById('ntEstacao');
+  if (ntEstacao && estacaoVal) {
+    ntEstacao.value = estacaoVal;
+    // Disparar filtro de espaços
+    filtrarEspacosPorEstacao();
+  }
+
+  // Popular setor após filtrar
+  setTimeout(() => {
+    if (espaco) {
+      const ntEspaco = document.getElementById('ntEspaco');
+      if (ntEspaco) {
+        ntEspaco.value = espaco.id;
+        filtrarProjetosPorEspaco();
+      }
+    }
+    // Popular projeto após filtrar
+    setTimeout(() => {
+      document.getElementById('ntPj').value = t.projeto_id||'';
+    }, 50);
+  }, 50);
+
   openM('mTask');
 }
 
@@ -5246,8 +5297,9 @@ async function saveEditTask(id) {
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   const idx = tar.findIndex(t => t.id===id);
   if (idx >= 0) tar[idx] = { ...tar[idx], ...upd }; // spread preserva tempo_gasto local
-  const btn = document.querySelector('#mTask .btnp');
-  btn.textContent = 'CRIAR TAREFA'; btn.onclick = addTask;
+  const btn = document.getElementById('btnSaveTask');
+  if (btn) { btn.textContent = 'CRIAR TAREFA'; btn.disabled = false; btn.onclick = addTask; }
+  document.getElementById('mTaskTitle').textContent = 'NOVA TAREFA';
   closeM('mTask'); renderTasks();
   showToast('✅ Tarefa atualizada!');
 }
@@ -5586,31 +5638,107 @@ async function openDet(type, id) {
     }
   } else if (type==='proj') {
     const p = proj.find(x => x.id===id); if (!p) return;
+    const detBody = document.querySelector('.det-body');
+    const detActionsBar = document.getElementById('detActionsBar');
+    const detContent = document.getElementById('detContent');
+    const detHeaderBanner = document.getElementById('detHeaderBanner');
+    const detMetaRow = document.getElementById('detMetaRow');
+    if (detBody) detBody.style.display = 'none';
+    if (detActionsBar) detActionsBar.style.display = 'none';
+    if (detContent) { detContent.style.display='flex'; detContent.style.flexDirection='column'; detContent.style.padding='0'; detContent.style.overflowY='auto'; detContent.style.flex='1'; }
+    if (detHeaderBanner) detHeaderBanner.style.background = `linear-gradient(135deg,#1E293B,#334155)`;
+    if (detMetaRow) detMetaRow.style.display = 'none';
+
     const pc = p.prog>=70?'#22C55E':p.prog>=40?'#EAB308':'#EF4444';
     const tasks = tar.filter(t => t.projeto_id===p.id);
     const open = tasks.filter(t => !t.ok), done = tasks.filter(t => t.ok);
-    const eq = (p.eq||[]).map(av => { const m=memb.find(x=>x.av===av); return m?`<div style="font-size:11px;color:var(--tx2)">• ${m.nome}</div>`:''; }).join('');
+    const espaco = espacos.find(e => e.id === p.espaco_id);
+    const priorCor = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'}[p.prior]||'#6B7280';
+
+    // Equipe do projeto
+    const eqIds = p.eq || [];
+    const eqMembros = eqIds.map(av => memb.find(m => m.av===av)).filter(Boolean);
+
     document.getElementById('detTitle').textContent = p.nome;
     document.getElementById('detContent').innerHTML = `
-      <div class="detrow">🏷️ <strong>Setor:</strong> ${p.dept||'—'}</div>
-      <div class="detrow">🚨 <strong>Prioridade:</strong> ${p.prior}</div>
-      <div class="detrow">📅 <strong>Prazo:</strong> ${p.fim||'—'}</div>
-      <div class="detrow">📊 <strong>Progresso:</strong> <strong style="color:${pc}" id="progVal">${p.prog}%</strong></div>
-      <div class="prog-edit-wrap">
-        <input type="range" class="prog-slider" min="0" max="100" value="${p.prog}" oninput="document.getElementById('progVal').textContent=this.value+'%';document.getElementById('progVal').style.color='${pc}'" onchange="salvarProgressoProj('${p.id}',this.value)">
-        <span class="prog-edit-val" id="progVal2">${p.prog}%</span>
-      </div>
-      <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">${p.descricao||p.desc||''}</div>
-      <div class="sl" style="margin-top:0">Tarefas (${open.length} abertas · ${done.length} concluídas)</div>
-      ${tasks.slice(0,6).map(t=>`<div style="font-size:11px;color:${t.ok?'var(--tx3)':'var(--tx2)'};margin-bottom:4px;display:flex;gap:6px;align-items:center">
-        <span>${t.ok?'✅':'⬜'}</span><span style="flex:1">${t.titulo||t.tit}</span>
-        <button onclick="openEditTask('${t.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:10px">✏️</button>
-      </div>`).join('')}
-      ${tasks.length>6?`<div style="font-size:10px;color:var(--tx3);text-align:center;margin-top:4px">+${tasks.length-6} mais</div>`:''}
-      <div class="sl">Equipe</div>${eq}
-      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-link" onclick="openEditProj('${p.id}');closeDet()">✏️ Editar</button>
-        <button class="btn-link" style="color:var(--red)" onclick="delProj('${p.id}');closeDet()">🗑 Excluir</button>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          <div style="background:var(--surface2);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:${pc}">${p.prog||0}%</div>
+            <div style="font-size:10px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Progresso</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:#4F46E5">${open.length}</div>
+            <div style="font-size:10px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Abertas</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:#10B981">${done.length}</div>
+            <div style="font-size:10px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Concluídas</div>
+          </div>
+        </div>
+
+        <!-- Barra de progresso -->
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:11px;font-weight:700;color:var(--tx2);">Progresso do projeto</span>
+            <span style="font-size:11px;font-weight:800;color:${pc}" id="progVal">${p.prog||0}%</span>
+          </div>
+          <div style="background:var(--surface3);border-radius:20px;height:8px;overflow:hidden;">
+            <div style="height:100%;border-radius:20px;background:${pc};width:${p.prog||0}%;transition:width .3s;"></div>
+          </div>
+        </div>
+
+        <!-- Info do projeto -->
+        <div style="background:var(--surface2);border-radius:12px;padding:12px;border:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+          ${espaco ? `<div style="display:flex;gap:8px;align-items:center;font-size:12px;"><span style="color:var(--tx3);width:70px;">📁 Setor</span><span style="font-weight:600;color:var(--tx);">${espaco.nome}</span></div>` : ''}
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;"><span style="color:var(--tx3);width:70px;">🚨 Prioridade</span><span style="font-weight:700;padding:2px 10px;border-radius:20px;background:${priorCor}18;color:${priorCor};">${p.prior||'—'}</span></div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;"><span style="color:var(--tx3);width:70px;">📅 Prazo</span><span style="font-weight:600;color:var(--tx);">${p.fim ? new Date(p.fim+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'}) : '— Sem prazo'}</span></div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;"><span style="color:var(--tx3);width:70px;">📋 Status</span><span style="font-weight:600;color:var(--tx);">${p.status||'Planejamento'}</span></div>
+          ${p.descricao ? `<div style="font-size:11px;color:var(--tx2);border-top:1px solid var(--border);padding-top:8px;margin-top:2px;line-height:1.5;">${p.descricao}</div>` : ''}
+        </div>
+
+        <!-- Equipe -->
+        ${eqMembros.length ? `<div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">👥 Equipe (${eqMembros.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${eqMembros.map(m=>`<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+              <div style="width:22px;height:22px;border-radius:6px;background:${m.cor||'#4F46E5'}22;color:${m.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;">${m.av}</div>
+              <span style="font-size:11px;font-weight:600;color:var(--tx);">${m.nome.split(' ')[0]}</span>
+            </div>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <!-- Tarefas -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">📋 Tarefas (${tasks.length})</div>
+          ${tasks.length ? tasks.map(t => {
+            const resp = memb.find(m => m.av===t.resp);
+            const priorT = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'}[t.prior]||'#6B7280';
+            const prazoT = t.prazo ? new Date(t.prazo+'T12:00') : null;
+            const atrasada = prazoT && prazoT < new Date() && !t.ok;
+            return `<div onclick="openDet('task','${t.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${t.ok?'#10B981':priorT};border-radius:10px;margin-bottom:6px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+              <div style="font-size:16px;">${t.ok?'✅':'⬜'}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:700;color:${t.ok?'var(--tx3)':'var(--tx)'};text-decoration:${t.ok?'line-through':'none'};margin-bottom:3px;">${t.titulo||t.tit}</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  ${prazoT ? `<span style="font-size:10px;color:${atrasada?'#EF4444':'var(--tx3)'};">📅 ${prazoT.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>` : ''}
+                  <span style="font-size:10px;color:var(--tx3);">${t.status||'to do'}</span>
+                </div>
+              </div>
+              ${resp ? `<div style="width:26px;height:26px;border-radius:8px;background:${resp.cor||'#4F46E5'}22;color:${resp.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="${resp.nome}">${resp.av}</div>` : ''}
+              <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:${priorT}18;color:${priorT};flex-shrink:0;">${(t.prior||'').toUpperCase()}</span>
+            </div>`;
+          }).join('') : '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px;">Nenhuma tarefa neste projeto</div>'}
+        </div>
+
+        <!-- Ações -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:4px;border-top:1px solid var(--border);">
+          <button class="btn-link" onclick="openEditProj('${p.id}');closeDet()">✏️ Editar projeto</button>
+          <button class="btn-link" onclick="abrirNovoProjEspaco('${p.espaco_id||''}','${p.dept||''}');closeDet()" style="color:#4F46E5;">+ Nova tarefa</button>
+          <button class="btn-link" style="color:#EF4444;" onclick="delProj('${p.id}');closeDet()">🗑 Excluir</button>
+        </div>
       </div>`;
   }
 }
@@ -8522,6 +8650,13 @@ function renderMembers(l=memb) {
         <span style="font-size:12px" title="${coberturaTitle}">${coberturaIcon}</span>
         <button onclick="editarMembro('${m.id}')" style="background:var(--surface3);border:none;border-radius:6px;padding:3px 8px;font-size:10px;color:var(--tx2);cursor:pointer">✏️ Editar</button>
         <button onclick="excluirMembro('${m.id}','${m.nome}')" style="background:rgba(239,68,68,.1);border:none;border-radius:6px;padding:3px 8px;font-size:10px;color:#EF4444;cursor:pointer">🗑</button>
+        ${(() => {
+          const st = m.status_acesso || 'ativo';
+          const temSenha = !!m.senha;
+          const stCor = {ativo:'#10B981', bloqueado:'#EF4444', pendente:'#F59E0B'}[st] || '#6B7280';
+          const stLabel = {ativo:'Acesso ativo', bloqueado:'Bloqueado', pendente:'Pendente'}[st] || st;
+          return `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:${stCor}18;color:${stCor};border:1px solid ${stCor}33;" title="${stLabel}${temSenha?'':' - sem senha'}">${stLabel}${temSenha?'':' ⚠️'}</span>`;
+        })()}
       </div>
     </div>`;
   }).join('') || '<div style="text-align:center;padding:20px;color:var(--tx3)">Nenhum membro</div>';
@@ -8558,8 +8693,12 @@ async function addMember() {
     av,
     email: document.getElementById('mmE').value||'',
     whatsapp: document.getElementById('mmW').value||'',
-    online: false
+    online: false,
+    status_acesso: document.getElementById('mmStatusAcesso')?.value || 'ativo',
+    senha: document.getElementById('mmSenha')?.value?.trim() || null
   };
+  // Remover senha null para não sobrescrever com null em edições sem alterar senha
+  if (!dados.senha) delete dados.senha;
 
   if (id) {
     // Editar membro existente — NÃO altera o 'av' pois é chave estrangeira nas tarefas
@@ -8572,13 +8711,16 @@ async function addMember() {
       if (inserted && idx >= 0) memb[idx] = inserted;
       else if (idx >= 0) memb[idx] = { ...memb[idx], ...dados };
     } else {
-      const { error } = await safeDb.from('membros').update({
+      const updatePayload = {
         nome: dados.nome,
         cargo: dados.cargo,
         dept: dados.dept,
         email: dados.email,
-        whatsapp: dados.whatsapp
-      }).eq('id', id);
+        whatsapp: dados.whatsapp,
+        status_acesso: dados.status_acesso,
+      };
+      if (dados.senha) updatePayload.senha = dados.senha;
+      const { error } = await safeDb.from('membros').update(updatePayload).eq('id', id);
       if (error) { showToast('❌ Erro: ' + error.message); return; }
       const idx = memb.findIndex(m => m.id == id);
       if (idx >= 0) memb[idx] = { ...memb[idx], ...dados };
@@ -8680,6 +8822,11 @@ function editarMembro(membId) {
     }
     document.getElementById('mMemberTitle').textContent = 'EDITAR MEMBRO';
     document.getElementById('btnSaveMember').textContent = 'SALVAR ALTERAÇÕES';
+    // Acesso
+    const selStatus = document.getElementById('mmStatusAcesso');
+    if (selStatus) selStatus.value = m.status_acesso || 'ativo';
+    const senhaEl = document.getElementById('mmSenha');
+    if (senhaEl) senhaEl.value = ''; // Não mostrar senha atual por segurança — deixar em branco para não alterar
   }, 10);
 }
 
