@@ -863,7 +863,7 @@ button{font-family:var(--fb);}
    MODAIS
 ═══════════════════════════════════════════════════════════════ */
 .ov{
-  display:none;position:fixed;inset:0;z-index:400;
+  display:none;position:fixed;inset:0;z-index:600;
   background:rgba(30,42,59,0.55);backdrop-filter:blur(4px);
   align-items:flex-end;justify-content:center;
 }
@@ -2215,47 +2215,18 @@ select.sel{
       <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px">DAE Nexus.AI</div>
       <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px">Inteligência, Gestão e Resultado</div>
     </div>
-
-    <!-- ABAS LOGIN / CADASTRO -->
-    <div style="display:flex;gap:0;margin-bottom:20px;background:rgba(255,255,255,0.06);border-radius:12px;padding:4px;">
-      <button id="tabLoginBtn" onclick="trocarAbaLogin('login')" style="flex:1;padding:9px;border-radius:9px;border:none;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">Entrar</button>
-      <button id="tabCadastroBtn" onclick="trocarAbaLogin('cadastro')" style="flex:1;padding:9px;border-radius:9px;border:none;background:transparent;color:rgba(255,255,255,.5);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">Criar conta</button>
-    </div>
-
-    <!-- FORMULÁRIO LOGIN -->
-    <div id="formLogin" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px;">
+    <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px">
       <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">E-mail</label>
       <input id="lemail" type="email" placeholder="seu@email.com.br"
-        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:14px"
-        onkeydown="if(event.key==='Enter') document.getElementById('lpass').focus()">
-      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Senha</label>
-      <input id="lpass" type="password" placeholder="••••••••"
-        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:20px"
+        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:16px"
         onkeydown="if(event.key==='Enter') doLogin()">
+      <input id="lpass" type="hidden" value="">
       <button onclick="doLogin()" id="btnLogin" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px">
         Entrar no sistema
       </button>
-    </div>
-
-    <!-- FORMULÁRIO CADASTRO -->
-    <div id="formCadastro" style="display:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px;">
-      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Nome completo</label>
-      <input id="cNome" type="text" placeholder="Seu nome completo"
-        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:14px">
-      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">E-mail</label>
-      <input id="cEmail" type="email" placeholder="seu@email.com.br"
-        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:14px">
-      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Senha</label>
-      <input id="cSenha" type="password" placeholder="Mínimo 6 caracteres"
-        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:14px">
-      <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Confirmar senha</label>
-      <input id="cSenha2" type="password" placeholder="Repita a senha"
-        style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:20px"
-        onkeydown="if(event.key==='Enter') doCadastro()">
-      <button onclick="doCadastro()" id="btnCadastro" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px">
-        Solicitar acesso
-      </button>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:rgba(255,255,255,.3);">Sua conta será ativada após aprovação da gestora</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:rgba(255,255,255,.3)">
+        Use o e-mail cadastrado pela gestora
+      </div>
     </div>
   </div>
 </div>
@@ -4129,11 +4100,8 @@ function trocarAbaLogin(aba) {
 
 async function doLogin() {
   const emailEl = document.getElementById('lemail');
-  const senhaEl = document.getElementById('lpass');
   const emailDigitado = emailEl ? emailEl.value.trim() : '';
-  const senhaDigitada = senhaEl ? senhaEl.value.trim() : '';
   if (!emailDigitado) { showToast('⚠️ Digite seu e-mail'); return; }
-  if (!senhaDigitada) { showToast('⚠️ Digite sua senha'); return; }
 
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) { btnLogin.textContent = 'Entrando...'; btnLogin.disabled = true; }
@@ -4141,41 +4109,16 @@ async function doLogin() {
   try {
     const { data: todos, error } = await safeDb.from('membros').select('*');
     if (error) throw error;
-
-    const usuario = (todos||[]).find(m =>
-      m.email && m.email.trim().toLowerCase() === emailDigitado.toLowerCase()
-    );
-
+    const usuario = (todos||[]).find(m => m.email && m.email.trim().toLowerCase() === emailDigitado.toLowerCase());
     if (!usuario) {
-      showToast('❌ E-mail não encontrado.');
+      showToast('❌ E-mail não encontrado. Verifique o cadastro.');
       if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
       return;
     }
-
-    // Verificar aprovação — bloqueia só quem foi explicitamente bloqueado ou está pendente
-    if (usuario.status_acesso === 'pendente') {
-      showToast('⏳ Sua conta aguarda aprovação da gestora.');
-      if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
-      return;
-    }
-    if (usuario.status_acesso === 'bloqueado') {
-      showToast('🚫 Acesso bloqueado. Fale com a gestora.');
-      if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
-      return;
-    }
-
-    // Verificar senha — se não tem senha cadastrada, deixa entrar e pede para criar
-    if (usuario.senha && usuario.senha !== senhaDigitada) {
-      showToast('❌ Senha incorreta.');
-      if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
-      return;
-    }
-
     localStorage.setItem('dae_user_email', usuario.email);
     await entrarNoApp(usuario);
     showToast('✅ Bem-vindo, ' + (usuario.nome||'').split(' ')[0] + '!');
   } catch(err) {
-    console.error('Erro no login:', err);
     showToast('❌ Erro: ' + (err.message || 'Verifique a conexão'));
     if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
   }
@@ -4310,19 +4253,17 @@ async function loadAll() {
       if (mm.data  && mm.data.length)  { memb    = norm(mm.data);  }
       if (pm.data  && pm.data.length)  { proj    = norm(pm.data);  }
       if (tm.data  && tm.data.length)  { 
-        // Preservar tempo_gasto da tarefa com timer ativo (não sobrescrever com valor do banco)
-        const dadosBanco = norm(tm.data);
-        if (timerTarefaId && timerInicio) {
-          const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
-          dadosBanco.forEach(t => {
-            if (String(t.id) === String(timerTarefaId)) {
-              const tarefaLocal = tar.find(x => String(x.id) === String(timerTarefaId));
-              const base = tarefaLocal?.tempo_gasto || t.tempo_gasto || 0;
-              t.tempo_gasto = base + elapsed;
-            }
-          });
+        tar = norm(tm.data);
+        // Se há timer ativo, restaurar o tempo_gasto local (não sobrescrever com banco)
+        // O banco tem o valor ANTES do timer atual — manter o objeto local intacto
+        if (timerTarefaId) {
+          const tarLocal = tar.find(x => String(x.id) === String(timerTarefaId));
+          const timerSalvo = (() => { try { return JSON.parse(localStorage.getItem('dae_timer')||'null'); } catch(e) { return null; } })();
+          if (tarLocal && timerSalvo) {
+            // Usar o base salvo no timer (valor correto antes de iniciar)
+            tarLocal.tempo_gasto = timerSalvo.base || tarLocal.tempo_gasto || 0;
+          }
         }
-        tar = dadosBanco;
       }
       if (fm.data  && fm.data.length)  { ferias  = norm(fm.data);  }
       if (rm.data  && rm.data.length)  { riscos  = norm(rm.data);  }
@@ -4864,7 +4805,10 @@ async function excluirAtividade(id) {
 // ── DETALHE / EDIÇÃO DE ATIVIDADE ─────────────────────────────────
 function abrirDetalheAtiv(id) {
   const a = ativs.find(x => x.id === id);
-  if (!a) return;
+  if (!a) { showToast('⚠️ Atividade não encontrada'); return; }
+  // Fechar painel de detalhe se estiver aberto
+  const detPanel = document.getElementById('detPanel');
+  if (detPanel?.classList.contains('on')) closeDet();
   document.getElementById('mDetalheAtivId').value = id;
   document.getElementById('mDetalheAtivTitulo').textContent = '⚡ ' + a.titulo;
   document.getElementById('mDetalheAtivDesc').value = a.descricao || '';
@@ -5393,10 +5337,17 @@ async function openDet(type, id) {
       }
     }
 
-    // ── Painel ESQUERDO ────────────────────────────────────────────
-    const isTimerOn  = timerTarefaId === id;
-    const elapsedAtivo = isTimerOn && timerInicio ? Math.floor((Date.now() - timerInicio) / 1000) : 0;
-    const tempoGasto = (t.tempo_gasto || 0) + elapsedAtivo;
+    const isTimerOn = timerTarefaId === id;
+    let tempoGasto = 0;
+    if (isTimerOn && timerInicio) {
+      try {
+        const salvo = JSON.parse(localStorage.getItem('dae_timer') || '{}');
+        const base = salvo.base || 0;
+        tempoGasto = base + Math.floor((Date.now() - timerInicio) / 1000);
+      } catch(e) { tempoGasto = t.tempo_gasto || 0; }
+    } else {
+      tempoGasto = t.tempo_gasto || 0;
+    }
     const esp        = espacos.find(e => e.id === (p?.espaco_id));
 
     // Meta row no header
@@ -5426,9 +5377,9 @@ async function openDet(type, id) {
         <div class="det-timer-display" id="tempoDisplay">${fmtTempo(tempoGasto)}</div>
         <div class="${isTimerOn?'det-timer-actions':''}">
           ${isTimerOn
-            ? `<button class="det-timer-btn det-timer-btn-start" onclick="toggleTimer('${id}')">▶ Continuar</button>
-               <button class="det-timer-btn det-timer-btn-stop" onclick="toggleTimer('${id}')">⏹ PARAR</button>`
-            : `<button id="btnTimer" class="det-timer-btn det-timer-btn-full" onclick="toggleTimer('${id}')">▶ Iniciar timer</button>`
+            ? `<button class="det-timer-btn det-timer-btn-stop" onclick="pararTimer('${id}')">⏹ PARAR</button>`
+            : `<button id="btnTimer" class="det-timer-btn det-timer-btn-full" onclick="iniciarTimer('${id}')">▶ Iniciar timer</button>
+               <button onclick="resetarTimer('${id}')" style="background:none;border:none;color:var(--tx3);font-size:10px;cursor:pointer;margin-top:4px;text-decoration:underline;">🔄 Zerar tempo</button>`
           }
         </div>
       </div>
@@ -5884,8 +5835,20 @@ function fmtTempo(segundos) {
   return `${h}h ${String(m).padStart(2,'0')}min`;
 }
 
+async function resetarTimer(tarefaId) {
+  if (!confirm('Zerar o tempo registrado desta tarefa?')) return;
+  clearInterval(timerInterval); timerInterval = null;
+  timerTarefaId = null; timerInicio = null;
+  localStorage.removeItem('dae_timer');
+  const t = tar.find(x => x.id === tarefaId);
+  if (t) t.tempo_gasto = 0;
+  await safeDb.from('tarefas').update({ tempo_gasto: 0 }).eq('id', tarefaId);
+  showToast('🔄 Tempo zerado!');
+  openDet('task', tarefaId);
+}
+
 function toggleTimer(tarefaId) {
-  if (timerTarefaId === tarefaId) {
+  if (timerTarefaId === tarefaId && timerInicio) {
     pararTimer(tarefaId);
   } else {
     if (timerTarefaId) pararTimer(timerTarefaId);
@@ -5893,84 +5856,88 @@ function toggleTimer(tarefaId) {
   }
 }
 
-function iniciarTimer(tarefaId) {
+async function iniciarTimer(tarefaId) {
+  // Buscar valor atual do banco — fonte confiável
+  let baseSegundos = 0;
+  try {
+    const { data } = await safeDb.from('tarefas').select('tempo_gasto').eq('id', tarefaId).single();
+    baseSegundos = data?.tempo_gasto || 0;
+  } catch(e) {
+    const t = tar.find(x => x.id === tarefaId);
+    baseSegundos = t?.tempo_gasto || 0;
+  }
+
+  // Atualizar objeto local com valor correto do banco
+  const t = tar.find(x => x.id === tarefaId);
+  if (t) t.tempo_gasto = baseSegundos;
+
   timerTarefaId = tarefaId;
   timerInicio = Date.now();
-  // Salvar estado do timer no localStorage para não perder ao trocar de aba
-  localStorage.setItem('dae_timer', JSON.stringify({ tarefaId, inicio: timerInicio }));
-  const t = tar.find(x => x.id === tarefaId);
-  const base = t?.tempo_gasto || 0;
-  if (timerInterval) clearInterval(timerInterval);
+
+  // Salvar no localStorage
+  localStorage.setItem('dae_timer', JSON.stringify({ tarefaId, inicio: timerInicio, base: baseSegundos }));
+
+  clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
     const el = document.getElementById('tempoDisplay');
-    if (el) el.textContent = fmtTempo(base + elapsed);
-    // Salvar tempo atual no localStorage a cada 10s para não perder
-    if (elapsed % 10 === 0 && t) {
-      const tarLocal = JSON.parse(localStorage.getItem('dae_tar') || '[]');
-      const idx = tarLocal.findIndex(x => String(x.id) === String(tarefaId));
-      if (idx >= 0) { tarLocal[idx].tempo_gasto = base + elapsed; localStorage.setItem('dae_tar', JSON.stringify(tarLocal)); }
-    }
+    if (el) el.textContent = fmtTempo(baseSegundos + elapsed);
   }, 1000);
+
+  // Atualizar visual
   const tb = document.getElementById('detTimerBlock');
   if (tb) {
     tb.classList.add('running');
     tb.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div class="det-timer-label"><span class="det-timer-dot"></span> EM ANDAMENTO</div>
-      </div>
-      <div class="det-timer-display" id="tempoDisplay">${fmtTempo(base)}</div>
+      <div class="det-timer-label"><span class="det-timer-dot"></span> EM ANDAMENTO</div>
+      <div class="det-timer-display" id="tempoDisplay">${fmtTempo(baseSegundos)}</div>
       <div class="det-timer-actions">
-        <button class="det-timer-btn det-timer-btn-start" onclick="toggleTimer('${tarefaId}')">▶ Continuar</button>
-        <button class="det-timer-btn det-timer-btn-stop" onclick="toggleTimer('${tarefaId}')">⏹ PARAR</button>
-      </div>
-    `;
+        <button class="det-timer-btn det-timer-btn-stop" onclick="pararTimer('${tarefaId}')">⏹ PARAR</button>
+      </div>`;
   }
   showToast('▶ Timer iniciado!');
 }
 
 async function pararTimer(tarefaId) {
   if (!timerInicio) return;
+
   clearInterval(timerInterval);
   timerInterval = null;
+
   const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
-  const t = tar.find(x => x.id === tarefaId);
-  const base = t?.tempo_gasto || 0;
+
+  // Base sempre do localStorage (foi salvo ao iniciar com valor do banco)
+  let base = 0;
+  try {
+    const salvo = JSON.parse(localStorage.getItem('dae_timer') || '{}');
+    base = salvo.base || 0;
+  } catch(e) {}
+
   const total = base + elapsed;
-  // Limpar estado do timer no localStorage
+
   localStorage.removeItem('dae_timer');
-  // Salvar no Supabase se ID real
+  timerTarefaId = null;
+  timerInicio = null;
+
+  // Salvar total no banco e no objeto local
+  const t = tar.find(x => x.id === tarefaId);
+  if (t) t.tempo_gasto = total;
   if (!String(tarefaId).startsWith('local_')) {
     await safeDb.from('tarefas').update({ tempo_gasto: total }).eq('id', tarefaId);
   }
-  if (t) t.tempo_gasto = total;
-  salvarLocal();
-  timerTarefaId = null;
-  timerInicio = null;
-  // Atualizar display
-  const el = document.getElementById('tempoDisplay');
-  if (el) el.textContent = fmtTempo(total);
-  // Atualizar botão
-  const btn = document.getElementById('btnTimer');
-  if (btn) {
-    btn.textContent = '▶ INICIAR';
-    btn.style.background = 'rgba(34,197,94,0.2)';
-    btn.style.borderColor = '#22C55E';
-    btn.style.color = '#22C55E';
-  }
-  showToast('⏱ Tempo registrado: ' + fmtTempo(total));
-  // Atualizar visual do timer block
+
+  // Atualizar visual
   const tb = document.getElementById('detTimerBlock');
   if (tb) {
     tb.classList.remove('running');
     tb.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div class="det-timer-label">⏱ TEMPO REGISTRADO</div>
-      </div>
+      <div class="det-timer-label">⏱ TEMPO REGISTRADO</div>
       <div class="det-timer-display" id="tempoDisplay">${fmtTempo(total)}</div>
-      <button id="btnTimer" class="det-timer-btn det-timer-btn-full" onclick="toggleTimer('${tarefaId}')">▶ Iniciar timer</button>
-    `;
+      <div class="det-timer-actions">
+        <button class="det-timer-btn det-timer-btn-full" onclick="iniciarTimer('${tarefaId}')">▶ Iniciar timer</button>
+      </div>`;
   }
+  showToast('⏱ Tempo salvo: ' + fmtTempo(total));
 }
 
 function switchDetTab(tab) {
@@ -10850,24 +10817,25 @@ async function entrarNoApp(usuario) {
     // Restaurar timer se estava ativo
     try {
       const timerSalvo = JSON.parse(localStorage.getItem('dae_timer') || 'null');
-      if (timerSalvo?.tarefaId && timerSalvo?.inicio) {
+      if (timerSalvo?.tarefaId && timerSalvo?.inicio && timerSalvo?.base !== undefined) {
         const t = tar.find(x => String(x.id) === String(timerSalvo.tarefaId));
         if (t) {
-          // Calcular tempo já decorrido desde que o timer foi iniciado
-          const elapsed = Math.floor((Date.now() - timerSalvo.inicio) / 1000);
-          t.tempo_gasto = (t.tempo_gasto || 0) + elapsed;
           timerTarefaId = timerSalvo.tarefaId;
           timerInicio = timerSalvo.inicio;
-          // Reiniciar o intervalo
-          const base = t.tempo_gasto;
+          const base = timerSalvo.base;
           if (timerInterval) clearInterval(timerInterval);
           timerInterval = setInterval(() => {
             const el = document.getElementById('tempoDisplay');
-            const el2 = Math.floor((Date.now() - timerInicio) / 1000);
-            if (el) el.textContent = fmtTempo(base + el2);
+            const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
+            if (el) el.textContent = fmtTempo(base + elapsed);
           }, 1000);
-          showToast('⏱ Timer restaurado: ' + t.titulo?.slice(0,30));
+          showToast('⏱ Timer restaurado: ' + (t.titulo||'').slice(0,30));
+        } else {
+          localStorage.removeItem('dae_timer');
         }
+      } else {
+        // Formato inválido — limpar para não causar bugs
+        localStorage.removeItem('dae_timer');
       }
     } catch(e) { localStorage.removeItem('dae_timer'); }
   }, 1500);
