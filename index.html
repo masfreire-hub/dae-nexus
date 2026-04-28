@@ -5351,7 +5351,7 @@ async function openDet(type, id) {
       }
     }
 
-    const isTimerOn = timerTarefaId === id;
+    const isTimerOn = String(timerTarefaId) === String(id);
     let tempoGasto = 0;
     if (isTimerOn && timerInicio) {
       try {
@@ -5589,19 +5589,28 @@ async function openDet(type, id) {
     carregarAnexosTarefa(id);
     // Retomar display do timer se estiver ativo
     if (isTimerOn) {
-      // Retomar UI do timer se já estava rodando (sem reiniciar timerInicio)
-      if (!timerInterval) {
-        const base = tempoGasto;
-        timerInterval = setInterval(() => {
-          const elapsed = timerInicio ? Math.floor((Date.now() - timerInicio) / 1000) : 0;
-          const el = document.getElementById('tempoDisplay');
-          if (el) el.textContent = fmtTempo(base + elapsed);
-        }, 1000);
-      }
-      // Atualizar display imediatamente
-      const elapsed = timerInicio ? Math.floor((Date.now() - timerInicio) / 1000) : 0;
+      // Buscar base do localStorage (valor original sem elapsed)
+      let baseCorreta = 0;
+      try {
+        const salvo = JSON.parse(localStorage.getItem('dae_timer') || '{}');
+        baseCorreta = salvo.base || 0;
+      } catch(e) {}
+
+      // Limpar interval duplicado se houver
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      timerInterval = setInterval(() => {
+        const elapsed = timerInicio ? Math.floor((Date.now() - timerInicio) / 1000) : 0;
+        const el = document.getElementById('tempoDisplay');
+        if (el) el.textContent = fmtTempo(baseCorreta + elapsed);
+      }, 1000);
+
+      // Atualizar display imediatamente com valor correto
+      const elapsedNow = timerInicio ? Math.floor((Date.now() - timerInicio) / 1000) : 0;
       const el = document.getElementById('tempoDisplay');
-      if (el) el.textContent = fmtTempo(tempoGasto + elapsed);
+      if (el) el.textContent = fmtTempo(baseCorreta + elapsedNow);
+
       // Garantir bloco no estado running
       const tb = document.getElementById('detTimerBlock');
       if (tb) tb.classList.add('running');
@@ -10949,7 +10958,7 @@ async function entrarNoApp(usuario) {
         const t = tar.find(x => String(x.id) === String(timerSalvo.tarefaId));
         if (t) {
           timerTarefaId = timerSalvo.tarefaId;
-          timerInicio = timerSalvo.inicio;
+          timerInicio = Number(timerSalvo.inicio);
           const base = timerSalvo.base;
           if (timerInterval) clearInterval(timerInterval);
           timerInterval = setInterval(() => {
