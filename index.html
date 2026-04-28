@@ -10739,36 +10739,25 @@ function mostrarTelaCriarSenha(usuario) {
 async function salvarNovaSenha(userId, email) {
   const s1 = document.getElementById('novaSenha1').value.trim();
   const s2 = document.getElementById('novaSenha2').value.trim();
-  if (!s1 || s1.length < 6) { showToast('⚠️ Senha deve ter mínimo 6 caracteres'); return; }
+  if (!s1 || s1.length < 4) { showToast('⚠️ Senha deve ter mínimo 4 caracteres'); return; }
   if (s1 !== s2) { showToast('⚠️ As senhas não coincidem'); return; }
 
   const btn = document.getElementById('btnSalvarSenha');
   if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
 
-  await safeDb.from('membros').update({ senha: s1 }).eq('id', userId);
-
-  // Remover tela de senha
-  document.getElementById('senhaScreen')?.remove();
-
-  // Entrar normalmente
-  const usuario = { ...window._usuarioPendenteSenha, senha: s1 };
-  localStorage.setItem('dae_user_email', email);
-  
-  // Chamar entrarNoApp diretamente sem verificação de senha
-  curUser = usuario;
-  const avEl = document.getElementById('userAv');
-  if (avEl) { avEl.textContent = usuario.av||'?'; avEl.style.background = (usuario.cor||'#4F46E5')+'33'; avEl.style.color = usuario.cor||'#4F46E5'; }
-  const ls2 = document.getElementById('loginScreen');
-  if (ls2) ls2.style.display = 'none';
-  const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
-  if (ma) ma.style.display = 'block';
-  try { await loadAll(); } catch(e) {}
-  showLoading(false);
-  const wname = document.getElementById('wname');
-  if (wname) { const h = new Date().getHours(); wname.textContent = (h<12?'BOM DIA':h<18?'BOA TARDE':'BOA NOITE') + ', ' + (usuario.nome?.split(' ')[0]||'').toUpperCase(); }
-  renderAll();
-  sw('home', document.querySelector('.ni.on'));
-  showToast('✅ Senha criada! Bem-vindo(a), ' + (usuario.nome?.split(' ')[0]) + '!');
+  try {
+    await safeDb.from('membros').update({ senha: s1 }).eq('id', userId);
+    // Remover tela de senha
+    document.getElementById('senhaScreen')?.remove();
+    // Entrar com o usuário atualizado
+    const usuario = { ...window._usuarioPendenteSenha, senha: s1 };
+    localStorage.setItem('dae_user_email', email);
+    await entrarNoApp(usuario);
+    showToast('✅ Senha criada! Bem-vindo(a), ' + (usuario.nome?.split(' ')[0]) + '!');
+  } catch(e) {
+    showToast('❌ Erro ao salvar senha. Tente novamente.');
+    if (btn) { btn.textContent = 'Salvar e entrar'; btn.disabled = false; }
+  }
 }
 
 async function entrarNoApp(usuario) {
