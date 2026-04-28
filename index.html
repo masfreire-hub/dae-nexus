@@ -6535,6 +6535,23 @@ function abrirMeetDoChat() {
   window.open('https://meet.google.com/new', '_blank');
   showToast('Novo Meet iniciado com ' + (curChName || 'equipe'));
 }
+// Sanitiza texto de chat — escapa HTML, converte URLs em links e \n em <br>
+function _sanitizarMsg(txt) {
+  if (!txt) return '';
+  // Escapar HTML
+  const s = txt
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+  // Converter URLs em links clicáveis (apenas http/https)
+  const comLinks = s.replace(/(https?:\/\/[^\s<>"']+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--brand);text-decoration:underline;word-break:break-all">$1</a>');
+  // Quebras de linha
+  return comLinks.replace(/\n/g,'<br>');
+}
+
 function renderChat() {
   let msgs = chatMsgs[curChId] || [];
   const el = document.getElementById('chatMsgs');
@@ -6600,7 +6617,7 @@ function renderChat() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </div>
             ${m.t ? `<div class="chat-msg-bubble" style="margin-top:4px;">${m.t}</div>` : ''}
-          ` : `<div class="chat-msg-bubble">${m.t}</div>`}
+          ` : `<div class="chat-msg-bubble">${_sanitizarMsg(m.t)}</div>`}
         </div>
       </div>
     </div>`;
