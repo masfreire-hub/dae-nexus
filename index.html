@@ -6210,7 +6210,7 @@ function openCh(id, icon, name, tipo, cor) {
           return {
             av: m.autor, cor: mb?.cor||'#4F46E5',
             n: mb?.nome || m.autor,
-            t: m.texto || '', me: m.autor === curUser?.av,
+            t: _limparTexto(m.texto || ''), me: m.autor === curUser?.av,
             h, data: 'Hoje',
             tipo: m.tipo, 
             anexoNome: m.anexo_nome, 
@@ -6238,7 +6238,7 @@ function openCh(id, icon, name, tipo, cor) {
         chatMsgs[id].push({
           av: m.autor, cor: mb?.cor||'#4F46E5',
           n: mb?.nome || m.autor,
-          t: m.texto || '', me: false, h, data:'Hoje',
+          t: _limparTexto(m.texto || ''), me: false, h, data:'Hoje',
           tipo: m.tipo, 
             anexoNome: m.anexo_nome, 
             anexoUrl: m.anexo_url,
@@ -7048,6 +7048,20 @@ function baixarAnexo(url, nome) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
+// Remove QUALQUER HTML/JS do texto — usado antes de salvar e antes de exibir
+function _limparTexto(txt) {
+  if (!txt) return '';
+  // Remove tags HTML, scripts, eventos inline
+  return txt
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, '')           // remove todas as tags restantes
+    .replace(/javascript\s*:/gi, '')   // bloqueia javascript:
+    .replace(/on\w+\s*=/gi, '')        // bloqueia onclick=, onload= etc
+    .replace(/data\s*:/gi, '')         // bloqueia data: URIs
+    .trim();
+}
+
 async function sendChat() {
   fecharSugestaoIA();
   const inp = document.getElementById('chatInp');
@@ -7055,16 +7069,24 @@ async function sendChat() {
   const temAnexo = chatAnexoPendente !== null;
   if (!t && !temAnexo) return;
 
+  // Bloquear HTML/JS na entrada
+  const tLimpo = _limparTexto(t);
+  if (!tLimpo && !temAnexo) {
+    showToast('⚠️ Mensagem com conteúdo inválido bloqueada.');
+    inp.value = '';
+    return;
+  }
+
   const now = new Date();
   const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
 
-  let textoFinal = t;
+  let textoFinal = tLimpo;
   let extra = {};
 
   if (temAnexo) {
     const a = chatAnexoPendente;
     extra = { tipo: a.tipo, anexo_nome: a.nome, anexo_url: a.url, anexo_tamanho: a.tamanho };
-    textoFinal = t || '';
+    textoFinal = tLimpo || '';
     removerAnexo();
   }
 
@@ -7074,7 +7096,7 @@ async function sendChat() {
   // Mostrar mensagem localmente imediatamente (UX instantânea)
   if (!chatMsgs[curChId]) chatMsgs[curChId] = [];
   chatMsgs[curChId].push({
-    av: curUser?.av||curUser?.av||'?', cor: curUser?.cor||'#4F46E5',
+    av: curUser?.av||'?', cor: curUser?.cor||'#4F46E5',
     n: curUser?.nome||'Você', t: textoFinal, me: true, h, data:'Hoje',
     tipo: temAnexo ? extra.tipo : 'texto',
     anexoNome: extra.anexo_nome, anexoUrl: extra.anexo_url
@@ -10814,7 +10836,7 @@ function iniciarChatGlobal() {
           if (!chatMsgs[canalId]) chatMsgs[canalId] = [];
           const now = new Date(m.created_at || Date.now());
           const h = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
-          chatMsgs[canalId].push({ av: m.autor, cor, n: mb?.nome||m.autor, t: m.texto||'', me: false, h, data:'Hoje' });
+          chatMsgs[canalId].push({ av: m.autor, cor, n: mb?.nome||m.autor, t: _limparTexto(m.texto||''), me: false, h, data:'Hoje' });
         }
 
         // Se estiver no canal aberto, não fazer nada (subscription específica já renderizou)
