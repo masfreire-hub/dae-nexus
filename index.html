@@ -3343,6 +3343,15 @@ select.sel{
 #docQuill .ql-container{flex:1;overflow-y:auto;border:none;font-size:14px;}
 #docQuill .ql-editor{min-height:100%;padding:28px 40px;line-height:1.8;}
 #docQuill .ql-editor.ql-blank::before{color:#CBD5E1;font-style:normal;}
+#docQuill .ql-editor .bloco-dark{background:#1E293B;border-left:4px solid #334155;border-radius:4px;padding:10px 16px;color:#F8FAFC;margin:4px 0;display:block;}
+#docQuill .ql-editor .bloco-info{background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:4px;padding:10px 16px;color:#1E40AF;margin:4px 0;display:block;}
+#docQuill .ql-editor .bloco-warn{background:#FFFBEB;border-left:4px solid #F59E0B;border-radius:4px;padding:10px 16px;color:#92400E;margin:4px 0;display:block;}
+#docQuill .ql-editor .bloco-success{background:#F0FDF4;border-left:4px solid #22C55E;border-radius:4px;padding:10px 16px;color:#14532D;margin:4px 0;display:block;}
+#docQuill .ql-editor .bloco-danger{background:#FEF2F2;border-left:4px solid #EF4444;border-radius:4px;padding:10px 16px;color:#7F1D1D;margin:4px 0;display:block;}
+#docQuill .ql-editor table{width:100%;border-collapse:collapse;margin:8px 0;}
+#docQuill .ql-editor table td,#docQuill .ql-editor table th{border:1px solid #CBD5E1;padding:8px 12px;}
+#docQuill .ql-editor table th{background:#F8FAFC;font-weight:700;}
+#docQuill .ql-editor hr.doc-hr{border:none;border-top:2px solid #E2E8F0;margin:12px 0;}
 .doc-hl-bar{display:flex;align-items:center;gap:4px;padding:6px 14px;border-bottom:1px solid #E2E8F0;background:#F8FAFD;flex-shrink:0;flex-wrap:wrap;}
 .doc-hl-btn{padding:4px 10px;border-radius:6px;border:1.5px solid transparent;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
 #docFooter{padding:8px 18px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#FAFBFD;}
@@ -7703,6 +7712,30 @@ async function abrirDoc(id) {
       const el=document.getElementById('docWords');
       if(el) el.textContent=w+' palavra'+(w!==1?'s':'');
     });
+
+    // ── Ao pressionar Enter dentro de um bloco colorido, a próxima linha sai da tarja ──
+    _quill.root.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter') return;
+      // Pequeno delay para o Quill processar o Enter primeiro
+      setTimeout(() => {
+        const sel = _quill.getSelection();
+        if (!sel) return;
+        // Pega o elemento de parágrafo onde o cursor está
+        const [leaf] = _quill.getLeaf(sel.index);
+        if (!leaf) return;
+        let node = leaf.domNode;
+        // Sobe até o <p> ou elemento de bloco
+        while (node && node.parentNode !== _quill.root) {
+          node = node.parentNode;
+        }
+        if (!node) return;
+        const blocoClasses = ['bloco-dark','bloco-info','bloco-warn','bloco-success','bloco-danger'];
+        // Se o parágrafo atual herdou classe de bloco, remove
+        if (blocoClasses.some(c => node.classList && node.classList.contains(c))) {
+          node.className = '';
+        }
+      }, 0);
+    });
   }
   if(_quill) _quill.root.innerHTML = doc.conteudo||'';
   titulo.focus();
@@ -7757,58 +7790,84 @@ function docHL(cor,textCor) {
 
 function docInsertBlock(tipo) {
   if(!_quill) return;
-  const configs = {
-    dark:    { bg:'#1E293B', border:'#334155', color:'#F8FAFC',  icon:'■' },
-    info:    { bg:'#EFF6FF', border:'#3B82F6', color:'#1E40AF',  icon:'ℹ' },
-    warn:    { bg:'#FFFBEB', border:'#F59E0B', color:'#92400E',  icon:'⚠' },
-    success: { bg:'#F0FDF4', border:'#22C55E', color:'#14532D',  icon:'✓' },
-    danger:  { bg:'#FEF2F2', border:'#EF4444', color:'#7F1D1D',  icon:'✗' },
-  };
-  const c = configs[tipo] || configs.dark;
+  const editor = _quill.root;
   const sel = _quill.getSelection(true);
-  const html = `<div style="background:${c.bg};border-left:4px solid ${c.border};border-radius:4px;padding:12px 16px;margin:8px 0;color:${c.color};font-size:13px;"> </div>`;
-  // Inserir como HTML usando clipboard API do Quill
-  const delta = _quill.clipboard.convert(html);
-  _quill.updateContents(delta, 'user');
-  _quill.focus();
-  showToast('Bloco inserido — clique dentro para editar');
+
+  // Cria o parágrafo do bloco
+  const p = document.createElement('p');
+  p.className = 'bloco-' + tipo;
+  p.innerHTML = '<br>';
+
+  // Descobre o nó filho do editor onde o cursor está para inserir após ele
+  let refNode = null;
+  if (sel) {
+    const [leaf] = _quill.getLeaf(sel.index);
+    if (leaf && leaf.domNode) {
+      let n = leaf.domNode;
+      while (n && n.parentNode !== editor) n = n.parentNode;
+      refNode = n;
+    }
+  }
+
+  if (refNode && refNode.nextSibling) {
+    editor.insertBefore(p, refNode.nextSibling);
+  } else {
+    editor.appendChild(p);
+  }
+
+  // Adiciona parágrafo normal vazio APÓS o bloco (para Enter já sair da tarja)
+  const pNormal = document.createElement('p');
+  pNormal.innerHTML = '<br>';
+  if (p.nextSibling) {
+    editor.insertBefore(pNormal, p.nextSibling);
+  } else {
+    editor.appendChild(pNormal);
+  }
+
+  // Posiciona cursor DENTRO do bloco usando Selection API
+  try {
+    const range = document.createRange();
+    range.setStart(p, 0);
+    range.collapse(true);
+    const winSel = window.getSelection();
+    winSel.removeAllRanges();
+    winSel.addRange(range);
+  } catch(ex) {}
+
+  docAgendar();
+  showToast('Bloco inserido!');
 }
 
 function docInsertTable() {
   if(!_quill) return;
-  const sel = _quill.getSelection(true);
-  const html = `<table style="width:100%;border-collapse:collapse;margin:8px 0;">
-    <thead><tr>
-      <th style="border:1px solid #CBD5E1;padding:8px 12px;background:#F8FAFC;font-weight:700;text-align:left;">Coluna 1</th>
-      <th style="border:1px solid #CBD5E1;padding:8px 12px;background:#F8FAFC;font-weight:700;text-align:left;">Coluna 2</th>
-      <th style="border:1px solid #CBD5E1;padding:8px 12px;background:#F8FAFC;font-weight:700;text-align:left;">Coluna 3</th>
-    </tr></thead>
-    <tbody>
-      <tr>
-        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
-        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
-        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
-        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
-        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
-      </tr>
-    </tbody>
-  </table>`;
-  const delta = _quill.clipboard.convert(html);
-  _quill.updateContents(delta, 'user');
-  _quill.focus();
-  showToast('Tabela inserida — clique nas células para editar');
+  const range = _quill.getSelection(true);
+  const idx = range ? range.index : _quill.getLength();
+  // Inserir tabela como texto formatado com separadores
+  const linhas = [
+    '| Coluna 1 | Coluna 2 | Coluna 3 |',
+    '|----------|----------|----------|',
+    '|          |          |          |',
+    '|          |          |          |',
+    '|          |          |          |',
+  ];
+  let i = idx;
+  linhas.forEach(linha => {
+    _quill.insertText(i, linha + '\n', { font: 'monospace' }, 'user');
+    i += linha.length + 1;
+  });
+  _quill.setSelection(idx, 0);
+  docAgendar();
+  showToast('Tabela inserida!');
 }
 
 function docInsertDivider() {
   if(!_quill) return;
-  const sel = _quill.getSelection(true);
-  const html = `<hr style="border:none;border-top:2px solid #E2E8F0;margin:16px 0;">`;
-  const delta = _quill.clipboard.convert(html);
-  _quill.updateContents(delta, 'user');
-  _quill.focus();
+  const range = _quill.getSelection(true);
+  const idx = range ? range.index : _quill.getLength();
+  const linha = '─'.repeat(60);
+  _quill.insertText(idx, '\n' + linha + '\n', { color: '#CBD5E1' }, 'user');
+  docAgendar();
+  showToast('Divisória inserida!');
 }
 
 async function excluirDoc(id) {
