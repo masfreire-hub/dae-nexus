@@ -6164,28 +6164,9 @@ const CANAIS_INFO = {
 };
 
 // Mensagens pré-carregadas para demonstração
-const MSGS_DEMO = {
-  arrecada: [
-    {av:'AC',cor:'#10B981',n:'Ana Claudia',t:'Setores Fiscais aprovado! O módulo está pronto para homologação.',me:false,h:'09:12'},
-    {av:'MA',cor:'#C9920A',n:'Mabiane',t:'Excelente! Vou passar para o Luciano validar ainda hoje.',me:true,h:'09:15'},
-    {av:'AC',cor:'#10B981',n:'Ana Claudia',t:'Perfeito. Já ajustei os filtros de CNAE que você pediu.',me:false,h:'09:18'},
-  ],
-  daa: [
-    {av:'AA',cor:'#c51162',n:'Ana Carolina',t:'Podemos alinhar as vistas técnicas amanhã?',me:false,h:'15:30'},
-    {av:'MA',cor:'#C9920A',n:'Mabiane',t:'Claro! Que horas fica bom pra você?',me:true,h:'15:32'},
-    {av:'AA',cor:'#c51162',n:'Ana Carolina',t:'Às 10h está ótimo. Vou criar o Meet.',me:false,h:'15:35'},
-  ],
-  djo: [
-    {av:'JO',cor:'#f57c01',n:'Jeferson',t:'Viu o levantamento das vistas técnicas do SIAFIC?',me:false,h:'11:20'},
-    {av:'MA',cor:'#C9920A',n:'Mabiane',t:'Ainda não, vou revisar depois do almoço.',me:true,h:'11:45'},
-    {av:'JO',cor:'#f57c01',n:'Jeferson',t:'Ok! Deixei no Drive também.',me:false,h:'11:46'},
-  ],
-  geral: [
-    {av:'JO',cor:'#f57c01',n:'Jeferson',t:'Sprint review hoje às 15h, galera! Confirma presença',me:false,h:'08:00'},
-    {av:'AC',cor:'#10B981',n:'Ana Claudia',t:'Confirmado! 👍',me:false,h:'08:05'},
-    {av:'MA',cor:'#C9920A',n:'Mabiane',t:'Estarei lá!',me:true,h:'08:10'},
-  ],
-};
+const MSGS_DEMO = {};
+
+
 
 function openCh(id, icon, name, tipo, cor) {
   curChId = id;
@@ -6204,8 +6185,12 @@ function openCh(id, icon, name, tipo, cor) {
 
   // Carregar mensagens do Supabase
   chatMsgs[id] = [];
-  safeDb.from('chats').select('*').eq('canal_id', id).neq('tipo','canal_meta').order('created_at', {ascending:true}).limit(100)
-    .then(({ data }) => {
+
+  // Para DMs: garante que só carrega mensagens realmente desse par
+  const isDM = id.startsWith('dm_');
+  let query = safeDb.from('chats').select('*').eq('canal_id', id).neq('tipo','canal_meta').order('created_at', {ascending:true}).limit(100);
+
+  query.then(({ data }) => {
       if (data?.length) {
         chatMsgs[id] = data.map(m => {
           const mb = memb.find(x => x.av === m.autor);
@@ -6532,9 +6517,15 @@ function abrirMeetDoChat() {
   showToast('Novo Meet iniciado com ' + (curChName || 'equipe'));
 }
 function renderChat() {
-  const msgs = chatMsgs[curChId] || [];
+  let msgs = chatMsgs[curChId] || [];
   const el = document.getElementById('chatMsgs');
   if (!el) return;
+
+  // Filtro de segurança para DMs: só mensagens dos 2 participantes
+  if (curChId && curChId.startsWith('dm_')) {
+    const partes = curChId.replace('dm_', '').split('_');
+    msgs = msgs.filter(m => partes.includes(m.av));
+  }
   
   // Agrupar por data
   let html = '';
@@ -10772,7 +10763,12 @@ function iniciarChatGlobal() {
 
         // Verificar se é mensagem para este usuário (DM ou canal que participa)
         const canalId = m.canal_id || '';
-        const ehDM = canalId.startsWith('dm_') && canalId.includes(curUser.av);
+        // Para DMs: só notifica se o canal contém o av do usuário atual
+        const ehDM = canalId.startsWith('dm_');
+        if (ehDM) {
+          const partesDM = canalId.replace('dm_', '').split('_');
+          if (!partesDM.includes(curUser.av)) return; // DM de outros, ignorar
+        }
         const estaNoChat = document.getElementById('t-chat')?.classList.contains('on');
         const estaNoCanal = curChId === canalId;
 
