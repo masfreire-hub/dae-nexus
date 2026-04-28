@@ -3361,7 +3361,7 @@ select.sel{
       <button onclick="docSalvar()" style="padding:6px 14px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Salvar</button>
       <button onclick="fecharDoc()" style="width:30px;height:30px;border:none;border-radius:8px;background:#F1F5F9;color:#64748B;cursor:pointer;font-size:15px;">✕</button>
     </div>
-    <!-- Barra de highlight -->
+    <!-- Barra de highlight e blocos especiais -->
     <div class="doc-hl-bar">
       <span style="font-size:10px;font-weight:700;color:#94A3B8;margin-right:4px;">DESTAQUE:</span>
       <button class="doc-hl-btn" onclick="docHL('#FEF08A','#713F12')" style="background:#FEF08A;border-color:#EAB308;color:#713F12">Amarelo</button>
@@ -3371,6 +3371,17 @@ select.sel{
       <button class="doc-hl-btn" onclick="docHL('#E9D5FF','#581C87')" style="background:#E9D5FF;border-color:#A855F7;color:#581C87">Roxo</button>
       <button class="doc-hl-btn" onclick="docHL('#FED7AA','#7C2D12')" style="background:#FED7AA;border-color:#F97316;color:#7C2D12">Laranja</button>
       <button class="doc-hl-btn" onclick="docHL(false,false)" style="background:#fff;border-color:#CBD5E1;color:#475569">✕ Remover</button>
+
+      <div style="width:1px;height:18px;background:#E2E8F0;margin:0 6px;"></div>
+      <span style="font-size:10px;font-weight:700;color:#94A3B8;margin-right:4px;">BLOCOS:</span>
+
+      <button class="doc-hl-btn" onclick="docInsertBlock('dark')" style="background:#1E293B;border-color:#0F172A;color:#F8FAFC" title="Bloco escuro (destaque)">■ Escuro</button>
+      <button class="doc-hl-btn" onclick="docInsertBlock('info')" style="background:#EFF6FF;border-color:#3B82F6;color:#1E40AF" title="Bloco informativo">ℹ Info</button>
+      <button class="doc-hl-btn" onclick="docInsertBlock('warn')" style="background:#FFFBEB;border-color:#F59E0B;color:#92400E" title="Bloco de atenção">⚠ Atenção</button>
+      <button class="doc-hl-btn" onclick="docInsertBlock('success')" style="background:#F0FDF4;border-color:#22C55E;color:#14532D" title="Bloco de sucesso">✓ Sucesso</button>
+      <button class="doc-hl-btn" onclick="docInsertBlock('danger')" style="background:#FEF2F2;border-color:#EF4444;color:#7F1D1D" title="Bloco de erro/perigo">✗ Perigo</button>
+      <button class="doc-hl-btn" onclick="docInsertTable()" style="background:#F8FAFC;border-color:#CBD5E1;color:#475569" title="Inserir tabela">⊞ Tabela</button>
+      <button class="doc-hl-btn" onclick="docInsertDivider()" style="background:#F8FAFC;border-color:#CBD5E1;color:#475569" title="Linha divisória">— Divisória</button>
     </div>
     <div id="docQuill"></div>
     <div id="docFooter">
@@ -7672,14 +7683,17 @@ async function abrirDoc(id) {
       theme:'snow',
       placeholder:'Comece a escrever aqui...',
       modules:{toolbar:[
-        [{header:[1,2,3,false]}],
+        [{header:[1,2,3,4,false]}],
         [{font:[]},{size:['small',false,'large','huge']}],
         ['bold','italic','underline','strike'],
         [{color:[]},{background:[]}],
         [{list:'ordered'},{list:'bullet'},{list:'check'}],
+        [{indent:'-1'},{indent:'+1'}],
         [{align:[]}],
         ['blockquote','code-block'],
-        ['link'],['clean']
+        ['link','image'],
+        [{script:'sub'},{script:'super'}],
+        ['clean']
       ]}
     });
     _quill.on('text-change',()=>{
@@ -7738,6 +7752,62 @@ function docHL(cor,textCor) {
   const sel=_quill.getSelection();
   if(!sel||sel.length===0){showToast('⚠️ Selecione o texto primeiro');return;}
   _quill.formatText(sel.index,sel.length,'background',cor||false);
+  _quill.focus();
+}
+
+function docInsertBlock(tipo) {
+  if(!_quill) return;
+  const configs = {
+    dark:    { bg:'#1E293B', border:'#334155', color:'#F8FAFC',  icon:'■' },
+    info:    { bg:'#EFF6FF', border:'#3B82F6', color:'#1E40AF',  icon:'ℹ' },
+    warn:    { bg:'#FFFBEB', border:'#F59E0B', color:'#92400E',  icon:'⚠' },
+    success: { bg:'#F0FDF4', border:'#22C55E', color:'#14532D',  icon:'✓' },
+    danger:  { bg:'#FEF2F2', border:'#EF4444', color:'#7F1D1D',  icon:'✗' },
+  };
+  const c = configs[tipo] || configs.dark;
+  const sel = _quill.getSelection(true);
+  const html = `<div style="background:${c.bg};border-left:4px solid ${c.border};border-radius:4px;padding:12px 16px;margin:8px 0;color:${c.color};font-size:13px;"> </div>`;
+  // Inserir como HTML usando clipboard API do Quill
+  const delta = _quill.clipboard.convert(html);
+  _quill.updateContents(delta, 'user');
+  _quill.focus();
+  showToast('Bloco inserido — clique dentro para editar');
+}
+
+function docInsertTable() {
+  if(!_quill) return;
+  const sel = _quill.getSelection(true);
+  const html = `<table style="width:100%;border-collapse:collapse;margin:8px 0;">
+    <thead><tr>
+      <th style="border:1px solid #CBD5E1;padding:8px 12px;background:#F8FAFC;font-weight:700;text-align:left;">Coluna 1</th>
+      <th style="border:1px solid #CBD5E1;padding:8px 12px;background:#F8FAFC;font-weight:700;text-align:left;">Coluna 2</th>
+      <th style="border:1px solid #CBD5E1;padding:8px 12px;background:#F8FAFC;font-weight:700;text-align:left;">Coluna 3</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
+        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
+        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
+        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
+        <td style="border:1px solid #CBD5E1;padding:8px 12px;"> </td>
+      </tr>
+    </tbody>
+  </table>`;
+  const delta = _quill.clipboard.convert(html);
+  _quill.updateContents(delta, 'user');
+  _quill.focus();
+  showToast('Tabela inserida — clique nas células para editar');
+}
+
+function docInsertDivider() {
+  if(!_quill) return;
+  const sel = _quill.getSelection(true);
+  const html = `<hr style="border:none;border-top:2px solid #E2E8F0;margin:16px 0;">`;
+  const delta = _quill.clipboard.convert(html);
+  _quill.updateContents(delta, 'user');
   _quill.focus();
 }
 
