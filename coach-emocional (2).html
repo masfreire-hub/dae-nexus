@@ -286,198 +286,131 @@ textarea::placeholder{color:var(--tx3);}
 
 </div>
 
+
 <script>
 let historico = [];
-let _apiKey = localStorage.getItem('coach_apikey') || '';
 
-// Tela de API key se não tiver configurada
-window.addEventListener('DOMContentLoaded', () => {
-  if (!_apiKey) mostrarSetupKey();
-});
+const EMOCOES = [
+  { nome:'Raiva', cor:'#FF4444', emoji:'😤', palavras:['raiva','ódio','irritad','com raiva','fúria','furioso','furiosa','bravo','brava','revoltad','indignado','indignada','odeio'], reagindo:true },
+  { nome:'Frustração', cor:'#FF8C00', emoji:'😠', palavras:['frustrad','cansad','cheia de','cheio de','não aguento','não suporto','já expliquei','várias vezes','de novo','sempre a mesma','não adianta','inútil','insuportável'], reagindo:true },
+  { nome:'Ansiedade', cor:'#3B9EFF', emoji:'😰', palavras:['ansios','preocupado','preocupada','nervoso','nervosa','aflito','aflita','angustiad','não consigo','não sei o que','e se','vai dar errado','medo de'], reagindo:true },
+  { nome:'Insegurança', cor:'#A594FF', emoji:'😟', palavras:['insegur','não sei se','será que','acho que não','não sou','não mereço','inferior','incapaz','burro','burra'], reagindo:true },
+  { nome:'Impulsividade', cor:'#FF5C8A', emoji:'⚡', palavras:['vontade de','quero mandar','quero falar','quero gritar','vou falar','vou mandar','vou lá','não me aguento','lascar','explodir'], reagindo:true },
+  { nome:'Decepção', cor:'#9B59B6', emoji:'😞', palavras:['decepcionad','decepção','esperava','não esperava','confiava','traíd','me traiu','me decepcionou','me magoou','como pode','não acredito'], reagindo:true },
+  { nome:'Estresse', cor:'#E74C3C', emoji:'😩', palavras:['estressad','sobrecarre','muita coisa','não dou conta','prazo','urgente','não tenho tempo','esgotad','sem energia'], reagindo:true },
+  { nome:'Tristeza', cor:'#5DADE2', emoji:'😔', palavras:['triste','tristeza','choran','chorei','mal','péssimo','péssima','deprimido','deprimida','desanimado','desanimada'], reagindo:false },
+];
 
-function mostrarSetupKey() {
-  const d = document.createElement('div');
-  d.id = 'keySetup';
-  d.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
-  d.innerHTML = `
-    <div style="max-width:440px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px;">
-      <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--tx);margin-bottom:8px;">Configurar API Key</div>
-      <p style="font-size:14px;color:var(--tx2);line-height:1.6;margin-bottom:24px;">
-        Para funcionar, o app precisa da sua chave da API da Anthropic.<br><br>
-        Acesse <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--brand2)">console.anthropic.com/settings/keys</a> e copie sua chave.
-      </p>
-      <input id="keyInput" type="password" placeholder="sk-ant-..." 
-        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--surface2);color:var(--tx);font-size:14px;font-family:DM Sans,sans-serif;outline:none;margin-bottom:12px;">
-      <button onclick="salvarKey()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-family:Syne,sans-serif;font-size:15px;font-weight:700;cursor:pointer;">
-        Salvar e começar
-      </button>
-      <p style="font-size:11px;color:var(--tx3);margin-top:12px;text-align:center;">A chave fica salva só no seu navegador (localStorage)</p>
-    </div>
-  `;
-  document.body.appendChild(d);
-}
-
-function salvarKey() {
-  const k = document.getElementById('keyInput').value.trim();
-  if (!k.startsWith('sk-')) { alert('Chave inválida. Deve começar com sk-'); return; }
-  _apiKey = k;
-  localStorage.setItem('coach_apikey', k);
-  document.getElementById('keySetup')?.remove();
-}
-
-const EMOCOES_EMOJI = {
-  'raiva':'😤','frustração':'😠','ansiedade':'😰','insegurança':'😟',
-  'ego':'😤','impulsividade':'⚡','tristeza':'😔','medo':'😨',
-  'estresse':'😩','irritação':'😒','decepção':'😞','orgulho':'😤'
+const RESPOSTAS = {
+  'Raiva':{ calma:'Entendo que a situação me deixou perturbada. Preciso de um momento para organizar meus pensamentos antes de responder. Vou buscar uma solução que funcione para todos.', profissional:'Gostaria de conversar sobre essa situação em um momento mais adequado. Acredito que podemos chegar a um entendimento melhor quando estivermos mais tranquilos.', estrategica:'Percebo que essa situação gerou tensão. Prefiro abordar isso com clareza e foco no que realmente importa — o resultado. Posso marcar um momento para alinharmos?', alerta:'Responder agora pode escalar o conflito e prejudicar sua imagem profissional.', evolucao:'Tente nomear a emoção antes de agir: "Estou com raiva porque..." — isso ativa o lado racional do cérebro.' },
+  'Frustração':{ calma:'Reconheço que já passei por isso antes e que é cansativo. Vou tentar uma abordagem diferente desta vez para que a mensagem chegue com mais clareza.', profissional:'Para garantir o alinhamento, vou resumir os pontos principais por escrito. Assim evitamos retrabalho e ficamos na mesma página.', estrategica:'Percebo que a comunicação não está fluindo bem. Vou propor um formato diferente para que possamos resolver isso de forma definitiva.', alerta:'A frustração acumulada pode fazer você soar agressiva sem querer — cuidado com o tom.', evolucao:'Quando repetir a mesma explicação várias vezes, questione: o problema é a mensagem ou o canal?' },
+  'Ansiedade':{ calma:'Estou me sentindo um pouco sobrecarregada. Vou respirar, listar o que está em meu controle e agir por partes.', profissional:'Para garantir que tudo corra bem, vou organizar as prioridades e confirmar os próximos passos com você.', estrategica:'Reconheço que há muita pressão aqui. Vou focar no que posso controlar agora e comunicar proativamente qualquer necessidade de ajuste.', alerta:'A ansiedade pode te fazer parecer insegura ou precipitada — respire antes de enviar qualquer mensagem importante.', evolucao:'Separe o que está no seu controle do que não está. Só aja sobre o que depende de você.' },
+  'Insegurança':{ calma:'Estou passando por um momento de dúvida, mas sei que tenho capacidade para lidar com isso. Vou buscar o apoio que preciso.', profissional:'Gostaria de alinhar expectativas para garantir que estou entregando o que é necessário. Podemos conversar sobre isso?', estrategica:'Reconheço que tenho pontos a desenvolver aqui. Vou ser proativa em buscar orientação e mostrar meu comprometimento.', alerta:'Sua insegurança pode te fazer recuar quando você deveria avançar — não confunda humildade com auto-sabotagem.', evolucao:'Escreva 3 situações em que você teve sucesso parecido. A memória emocional precisa de âncoras positivas.' },
+  'Impulsividade':{ calma:'Sinto que preciso me expressar, mas vou esperar pelo menos 10 minutos antes de responder. O que quero dizer pode ser dito com mais clareza.', profissional:'Vou organizar meus pensamentos antes de responder para garantir que minha mensagem seja produtiva e objetiva.', estrategica:'Minha primeira reação raramente é a mais inteligente. Vou pausar, identificar o que realmente quero alcançar e agir de forma calculada.', alerta:'Mandar essa mensagem agora pode causar um dano que vai demorar muito para reparar.', evolucao:'Crie uma regra: nunca envie mensagens emocionais sem esperar pelo menos 15 minutos.' },
+  'Decepção':{ calma:'Estou me sentindo magoada com o que aconteceu. Preciso processar isso antes de conversar, para que minha fala venha do entendimento e não da dor.', profissional:'Esperava um resultado diferente nessa situação. Gostaria de entender o que aconteceu para evitarmos isso no futuro.', estrategica:'Essa decepção me diz algo sobre expectativas não comunicadas. Vou usar isso para estabelecer acordos mais claros daqui pra frente.', alerta:'Falar a partir da decepção pode soar como cobranças emocionais — isso raramente resolve o problema.', evolucao:'Decepção frequente com a mesma pessoa é sinal de que as expectativas precisam ser renegociadas.' },
+  'Estresse':{ calma:'Estou com muita coisa ao mesmo tempo. Vou parar, respirar e listar o que é realmente urgente versus o que pode esperar.', profissional:'Estou gerenciando muitas demandas simultâneas. Para manter a qualidade, preciso priorizar — posso alinhar isso com você?', estrategica:'O estresse está afetando minha clareza. Vou ser transparente sobre minha capacidade atual e negociar prazos realistas.', alerta:'Tomar decisões no pico do estresse aumenta muito a chance de erros que você vai se arrepender.', evolucao:'Estresse crônico é sinal de que há algo estrutural a resolver — não só de resistência pessoal.' },
+  'Tristeza':{ calma:'Estou passando por um momento difícil. Vou me permitir sentir isso sem me julgar e buscar apoio quando precisar.', profissional:'Estou com a energia um pouco baixa hoje. Vou focar no essencial e garantir que minhas entregas sejam mantidas.', estrategica:'Reconheço que não estou no meu melhor momento. Vou ser honesta sobre isso com quem precisa saber e proteger minha energia.', alerta:'Tomar decisões importantes enquanto está triste pode levar a escolhas que não refletem o que você realmente quer.', evolucao:'Tristeza recorrente merece atenção — não como fraqueza, mas como dado sobre o que precisa mudar.' },
 };
 
-async function analisar() {
+function detectarEmocao(msg) {
+  const txt = msg.toLowerCase();
+  let melhor = null, maxScore = 0;
+  EMOCOES.forEach(e => {
+    let score = 0;
+    e.palavras.forEach(p => { if (txt.includes(p)) score++; });
+    if (score > maxScore) { maxScore = score; melhor = e; }
+  });
+  return melhor || EMOCOES[0];
+}
+
+function detectarPadrao() {
+  if (historico.length < 3) return '';
+  const emocoes = historico.slice(-5).map(m => detectarEmocao(m).nome);
+  const freq = {};
+  emocoes.forEach(e => freq[e] = (freq[e]||0)+1);
+  const dom = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0];
+  if (dom[1] >= 2) {
+    const p = { 'Raiva':'Você tende a reagir com raiva quando se sente desrespeitada ou ignorada.', 'Frustração':'Você acumula frustração antes de expressar — isso pode gerar explosões.', 'Ansiedade':'Você apresenta um padrão de antecipação negativa em situações de pressão.', 'Impulsividade':'Você tende a agir rápido quando se sente contrariada — pause mais.', 'Insegurança':'Você frequentemente duvida de si mesma em momentos de pressão.', 'Decepção':'Você se decepciona com frequência — talvez as expectativas precisem ser renegociadas.', 'Estresse':'Você está operando em nível de estresse elevado de forma recorrente.', 'Tristeza':'Você apresenta tristeza recorrente — isso merece atenção e cuidado.' };
+    return p[dom[0]] || '';
+  }
+  return '';
+}
+
+function analisar() {
   const msg = document.getElementById('msgInput').value.trim();
   if (!msg) return;
-
   document.getElementById('sendBtn').disabled = true;
   document.getElementById('result').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
-
-  const padraoCtx = historico.length >= 2
-    ? `\n\nHistórico recente (para identificar padrões):\n${historico.slice(-4).map((h,i)=>`${i+1}. "${h}"`).join('\n')}`
-    : '';
-
-  const prompt = `Você é coach especialista em inteligência emocional. Analise a mensagem abaixo e responda SOMENTE em JSON puro, sem markdown.
-
-Mensagem: "${msg}"${padraoCtx}
-
-JSON exato:
-{
-  "emocao": "emoção principal (1-2 palavras, ex: Raiva, Frustração)",
-  "emocao_cor": "cor hex representando a emoção",
-  "reagindo": true ou false,
-  "reagindo_label": "frase curta (ex: Reagindo impulsivamente)",
-  "desc": "1 frase direta sobre o estado emocional",
-  "calma": "versão calma (2-3 frases)",
-  "profissional": "versão profissional (2-3 frases)",
-  "estrategica": "versão estratégica, firme e inteligente (2-3 frases)",
-  "alerta": "1 frase de alerta de consciência",
-  "padrao": "padrão percebido se houver histórico relevante, senão string vazia",
-  "evolucao": "1 dica curta de evolução emocional"
-}`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': _apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const data = await res.json();
-    const txt = data.content?.find(c=>c.type==='text')?.text||'';
-    const json = JSON.parse(txt.replace(/```json|```/g,'').trim());
+  setTimeout(() => {
+    const e = detectarEmocao(msg);
+    const r = RESPOSTAS[e.nome] || RESPOSTAS['Raiva'];
     historico.push(msg);
-    mostrar(json);
-  } catch(e) {
-    document.getElementById('loading').style.display='none';
-    document.getElementById('sendBtn').disabled=false;
-    alert('Erro ao conectar. Tente novamente.');
-  }
+    mostrar({ emocao:e.nome, emocao_cor:e.cor, emoji:e.emoji, reagindo:e.reagindo,
+      reagindo_label: e.reagindo ? 'Reagindo impulsivamente' : 'Agindo com consciência',
+      desc:`Sua mensagem indica ${e.nome.toLowerCase()} — ${e.reagindo?'você está no modo reativo agora.':'há clareza na sua expressão.'}`,
+      calma:r.calma, profissional:r.profissional, estrategica:r.estrategica,
+      alerta:r.alerta, evolucao:r.evolucao, padrao:detectarPadrao() });
+  }, 700);
 }
 
 function mostrar(d) {
   document.getElementById('loading').style.display='none';
-
-  const emKey = d.emocao.toLowerCase();
-  const emoji = EMOCOES_EMOJI[emKey] || '💭';
   const ico = document.getElementById('emocaoIcon');
-  ico.textContent = emoji;
-  ico.style.background = d.emocao_cor + '22';
+  ico.textContent = d.emoji||'💭';
+  ico.style.background = d.emocao_cor+'22';
   ico.style.border = `1px solid ${d.emocao_cor}44`;
-
   document.getElementById('emocaoName').textContent = d.emocao;
   document.getElementById('emocaoName').style.color = d.emocao_cor;
   document.getElementById('emocaoDesc').textContent = d.desc;
-
   const badge = document.getElementById('reacaoBadge');
   document.getElementById('reacaoLabel').textContent = d.reagindo_label;
-  badge.className = 'reacao-badge ' + (d.reagindo ? 'reagindo' : 'consciente');
-
+  badge.className = 'reacao-badge '+(d.reagindo?'reagindo':'consciente');
   document.getElementById('vCalma').textContent = d.calma;
   document.getElementById('vProf').textContent = d.profissional;
   document.getElementById('vEstrat').textContent = d.estrategica;
   document.getElementById('alertaTxt').textContent = d.alerta;
   document.getElementById('evolucaoTxt').textContent = d.evolucao;
-
-  const padraoCard = document.getElementById('padraoCard');
-  if (d.padrao) {
-    document.getElementById('padraoTxt').textContent = d.padrao;
-    padraoCard.style.display = 'flex';
-  } else {
-    padraoCard.style.display = 'none';
-  }
-
-  document.getElementById('result').style.display = 'flex';
-  document.getElementById('sendBtn').disabled = false;
-  document.getElementById('msgInput').value = '';
-
-  document.getElementById('counter').style.display = 'block';
-  document.getElementById('counterNum').textContent = historico.length;
-
-  if (historico.length > 1) {
-    document.getElementById('histBtn').style.display = 'inline';
-    renderHistorico();
-  }
-
+  const pc = document.getElementById('padraoCard');
+  if (d.padrao) { document.getElementById('padraoTxt').textContent = d.padrao; pc.style.display='flex'; } else { pc.style.display='none'; }
+  document.getElementById('result').style.display='flex';
+  document.getElementById('sendBtn').disabled=false;
+  document.getElementById('msgInput').value='';
+  document.getElementById('counter').style.display='block';
+  document.getElementById('counterNum').textContent=historico.length;
+  if (historico.length>1) { document.getElementById('histBtn').style.display='inline'; renderHistorico(); }
   document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function novaAnalise() {
-  document.getElementById('result').style.display = 'none';
-  document.getElementById('msgInput').value = '';
+  document.getElementById('result').style.display='none';
+  document.getElementById('msgInput').value='';
   document.getElementById('msgInput').focus();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function copiar(id, btn) {
-  const txt = document.getElementById(id).textContent;
-  navigator.clipboard.writeText(txt).then(() => {
-    btn.textContent = 'Copiado!';
-    setTimeout(() => btn.textContent = 'Copiar', 2000);
+function copiar(id,btn) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
+    btn.textContent='Copiado!'; setTimeout(()=>btn.textContent='Copiar',2000);
   });
 }
 
 function toggleHistorico() {
-  const h = document.getElementById('historico');
-  const btn = document.getElementById('histBtn');
-  const open = h.style.display === 'flex';
-  h.style.display = open ? 'none' : 'flex';
-  btn.textContent = open ? 'Ver histórico' : 'Fechar histórico';
+  const h=document.getElementById('historico'), btn=document.getElementById('histBtn');
+  const open=h.style.display==='flex';
+  h.style.display=open?'none':'flex';
+  btn.textContent=open?'Ver histórico':'Fechar histórico';
 }
 
 function renderHistorico() {
-  document.getElementById('historico').innerHTML = historico.slice().reverse().map((m,i)=>
-    `<div class="hist-item" onclick="reusar(\`${m.replace(/`/g,"'")}\`)">
+  document.getElementById('historico').innerHTML=historico.slice().reverse().map((m,i)=>
+    `<div class="hist-item" onclick="document.getElementById('msgInput').value=this.dataset.m;window.scrollTo({top:0,behavior:'smooth'})" data-m="${m.replace(/"/g,'&quot;')}">
       <span class="hist-num">#${historico.length-i}</span>
       <span class="hist-txt">${m.slice(0,70)}${m.length>70?'…':''}</span>
-    </div>`
-  ).join('');
+    </div>`).join('');
 }
 
-function reusar(msg) {
-  document.getElementById('msgInput').value = msg;
-  window.scrollTo({top:0,behavior:'smooth'});
-  document.getElementById('historico').style.display = 'none';
-  document.getElementById('histBtn').textContent = 'Ver histórico';
-}
-
-document.getElementById('msgInput').addEventListener('keydown', e => {
-  if (e.key==='Enter' && e.ctrlKey) analisar();
-});
+document.getElementById('msgInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)analisar();});
 </script>
 </body>
 </html>
