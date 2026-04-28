@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coach Emocional</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0A0A0F;
+  --surface:#13131A;
+  --surface2:#1C1C26;
+  --border:#2A2A38;
+  --border2:#38384A;
+  --tx:#F0F0F8;
+  --tx2:#9090A8;
+  --tx3:#5A5A72;
+  --brand:#7C6FFF;
+  --brand2:#A594FF;
+  --calma:#10C98A;
+  --prof:#3B9EFF;
+  --estrat:#A594FF;
+  --alerta:#FF5C5C;
+  --warn:#FFB547;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;}
+
+/* Background pattern */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 20% 0%, rgba(124,111,255,.08) 0%, transparent 60%),
+             radial-gradient(ellipse 60% 40% at 80% 100%, rgba(16,201,138,.05) 0%, transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+.wrap{max-width:720px;margin:0 auto;padding:40px 24px 80px;position:relative;z-index:1;}
+
+/* Header */
+.header{text-align:center;margin-bottom:48px;}
+.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;
+  background:var(--surface);border:1px solid var(--border);border-radius:100px;
+  padding:8px 18px;font-size:12px;font-weight:500;color:var(--tx2);letter-spacing:.5px;}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);box-shadow:0 0 12px var(--brand);}
+h1{font-family:'Syne',sans-serif;font-size:clamp(28px,5vw,44px);font-weight:800;
+  line-height:1.1;color:var(--tx);margin-bottom:12px;}
+h1 span{color:var(--brand2);}
+.subtitle{font-size:15px;color:var(--tx2);font-weight:300;max-width:400px;margin:0 auto;}
+
+/* Input area */
+.input-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:20px;margin-bottom:12px;transition:border-color .2s;
+}
+.input-box:focus-within{border-color:var(--border2);}
+.input-label{font-size:11px;font-weight:500;color:var(--tx3);letter-spacing:.8px;
+  text-transform:uppercase;margin-bottom:10px;}
+textarea{
+  width:100%;background:transparent;border:none;outline:none;
+  color:var(--tx);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:300;
+  line-height:1.7;resize:none;min-height:100px;
+}
+textarea::placeholder{color:var(--tx3);}
+
+.send-btn{
+  width:100%;padding:16px;border-radius:14px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));
+  color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+  letter-spacing:.3px;transition:all .2s;
+}
+.send-btn:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(124,111,255,.3);}
+.send-btn:active{transform:translateY(0);}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* Loading */
+.loading{display:none;text-align:center;padding:48px;color:var(--tx2);font-size:14px;}
+.loading-dots{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px;}
+.loading-dots span{width:8px;height:8px;border-radius:50%;background:var(--brand);
+  animation:pulse .9s ease-in-out infinite;}
+.loading-dots span:nth-child(2){animation-delay:.15s;}
+.loading-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8);}50%{opacity:1;transform:scale(1.1);}}
+
+/* Result */
+#result{display:none;flex-direction:column;gap:16px;animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+
+/* Emotion card */
+.emocao-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:24px;display:flex;align-items:flex-start;gap:20px;
+}
+.emocao-icon{
+  width:52px;height:52px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.emocao-info{flex:1;}
+.emocao-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:4px;}
+.emocao-desc{font-size:14px;color:var(--tx2);line-height:1.5;margin-bottom:12px;}
+.reacao-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;
+  border-radius:100px;font-size:12px;font-weight:500;border:1px solid;}
+.reacao-badge.reagindo{background:rgba(255,92,92,.1);color:#FF5C5C;border-color:rgba(255,92,92,.3);}
+.reacao-badge.consciente{background:rgba(16,201,138,.1);color:var(--calma);border-color:rgba(16,201,138,.3);}
+.reacao-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* Section title */
+.section-title{font-size:11px;font-weight:500;color:var(--tx3);letter-spacing:.8px;
+  text-transform:uppercase;margin-bottom:12px;padding-left:4px;}
+
+/* Versões */
+.versoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+.versao{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;
+  position:relative;overflow:hidden;transition:border-color .2s;}
+.versao::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.versao.calma::before{background:var(--calma);}
+.versao.prof::before{background:var(--prof);}
+.versao.estrat::before{background:var(--estrat);}
+.versao:hover{border-color:var(--border2);}
+.versao-tag{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;}
+.versao.calma .versao-tag{color:var(--calma);}
+.versao.prof .versao-tag{color:var(--prof);}
+.versao.estrat .versao-tag{color:var(--estrat);}
+.versao-txt{font-size:13px;color:var(--tx2);line-height:1.6;font-weight:300;}
+.copy-btn{margin-top:12px;padding:5px 10px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--tx3);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .15s;}
+.copy-btn:hover{color:var(--tx2);border-color:var(--border2);}
+
+/* Alerta */
+.alerta-card{
+  background:rgba(255,92,92,.06);border:1px solid rgba(255,92,92,.2);
+  border-radius:16px;padding:18px 20px;display:flex;align-items:flex-start;gap:14px;
+}
+.alerta-ico{font-size:20px;flex-shrink:0;margin-top:1px;}
+.alerta-content{}
+.alerta-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:#FF5C5C;margin-bottom:5px;}
+.alerta-txt{font-size:14px;color:var(--tx2);line-height:1.5;font-weight:300;}
+
+/* Padrão */
+.padrao-card{
+  background:rgba(255,181,71,.06);border:1px solid rgba(255,181,71,.2);
+  border-radius:16px;padding:18px 20px;display:flex;align-items:flex-start;gap:14px;
+  display:none;
+}
+.padrao-ico{font-size:20px;flex-shrink:0;margin-top:1px;}
+.padrao-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:var(--warn);margin-bottom:5px;}
+.padrao-txt{font-size:14px;color:var(--tx2);line-height:1.5;font-weight:300;}
+
+/* Evolução */
+.evolucao-card{
+  background:rgba(124,111,255,.06);border:1px solid rgba(124,111,255,.2);
+  border-radius:16px;padding:18px 20px;
+}
+.evolucao-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:var(--brand2);margin-bottom:6px;}
+.evolucao-txt{font-size:14px;color:var(--tx2);line-height:1.5;font-weight:300;}
+
+/* Nova análise */
+.nova-btn{
+  width:100%;padding:14px;border-radius:14px;
+  background:transparent;border:1px solid var(--border2);
+  color:var(--tx2);font-family:'Syne',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.nova-btn:hover{background:var(--surface);color:var(--tx);border-color:var(--border2);}
+
+/* Histórico */
+.hist-toggle{
+  background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;
+  padding:8px 4px;font-family:'DM Sans',sans-serif;text-decoration:underline;
+  display:none;
+}
+#historico{display:none;flex-direction:column;gap:8px;margin-top:8px;}
+.hist-item{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:10px 14px;font-size:13px;color:var(--tx2);cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;gap:10px;
+}
+.hist-item:hover{border-color:var(--border2);color:var(--tx);}
+.hist-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--tx3);}
+.hist-txt{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+
+/* Counter */
+.counter{text-align:center;font-size:12px;color:var(--tx3);margin-top:24px;}
+.counter span{color:var(--brand2);font-weight:500;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      INTELIGÊNCIA EMOCIONAL
+    </div>
+    <h1>Pare. Respira.<br><span>Responda melhor.</span></h1>
+    <p class="subtitle">Cole sua mensagem impulsiva. Transformo em resposta consciente.</p>
+  </div>
+
+  <div class="input-box">
+    <div class="input-label">Sua mensagem impulsiva</div>
+    <textarea id="msgInput" placeholder="Ex: Estou irritada, isso não faz sentido nenhum, já expliquei isso várias vezes..."></textarea>
+  </div>
+  <button class="send-btn" id="sendBtn" onclick="analisar()">Analisar e transformar</button>
+
+  <div class="loading" id="loading">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+    Analisando sua emoção...
+  </div>
+
+  <div id="result">
+    <div class="emocao-card">
+      <div class="emocao-icon" id="emocaoIcon"></div>
+      <div class="emocao-info">
+        <div class="emocao-name" id="emocaoName"></div>
+        <div class="emocao-desc" id="emocaoDesc"></div>
+        <div class="reacao-badge" id="reacaoBadge">
+          <div class="reacao-dot"></div>
+          <span id="reacaoLabel"></span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">3 formas de responder</div>
+      <div class="versoes">
+        <div class="versao calma">
+          <div class="versao-tag">Calma</div>
+          <div class="versao-txt" id="vCalma"></div>
+          <button class="copy-btn" onclick="copiar('vCalma',this)">Copiar</button>
+        </div>
+        <div class="versao prof">
+          <div class="versao-tag">Profissional</div>
+          <div class="versao-txt" id="vProf"></div>
+          <button class="copy-btn" onclick="copiar('vProf',this)">Copiar</button>
+        </div>
+        <div class="versao estrat">
+          <div class="versao-tag">Estratégica</div>
+          <div class="versao-txt" id="vEstrat"></div>
+          <button class="copy-btn" onclick="copiar('vEstrat',this)">Copiar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="alerta-card">
+      <div class="alerta-ico">⚠️</div>
+      <div class="alerta-content">
+        <div class="alerta-title">Alerta de consciência</div>
+        <div class="alerta-txt" id="alertaTxt"></div>
+      </div>
+    </div>
+
+    <div class="padrao-card" id="padraoCard">
+      <div class="padrao-ico">🔁</div>
+      <div>
+        <div class="padrao-title">Padrão percebido</div>
+        <div class="padrao-txt" id="padraoTxt"></div>
+      </div>
+    </div>
+
+    <div class="evolucao-card">
+      <div class="evolucao-title">Para sua evolução</div>
+      <div class="evolucao-txt" id="evolucaoTxt"></div>
+    </div>
+
+    <button class="nova-btn" onclick="novaAnalise()">+ Nova análise</button>
+  </div>
+
+  <div style="margin-top:24px;">
+    <button class="hist-toggle" id="histBtn" onclick="toggleHistorico()">Ver histórico</button>
+    <div id="historico"></div>
+  </div>
+
+  <div class="counter" id="counter" style="display:none">
+    <span id="counterNum">0</span> análises feitas nesta sessão
+  </div>
+
+  <div style="text-align:center;margin-top:16px;">
+    <button onclick="localStorage.removeItem('coach_apikey');location.reload()" style="background:none;border:none;color:var(--tx3);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline;">
+      Trocar API key
+    </button>
+  </div>
+
+</div>
+
+<script>
+let historico = [];
+let _apiKey = localStorage.getItem('coach_apikey') || '';
+
+// Tela de API key se não tiver configurada
+window.addEventListener('DOMContentLoaded', () => {
+  if (!_apiKey) mostrarSetupKey();
+});
+
+function mostrarSetupKey() {
+  const d = document.createElement('div');
+  d.id = 'keySetup';
+  d.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
+  d.innerHTML = `
+    <div style="max-width:440px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px;">
+      <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--tx);margin-bottom:8px;">Configurar API Key</div>
+      <p style="font-size:14px;color:var(--tx2);line-height:1.6;margin-bottom:24px;">
+        Para funcionar, o app precisa da sua chave da API da Anthropic.<br><br>
+        Acesse <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--brand2)">console.anthropic.com/settings/keys</a> e copie sua chave.
+      </p>
+      <input id="keyInput" type="password" placeholder="sk-ant-..." 
+        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--surface2);color:var(--tx);font-size:14px;font-family:DM Sans,sans-serif;outline:none;margin-bottom:12px;">
+      <button onclick="salvarKey()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-family:Syne,sans-serif;font-size:15px;font-weight:700;cursor:pointer;">
+        Salvar e começar
+      </button>
+      <p style="font-size:11px;color:var(--tx3);margin-top:12px;text-align:center;">A chave fica salva só no seu navegador (localStorage)</p>
+    </div>
+  `;
+  document.body.appendChild(d);
+}
+
+function salvarKey() {
+  const k = document.getElementById('keyInput').value.trim();
+  if (!k.startsWith('sk-')) { alert('Chave inválida. Deve começar com sk-'); return; }
+  _apiKey = k;
+  localStorage.setItem('coach_apikey', k);
+  document.getElementById('keySetup')?.remove();
+}
+
+const EMOCOES_EMOJI = {
+  'raiva':'😤','frustração':'😠','ansiedade':'😰','insegurança':'😟',
+  'ego':'😤','impulsividade':'⚡','tristeza':'😔','medo':'😨',
+  'estresse':'😩','irritação':'😒','decepção':'😞','orgulho':'😤'
+};
+
+async function analisar() {
+  const msg = document.getElementById('msgInput').value.trim();
+  if (!msg) return;
+
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+
+  const padraoCtx = historico.length >= 2
+    ? `\n\nHistórico recente (para identificar padrões):\n${historico.slice(-4).map((h,i)=>`${i+1}. "${h}"`).join('\n')}`
+    : '';
+
+  const prompt = `Você é coach especialista em inteligência emocional. Analise a mensagem abaixo e responda SOMENTE em JSON puro, sem markdown.
+
+Mensagem: "${msg}"${padraoCtx}
+
+JSON exato:
+{
+  "emocao": "emoção principal (1-2 palavras, ex: Raiva, Frustração)",
+  "emocao_cor": "cor hex representando a emoção",
+  "reagindo": true ou false,
+  "reagindo_label": "frase curta (ex: Reagindo impulsivamente)",
+  "desc": "1 frase direta sobre o estado emocional",
+  "calma": "versão calma (2-3 frases)",
+  "profissional": "versão profissional (2-3 frases)",
+  "estrategica": "versão estratégica, firme e inteligente (2-3 frases)",
+  "alerta": "1 frase de alerta de consciência",
+  "padrao": "padrão percebido se houver histórico relevante, senão string vazia",
+  "evolucao": "1 dica curta de evolução emocional"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': _apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content?.find(c=>c.type==='text')?.text||'';
+    const json = JSON.parse(txt.replace(/```json|```/g,'').trim());
+    historico.push(msg);
+    mostrar(json);
+  } catch(e) {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('sendBtn').disabled=false;
+    alert('Erro ao conectar. Tente novamente.');
+  }
+}
+
+function mostrar(d) {
+  document.getElementById('loading').style.display='none';
+
+  const emKey = d.emocao.toLowerCase();
+  const emoji = EMOCOES_EMOJI[emKey] || '💭';
+  const ico = document.getElementById('emocaoIcon');
+  ico.textContent = emoji;
+  ico.style.background = d.emocao_cor + '22';
+  ico.style.border = `1px solid ${d.emocao_cor}44`;
+
+  document.getElementById('emocaoName').textContent = d.emocao;
+  document.getElementById('emocaoName').style.color = d.emocao_cor;
+  document.getElementById('emocaoDesc').textContent = d.desc;
+
+  const badge = document.getElementById('reacaoBadge');
+  document.getElementById('reacaoLabel').textContent = d.reagindo_label;
+  badge.className = 'reacao-badge ' + (d.reagindo ? 'reagindo' : 'consciente');
+
+  document.getElementById('vCalma').textContent = d.calma;
+  document.getElementById('vProf').textContent = d.profissional;
+  document.getElementById('vEstrat').textContent = d.estrategica;
+  document.getElementById('alertaTxt').textContent = d.alerta;
+  document.getElementById('evolucaoTxt').textContent = d.evolucao;
+
+  const padraoCard = document.getElementById('padraoCard');
+  if (d.padrao) {
+    document.getElementById('padraoTxt').textContent = d.padrao;
+    padraoCard.style.display = 'flex';
+  } else {
+    padraoCard.style.display = 'none';
+  }
+
+  document.getElementById('result').style.display = 'flex';
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('msgInput').value = '';
+
+  document.getElementById('counter').style.display = 'block';
+  document.getElementById('counterNum').textContent = historico.length;
+
+  if (historico.length > 1) {
+    document.getElementById('histBtn').style.display = 'inline';
+    renderHistorico();
+  }
+
+  document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function novaAnalise() {
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('msgInput').value = '';
+  document.getElementById('msgInput').focus();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function copiar(id, btn) {
+  const txt = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    btn.textContent = 'Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar', 2000);
+  });
+}
+
+function toggleHistorico() {
+  const h = document.getElementById('historico');
+  const btn = document.getElementById('histBtn');
+  const open = h.style.display === 'flex';
+  h.style.display = open ? 'none' : 'flex';
+  btn.textContent = open ? 'Ver histórico' : 'Fechar histórico';
+}
+
+function renderHistorico() {
+  document.getElementById('historico').innerHTML = historico.slice().reverse().map((m,i)=>
+    `<div class="hist-item" onclick="reusar(\`${m.replace(/`/g,"'")}\`)">
+      <span class="hist-num">#${historico.length-i}</span>
+      <span class="hist-txt">${m.slice(0,70)}${m.length>70?'…':''}</span>
+    </div>`
+  ).join('');
+}
+
+function reusar(msg) {
+  document.getElementById('msgInput').value = msg;
+  window.scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('historico').style.display = 'none';
+  document.getElementById('histBtn').textContent = 'Ver histórico';
+}
+
+document.getElementById('msgInput').addEventListener('keydown', e => {
+  if (e.key==='Enter' && e.ctrlKey) analisar();
+});
+</script>
+</body>
+</html>
