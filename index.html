@@ -3280,12 +3280,6 @@ select.sel{
 
     <div class="arq-sidebar-section" style="margin-top:8px">Minhas Pastas</div>
     <div id="arqPastasList"></div>
-
-    <div class="arq-sidebar-section" style="margin-top:8px">Tipo de Arquivo</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('doc',this)"><span>📄</span> Documentos</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('img',this)"><span>🖼️</span> Imagens</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('plan',this)"><span>📊</span> Planilhas</div>
-    <div class="arq-folder-item" onclick="arqFiltroTipo('midia',this)"><span>🎥</span> Mídia</div>
   </div>
 
   <!-- ÁREA PRINCIPAL -->
@@ -7308,10 +7302,14 @@ function renderArqPastasSidebar() {
   const el = document.getElementById('arqPastasList');
   if (!el) return;
   el.innerHTML = arqPastas.map(p => `
-    <div class="arq-folder-item" onclick="arqNavPasta('${p}',this)" id="arqFolder_${p.replace(/\s/g,'_')}"
-         style="justify-content:space-between;group:true">
-      <span>📁 ${p}</span>
-      <span style="display:none;gap:2px" class="arq-pasta-acts">
+    <div class="arq-folder-item" id="arqFolder_${p.replace(/\s/g,'_')}"
+         style="justify-content:space-between;align-items:center;gap:4px;padding-right:6px">
+      <span style="cursor:pointer;flex:1;display:flex;align-items:center;gap:6px"
+            onclick="arqVerDocsPasta('${p}', document.getElementById('arqFolder_${p.replace(/\s/g,'_')}'))">
+        📁 ${p}
+      </span>
+      <span class="arq-pasta-acts" style="display:none;gap:2px;align-items:center">
+        <span onclick="event.stopPropagation();arqNavPastaComAtivo('${p}')" title="Ver arquivos" style="cursor:pointer;font-size:11px;opacity:.6">🗂</span>
         <span onclick="event.stopPropagation();arqRenomearPasta('${p}')" style="cursor:pointer;font-size:11px;opacity:.6" title="Renomear">✏️</span>
         <span onclick="event.stopPropagation();arqExcluirPasta('${p}')" style="cursor:pointer;font-size:11px;opacity:.6" title="Excluir">🗑</span>
       </span>
@@ -7326,6 +7324,11 @@ function renderArqPastasSidebar() {
   });
 }
 
+function arqNavPastaComAtivo(pasta) {
+  const el = document.getElementById('arqFolder_' + pasta.replace(/\s/g,'_'));
+  arqNavPasta(pasta, el);
+}
+
 function arqCriarPasta() {
   const nome = prompt('Nome da nova pasta:');
   if (!nome?.trim()) return;
@@ -7333,7 +7336,14 @@ function arqCriarPasta() {
   arqPastas.push(nome.trim());
   arqSalvarPastas();
   renderArqPastasSidebar();
-  showToast('📂 Pasta criada!');
+  // Atualiza o select de pastas se o modal de doc estiver aberto
+  const sel = document.getElementById('docPastaSelect');
+  if (sel) {
+    const opt = document.createElement('option');
+    opt.value = nome.trim(); opt.textContent = '📁 ' + nome.trim();
+    sel.appendChild(opt);
+  }
+  showToast('📂 Pasta "' + nome.trim() + '" criada!');
 }
 
 function arqRenomearPasta(nome) {
@@ -7765,7 +7775,7 @@ async function docSalvar() {
   try {
     await safeDb.from('documentos').update({titulo,conteudo,pasta,updated_at:new Date().toISOString()}).eq('id',_docId);
     const doc=_docsCache.find(d=>d.id===_docId);
-    if(doc){doc.titulo=titulo;doc.conteudo=conteudo;}
+    if(doc){doc.titulo=titulo;doc.conteudo=conteudo;doc.pasta=pasta;}
     _docStatus('salvo');
     setTimeout(()=>_docStatus(''),2500);
   } catch(e){_docStatus('erro');}
