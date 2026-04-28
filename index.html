@@ -1934,20 +1934,30 @@ select.sel{
 .chat-canal-time{font-size:9px;color:rgba(255,255,255,0.25);}
 /* ── NOTIFICAÇÃO CHAT GLOBAL ── */
 .chat-notif-popup{
-  position:fixed;bottom:80px;right:16px;z-index:9999;
-  background:#1E293B;color:#fff;border-radius:14px;
-  padding:10px 14px;min-width:220px;max-width:300px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.35);
-  display:flex;align-items:center;gap:10px;
-  animation:slideInRight .3s cubic-bezier(.16,1,.3,1);
-  cursor:pointer;border:1px solid rgba(255,255,255,.1);
+  position:fixed;bottom:80px;right:16px;z-index:99999;
+  background:linear-gradient(135deg,#1E293B,#0F172A);color:#fff;border-radius:16px;
+  padding:14px 16px 16px;min-width:280px;max-width:340px;
+  box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 0 1px rgba(99,102,241,.3);
+  display:flex;align-items:flex-start;gap:12px;
+  animation:notifSlide .35s cubic-bezier(.16,1,.3,1);
+  cursor:pointer;border:1px solid rgba(99,102,241,.25);
+  overflow:hidden;
 }
-.chat-notif-av{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+.chat-notif-popup:hover{filter:brightness(1.1);}
+@keyframes notifSlide{from{opacity:0;transform:translateX(120px);}to{opacity:1;transform:translateX(0);}}
+.chat-notif-close{position:absolute;top:8px;right:10px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.1);font-size:10px;cursor:pointer;opacity:.6;line-height:1;}
+.chat-notif-close:hover{opacity:1;}
+.chat-notif-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;position:relative;}
+.chat-notif-av::after{content:'';position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;background:#10B981;border-radius:50%;border:2px solid #1E293B;}
 .chat-notif-body{flex:1;overflow:hidden;}
-.chat-notif-nome{font-size:12px;font-weight:700;margin-bottom:2px;}
-.chat-notif-txt{font-size:11px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-notif-app{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.45;margin-bottom:3px;}
+.chat-notif-nome{font-size:13px;font-weight:800;margin-bottom:3px;}
+.chat-notif-txt{font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+.chat-notif-time{font-size:10px;opacity:.35;margin-top:5px;}
+.chat-notif-bar{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:0 0 16px 16px;width:100%;transform-origin:left;animation:notifBar 5s linear forwards;}
+@keyframes notifBar{from{transform:scaleX(1);}to{transform:scaleX(0);}}
 .chat-notif-badge{position:absolute;top:-4px;right:-4px;width:18px;height:18px;background:#EF4444;border-radius:50%;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;color:#fff;}
-#chatNavBadge{position:absolute;top:4px;right:4px;width:16px;height:16px;background:#EF4444;border-radius:50%;font-size:8px;font-weight:800;display:none;align-items:center;justify-content:center;color:#fff;}
+#chatNavBadge{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;background:#EF4444;border-radius:9px;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;color:#fff;padding:0 4px;box-shadow:0 2px 6px rgba(239,68,68,.5);}
 .chat-badge{
   background:#EF4444;color:#fff;border-radius:10px;
   font-size:9px;font-weight:700;padding:1px 5px;min-width:16px;text-align:center;
@@ -10803,34 +10813,122 @@ function iniciarChatGlobal() {
 
         // Notificação do navegador (se permitido)
         if (Notification.permission === 'granted') {
-          new Notification('💬 ' + nomeRem + ' — DAE Nexus', { body: m.texto||'Enviou um arquivo', icon: '/favicon.ico', tag: canalId });
+          const notifBrowser = new Notification('💬 ' + nomeRem + ' — DAE Nexus.AI', {
+            body: (m.texto || 'Enviou um arquivo').slice(0, 100),
+            icon: 'https://masfreire-hub.github.io/dae-nexus/favicon.ico',
+            badge: 'https://masfreire-hub.github.io/dae-nexus/favicon.ico',
+            tag: canalId,
+            renotify: true,
+            requireInteraction: false,
+          });
+          notifBrowser.onclick = () => {
+            window.focus();
+            notifBrowser.close();
+            sw('chat', document.querySelector('.ni[onclick*="chat"]'));
+            limparBadgeChat();
+            setTimeout(() => {
+              if (canalId.startsWith('dm_')) openCh(canalId, m.autor, nomeRem, 'dm', cor);
+              else openCh(canalId, '#', canalId, 'canal', cor);
+            }, 200);
+          };
         }
       })
     .subscribe();
 }
 
+let _notifStack = [];
+let _notifSoundCtx = null;
+
+function _tocarSomNotif() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.08);
+    g.gain.setValueAtTime(0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
 function mostrarNotifChat(nome, texto, cor, av, canalId) {
-  // Remover popup anterior
-  document.querySelectorAll('.chat-notif-popup').forEach(el => el.remove());
-  
+  // Empilhar: mover popups existentes para cima
+  _notifStack.forEach((el, i) => {
+    el.style.bottom = (80 + (i + 1) * 90) + 'px';
+  });
+
   const popup = document.createElement('div');
   popup.className = 'chat-notif-popup';
+  popup.style.position = 'fixed';
+
+  const agora = new Date();
+  const hora = agora.getHours() + ':' + String(agora.getMinutes()).padStart(2,'0');
+
   popup.innerHTML = `
     <div class="chat-notif-av" style="background:${cor}22;color:${cor}">${av}</div>
     <div class="chat-notif-body">
-      <div class="chat-notif-nome">💬 ${nome}</div>
-      <div class="chat-notif-txt">${texto}</div>
+      <div class="chat-notif-app">💬 DAE NEXUS · MENSAGEM</div>
+      <div class="chat-notif-nome">${nome}</div>
+      <div class="chat-notif-txt">${texto.length > 60 ? texto.slice(0,60)+'…' : texto}</div>
+      <div class="chat-notif-time">${hora} · Toque para abrir</div>
     </div>
-    <div style="font-size:10px;opacity:.5;flex-shrink:0">Toque para abrir</div>
+    <span class="chat-notif-close" onclick="event.stopPropagation();this.closest('.chat-notif-popup').remove();">✕</span>
+    <div class="chat-notif-bar"></div>
   `;
+
   popup.onclick = () => {
+    _notifStack = _notifStack.filter(x => x !== popup);
     popup.remove();
     sw('chat', document.querySelector('.ni[onclick*="chat"]'));
     limparBadgeChat();
-    setTimeout(() => openCh(canalId, av, nome, 'dm', cor), 200);
+    setTimeout(() => {
+      if (canalId.startsWith('dm_')) openCh(canalId, av, nome, 'dm', cor);
+      else openCh(canalId, '#', canalId, 'canal', cor);
+    }, 200);
   };
+
   document.body.appendChild(popup);
-  setTimeout(() => popup.remove(), 5000);
+  _notifStack.push(popup);
+
+  // Som
+  _tocarSomNotif();
+
+  // Piscar título da aba
+  _piscarTitulo('💬 ' + nome + ': ' + texto.slice(0,20));
+
+  // Auto remover em 5s
+  setTimeout(() => {
+    popup.style.opacity = '0';
+    popup.style.transform = 'translateX(120px)';
+    popup.style.transition = 'all .3s ease';
+    setTimeout(() => {
+      popup.remove();
+      _notifStack = _notifStack.filter(x => x !== popup);
+      // Reposicionar os restantes
+      _notifStack.forEach((el, i) => { el.style.bottom = (80 + i * 90) + 'px'; });
+    }, 300);
+  }, 5000);
+}
+
+let _tituloInterval = null;
+let _tituloOriginal = document.title;
+function _piscarTitulo(msg) {
+  clearInterval(_tituloInterval);
+  let piscando = false;
+  let count = 0;
+  _tituloInterval = setInterval(() => {
+    document.title = piscando ? _tituloOriginal : '🔔 ' + msg;
+    piscando = !piscando;
+    count++;
+    if (count > 10) { clearInterval(_tituloInterval); document.title = _tituloOriginal; }
+  }, 800);
+  // Parar quando usuário voltar para a aba
+  document.addEventListener('visibilitychange', function stop() {
+    if (!document.hidden) { clearInterval(_tituloInterval); document.title = _tituloOriginal; document.removeEventListener('visibilitychange', stop); }
+  });
 }
 
 function limparBadgeChat() {
@@ -10839,11 +10937,35 @@ function limparBadgeChat() {
   if (navBadge) navBadge.style.display = 'none';
 }
 
-// Pedir permissão de notificação do navegador
+// Pedir permissão de notificação do navegador — com banner amigável
 function pedirPermissaoNotif() {
-  if (Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
+  if (Notification.permission === 'granted') return;
+  if (Notification.permission === 'denied') return;
+
+  // Banner customizado no topo
+  const banner = document.createElement('div');
+  banner.id = 'notifBanner';
+  banner.style.cssText = `
+    position:fixed;top:0;left:0;right:0;z-index:99998;
+    background:linear-gradient(90deg,#4F46E5,#7C3AED);
+    color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;
+    font-size:13px;font-weight:600;font-family:inherit;
+    box-shadow:0 4px 20px rgba(79,70,229,.4);
+  `;
+  banner.innerHTML = `
+    <span style="font-size:18px">🔔</span>
+    <span style="flex:1">Ative as notificações para saber quando alguém te mandar mensagem!</span>
+    <button onclick="Notification.requestPermission().then(()=>document.getElementById('notifBanner')?.remove())"
+      style="background:#fff;color:#4F46E5;border:none;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;">
+      ✅ Ativar notificações
+    </button>
+    <button onclick="document.getElementById('notifBanner')?.remove()"
+      style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;">
+      Agora não
+    </button>
+  `;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 15000);
 }
 
 function mostrarTelaCriarSenha(usuario) {
