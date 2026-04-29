@@ -11060,6 +11060,8 @@ function iniciarChatGlobal() {
 }
 
 
+
+let _notifStack = [];
 let _audioCtxUnlocked = false;
 let _audioCtx = null;
 
@@ -11067,50 +11069,42 @@ function _unlockAudio() {
   if (_audioCtxUnlocked) return;
   try {
     _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Toca silêncio para desbloquear
     const buf = _audioCtx.createBuffer(1, 1, 22050);
     const src = _audioCtx.createBufferSource();
-    src.buffer = buf;
-    src.connect(_audioCtx.destination);
-    src.start(0);
+    src.buffer = buf; src.connect(_audioCtx.destination); src.start(0);
     _audioCtxUnlocked = true;
   } catch(e) {}
 }
-
-// Desbloquear áudio no primeiro clique/toque
-document.addEventListener('click', _unlockAudio, { once: false });
-document.addEventListener('keydown', _unlockAudio, { once: false });
-document.addEventListener('touchstart', _unlockAudio, { once: false });
+document.addEventListener('click', _unlockAudio, {passive:true});
+document.addEventListener('keydown', _unlockAudio, {passive:true});
+document.addEventListener('touchstart', _unlockAudio, {passive:true});
 
 function _tocarSomNotif() {
   try {
     const ctx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const tocar = (freq, inicio, dur, vol=0.3) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'sine';
-      o.frequency.setValueAtTime(freq, ctx.currentTime + inicio);
-      g.gain.setValueAtTime(0, ctx.currentTime + inicio);
-      g.gain.linearRampToValueAtTime(vol, ctx.currentTime + inicio + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + dur);
-      o.start(ctx.currentTime + inicio);
-      o.stop(ctx.currentTime + inicio + dur);
-    };
-
-    tocar(880,  0,    0.18, 0.35);
-    tocar(880,  0.05, 0.18, 0.35);
-    tocar(1320, 0.2,  0.25, 0.4);
-    tocar(1100, 0.4,  0.3,  0.3);
-
-  } catch(e) { console.warn('Som bloqueado:', e); }
+    if (!_audioCtx) _audioCtx = ctx;
+    if (ctx.state === 'suspended') { ctx.resume().then(() => _tocarSomInterno(ctx)); return; }
+    _tocarSomInterno(ctx);
+  } catch(e) { console.warn('[Som notif]', e); }
+}
+function _tocarSomInterno(ctx) {
+  const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+  o1.connect(g1); g1.connect(ctx.destination);
+  o1.frequency.value = 1318;
+  g1.gain.setValueAtTime(0.4, ctx.currentTime);
+  g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+  o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.15);
+  const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+  o2.connect(g2); g2.connect(ctx.destination);
+  o2.frequency.value = 1760;
+  g2.gain.setValueAtTime(0.35, ctx.currentTime + 0.12);
+  g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+  o2.start(ctx.currentTime + 0.12); o2.stop(ctx.currentTime + 0.35);
 }
 
 function _flashTela() {
   const flash = document.createElement('div');
-  flash.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(99,102,241,.12);pointer-events:none;animation:flashTela .4s ease-out forwards;';
+  flash.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(16,185,129,.08);pointer-events:none;animation:flashTela .4s ease-out forwards;';
   if (!document.getElementById('_flashStyle')) {
     const s = document.createElement('style');
     s.id = '_flashStyle';
@@ -11122,98 +11116,103 @@ function _flashTela() {
 }
 
 function mostrarNotifChat(nome, texto, cor, av, canalId) {
-  // Empilhar: mover popups existentes para cima
+  while (_notifStack.length >= 3) _fecharNotif(_notifStack[0]);
   _notifStack.forEach((el, i) => {
-    el.style.bottom = (20 + (i + 1) * 110) + 'px';
-    el.style.transition = 'bottom .3s ease';
+    el.style.bottom = (16 + (i + 1) * 80) + 'px';
   });
 
+  if (!document.getElementById('_wppStyle')) {
+    const s = document.createElement('style');
+    s.id = '_wppStyle';
+    s.textContent = `
+      @keyframes wppNotif{from{opacity:0;transform:translateX(340px)}to{opacity:1;transform:translateX(0)}}
+      @keyframes wppBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+    `;
+    document.head.appendChild(s);
+  }
+
   const popup = document.createElement('div');
-  popup.className = 'chat-notif-popup piscando';
+  popup.style.cssText = `position:fixed;bottom:16px;right:16px;z-index:999999;width:320px;max-width:calc(100vw - 32px);background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.2),0 2px 8px rgba(0,0,0,.1);display:flex;align-items:center;gap:12px;padding:12px 14px 14px;cursor:pointer;overflow:hidden;animation:wppNotif .25s cubic-bezier(.16,1,.3,1);border-left:4px solid ${cor};`;
 
-  const agora = new Date();
-  const hora = agora.getHours() + ':' + String(agora.getMinutes()).padStart(2,'0');
-
-  // Foto do membro se tiver
-  const membro = memb?.find(x => x.av === av);
-  const fotoHtml = membro?.foto
-    ? `<img src="${membro.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
-    : av;
+  const membro = typeof memb !== 'undefined' ? memb?.find(x => x.av === av) : null;
+  const avatarHTML = membro?.foto
+    ? `<img src="${membro.foto}" style="width:100%;height:100%;object-fit:cover;">`
+    : `<span style="font-size:13px;font-weight:800;color:#fff;">${av}</span>`;
+  const hora = new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2,'0');
 
   popup.innerHTML = `
-    <div class="chat-notif-av" style="background:${cor}22;color:${cor};">${fotoHtml}</div>
-    <div class="chat-notif-body">
-      <div class="chat-notif-app">💬 NOVA MENSAGEM · DAE NEXUS</div>
-      <div class="chat-notif-nome">${nome}</div>
-      <div class="chat-notif-txt">${texto.length > 80 ? texto.slice(0,80)+'…' : texto}</div>
-      <div class="chat-notif-time">${hora}</div>
-      <div class="chat-notif-cta">👆 Toque para responder</div>
+    <div style="width:44px;height:44px;border-radius:50%;background:${cor};flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;">${avatarHTML}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+        <span style="font-size:13px;font-weight:700;color:#111;font-family:system-ui,sans-serif;">${nome}</span>
+        <span style="font-size:10px;color:#aaa;font-family:system-ui,sans-serif;">${hora}</span>
+      </div>
+      <div style="font-size:12px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:system-ui,sans-serif;max-width:210px;">${(texto||'').length > 55 ? (texto||'').slice(0,55)+'…' : (texto||'')}</div>
     </div>
-    <span class="chat-notif-close" onclick="event.stopPropagation();_fecharNotif(this.closest('.chat-notif-popup'));">✕</span>
-    <div class="chat-notif-bar"></div>
+    <button onclick="event.stopPropagation();_fecharNotif(this.closest('div[style*=fixed]))" style="background:none;border:none;color:#bbb;font-size:16px;cursor:pointer;padding:0;flex-shrink:0;">✕</button>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:${cor};transform-origin:left;animation:wppBar 6s linear forwards;opacity:.6;"></div>
   `;
 
   popup.onclick = () => {
     _fecharNotif(popup);
-    sw('chat', document.querySelector('.ni[onclick*="chat"]'));
-    limparBadgeChat();
+    if (typeof sw === 'function') sw('chat', document.querySelector('.ni[onclick*="chat"]'));
+    if (typeof limparBadgeChat === 'function') limparBadgeChat();
     setTimeout(() => {
-      if (canalId.startsWith('dm_')) openCh(canalId, av, nome, 'dm', cor);
-      else openCh(canalId, '#', canalId, 'canal', cor);
+      if (typeof openCh === 'function') {
+        if (canalId.startsWith('dm_')) openCh(canalId, av, nome, 'dm', cor);
+        else openCh(canalId, '#', canalId, 'canal', cor);
+      }
     }, 200);
   };
 
   document.body.appendChild(popup);
   _notifStack.push(popup);
-
-  // Som marcante
   _tocarSomNotif();
-
-  // Flash sutil na tela
   _flashTela();
+  if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+  _piscarTitulo('💬 ' + nome + ': ' + (texto||'').slice(0, 25));
 
-  // Vibrar (mobile)
-  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-
-  // Piscar título da aba
-  _piscarTitulo('💬 ' + nome + ': ' + texto.slice(0, 25));
-
-  // Auto remover em 8s
-  setTimeout(() => _fecharNotif(popup), 8000);
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      const n = new Notification(nome, {
+        body: (texto||'').slice(0, 100),
+        icon: 'https://masfreire-hub.github.io/dae-nexus/favicon.ico',
+        tag: canalId, renotify: true,
+      });
+      n.onclick = () => { window.focus(); n.close(); popup.click(); };
+    } catch(e) {}
+  }
+  setTimeout(() => _fecharNotif(popup), 6000);
 }
 
 function _fecharNotif(popup) {
   if (!popup || !popup.parentNode) return;
   popup.style.opacity = '0';
-  popup.style.transform = 'translateX(400px)';
-  popup.style.transition = 'all .3s ease';
+  popup.style.transform = 'translateX(340px)';
+  popup.style.transition = 'all .2s ease';
   setTimeout(() => {
     popup.remove();
     _notifStack = _notifStack.filter(x => x !== popup);
     _notifStack.forEach((el, i) => {
-      el.style.bottom = (20 + i * 110) + 'px';
-      el.style.transition = 'bottom .3s ease';
+      el.style.bottom = (16 + i * 80) + 'px';
     });
-  }, 300);
+  }, 200);
 }
 
 let _tituloInterval = null;
-let _tituloOriginal = document.title;
+const _tituloOriginal = document.title;
 function _piscarTitulo(msg) {
   clearInterval(_tituloInterval);
-  let piscando = false;
-  let count = 0;
+  let p = false, c = 0;
   _tituloInterval = setInterval(() => {
-    document.title = piscando ? _tituloOriginal : '🔔 ' + msg;
-    piscando = !piscando;
-    count++;
-    if (count > 10) { clearInterval(_tituloInterval); document.title = _tituloOriginal; }
-  }, 800);
-  // Parar quando usuário voltar para a aba
-  document.addEventListener('visibilitychange', function stop() {
-    if (!document.hidden) { clearInterval(_tituloInterval); document.title = _tituloOriginal; document.removeEventListener('visibilitychange', stop); }
+    document.title = p ? _tituloOriginal : '🔔 ' + msg;
+    p = !p; if (++c > 12) { clearInterval(_tituloInterval); document.title = _tituloOriginal; }
+  }, 700);
+  document.addEventListener('visibilitychange', function f() {
+    if (!document.hidden) { clearInterval(_tituloInterval); document.title = _tituloOriginal; document.removeEventListener('visibilitychange', f); }
   });
 }
+
 
 function limparBadgeChat() {
   _chatPendentes = 0;
