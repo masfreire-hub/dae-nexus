@@ -10929,32 +10929,30 @@ let _chatGlobalSub = null;
 let _chatPendentes = 0;
 
 function iniciarChatGlobal() {
-  if (!db || !curUser) return;
+  if (!db || !curUser) { console.warn('[Chat] db ou curUser não disponível'); return; }
   if (_chatGlobalSub) { try { _chatGlobalSub.unsubscribe(); } catch(e) {} }
+
+  console.log('[Chat] Iniciando subscription global para', curUser.av);
 
   _chatGlobalSub = db.channel('chat-global-' + curUser.av)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' },
       (payload) => {
+        console.log('[Chat] Nova mensagem recebida:', payload.new);
         const m = payload.new;
-        // Ignorar próprias mensagens
         if (m.autor === curUser?.av) return;
         const mb = memb.find(x => x.av === m.autor);
         const nomeRem = mb?.nome?.split(' ')[0] || m.autor;
         const cor = mb?.cor || '#4F46E5';
 
-        // Verificar se é mensagem para este usuário (DM ou canal que participa)
         const canalId = m.canal_id || '';
-        // Para DMs: só notifica se o canal contém o av do usuário atual
         const ehDM = canalId.startsWith('dm_');
         if (ehDM) {
           const partesDM = canalId.replace('dm_', '').split('_');
-          if (!partesDM.includes(curUser.av)) return; // DM de outros, ignorar
+          if (!partesDM.includes(curUser.av)) return;
         }
         const estaNoChat = document.getElementById('t-chat')?.classList.contains('on');
         const estaNoCanal = curChId === canalId;
 
-        // Atualizar chatMsgs para badge na sidebar
-        // SE estiver no canal, a subscription específica já cuida — não duplicar
         if (!estaNoChat || !estaNoCanal) {
           if (!chatMsgs[canalId]) chatMsgs[canalId] = [];
           const now = new Date(m.created_at || Date.now());
@@ -10962,18 +10960,16 @@ function iniciarChatGlobal() {
           chatMsgs[canalId].push({ av: m.autor, cor, n: mb?.nome||m.autor, t: _limparTexto(m.texto||''), me: false, h, data:'Hoje' });
         }
 
-        // Se estiver no canal aberto, não fazer nada (subscription específica já renderizou)
-        if (estaNoChat && estaNoCanal) {
-          return;
-        }
+        if (estaNoChat && estaNoCanal) return;
 
-        // Badge no item do canal na sidebar
         const cEl = document.getElementById('canal-' + canalId);
         if (cEl) {
           const prev = cEl.querySelector('.chat-canal-preview');
           const timeEl = cEl.querySelector('.chat-canal-time');
+          const now2 = new Date(m.created_at || Date.now());
+          const h2 = now2.getHours()+':'+String(now2.getMinutes()).padStart(2,'0');
           if (prev) prev.textContent = nomeRem + ': ' + (m.texto||'📎').substring(0,35);
-          if (timeEl) timeEl.textContent = h;
+          if (timeEl) timeEl.textContent = h2;
           const nomeEl = cEl.querySelector('.chat-canal-nome');
           if (nomeEl) { nomeEl.style.color = '#10B981'; nomeEl.style.fontWeight = '900'; }
           let badge = cEl.querySelector('.chat-badge');
@@ -10981,48 +10977,88 @@ function iniciarChatGlobal() {
           badge.textContent = (parseInt(badge.textContent)||0) + 1;
           badge.style.display = 'flex';
           marcarCanalUnread(canalId, m.prioridade);
-          // Recebeu resposta — para de piscar
           limparAguardandoResposta(canalId);
         }
 
-        // Badge no ícone Chat do menu
         _chatPendentes++;
         const navBadge = document.getElementById('chatNavBadge');
         if (navBadge) { navBadge.textContent = _chatPendentes > 9 ? '9+' : _chatPendentes; navBadge.style.display = 'flex'; }
 
-        // Popup de notificação — SEMPRE mostrar (mesmo no chat, se canal diferente)
         mostrarNotifChat(nomeRem, m.texto||'📎 Arquivo', cor, m.autor, canalId);
-
-        // Som — desbloqueado com interação prévia do usuário
         _tocarSomNotif();
         _flashTela();
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         _piscarTitulo('💬 ' + nomeRem + ': ' + (m.texto||'').slice(0, 25));
 
-        // Notificação do navegador (se permitido)
         if (Notification.permission === 'granted') {
-          const notifBrowser = new Notification('💬 ' + nomeRem + ' — DAE Nexus.AI', {
-            body: (m.texto || 'Enviou um arquivo').slice(0, 100),
-            icon: 'https://masfreire-hub.github.io/dae-nexus/favicon.ico',
-            badge: 'https://masfreire-hub.github.io/dae-nexus/favicon.ico',
-            tag: canalId,
-            renotify: true,
-            requireInteraction: false,
-          });
-          notifBrowser.onclick = () => {
-            window.focus();
-            notifBrowser.close();
-            sw('chat', document.querySelector('.ni[onclick*="chat"]'));
-            limparBadgeChat();
-            setTimeout(() => {
-              if (canalId.startsWith('dm_')) openCh(canalId, m.autor, nomeRem, 'dm', cor);
-              else openCh(canalId, '#', canalId, 'canal', cor);
-            }, 200);
-          };
+          try {
+            const notifBrowser = new Notification('💬 ' + nomeRem + ' — DAE Nexus.AI', {
+              body: (m.texto || 'Enviou um arquivo').slice(0, 100),
+              icon: 'https://masfreire-hub.github.io/dae-nexus/favicon.ico',
+              tag: canalId, renotify: true, requireInteraction: false,
+            });
+            notifBrowser.onclick = () => {
+              window.focus(); notifBrowser.close();
+              sw('chat', document.querySelector('.ni[onclick*="chat"]'));
+              limparBadgeChat();
+              setTimeout(() => {
+                if (canalId.startsWith('dm_')) openCh(canalId, m.autor, nomeRem, 'dm', cor);
+                else openCh(canalId, '#', canalId, 'canal', cor);
+              }, 200);
+            };
+          } catch(e) { console.warn('[Chat] Notificação falhou:', e); }
         }
       })
-    .subscribe();
+    .subscribe((status) => {
+      console.log('[Chat] Status da subscription:', status);
+    });
+
+  // ── Polling de fallback — verifica novas msgs a cada 15s ──────
+  // Garante notificação mesmo se o Realtime falhar
+  let _ultimoIdVisto = null;
+  clearInterval(window._chatPollingInterval);
+  window._chatPollingInterval = setInterval(async () => {
+    if (!curUser || !safeDb) return;
+    try {
+      const { data } = await safeDb
+        .from('chats')
+        .select('id, canal_id, autor, texto, created_at')
+        .neq('autor', curUser.av)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (!data?.length) return;
+      const maisRecente = data[0];
+
+      // Primeira vez — só salva o ID, não notifica
+      if (_ultimoIdVisto === null) { _ultimoIdVisto = maisRecente.id; return; }
+      if (maisRecente.id === _ultimoIdVisto) return;
+
+      // Mensagens novas desde última checagem
+      const novas = data.filter(m => m.id > _ultimoIdVisto);
+      _ultimoIdVisto = maisRecente.id;
+
+      novas.forEach(m => {
+        const canalId = m.canal_id || '';
+        const ehDM = canalId.startsWith('dm_');
+        if (ehDM) {
+          const partes = canalId.replace('dm_', '').split('_');
+          if (!partes.includes(curUser.av)) return;
+        }
+        const mb = memb.find(x => x.av === m.autor);
+        const nomeRem = mb?.nome?.split(' ')[0] || m.autor;
+        const cor = mb?.cor || '#4F46E5';
+        console.log('[Chat Polling] Nova mensagem detectada:', m);
+        mostrarNotifChat(nomeRem, m.texto||'📎 Arquivo', cor, m.autor, canalId);
+        _tocarSomNotif();
+        _piscarTitulo('💬 ' + nomeRem + ': ' + (m.texto||'').slice(0,25));
+        const navBadge = document.getElementById('chatNavBadge');
+        if (navBadge) { _chatPendentes++; navBadge.textContent = _chatPendentes > 9 ? '9+' : _chatPendentes; navBadge.style.display = 'flex'; }
+      });
+    } catch(e) {}
+  }, 15000);
 }
+
 
 let _audioCtxUnlocked = false;
 let _audioCtx = null;
