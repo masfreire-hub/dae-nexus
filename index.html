@@ -29,16 +29,16 @@
   --border2: #D1D7E0;
 
   /* ── Sidebar Dark ── */
-  --sb-bg: #141B2D;
-  --sb-bg2: #1A2236;
+  --sb-bg: #0A1F14;
+  --sb-bg2: #0D2818;
   --sb-border: rgba(255,255,255,0.06);
   --sb-text: rgba(255,255,255,0.55);
   --sb-text-act: #FFFFFF;
   --sb-icon: rgba(255,255,255,0.4);
   --sb-icon-act: #FFFFFF;
   --sb-hover: rgba(255,255,255,0.06);
-  --sb-active: rgba(255,255,255,0.1);
-  --sb-active-border: #4F46E5;
+  --sb-active: rgba(16,185,129,0.2);
+  --sb-active-border: #10B981;
 
   /* ── Text ── */
   --tx: #1E2A3B;
@@ -296,7 +296,7 @@ body{
 .ni.on::before{
   content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
   width:3px;height:60%;border-radius:0 2px 2px 0;
-  background:var(--brand2);box-shadow:0 0 8px rgba(99,102,241,0.5);
+  background:#10B981;box-shadow:0 0 8px rgba(16,185,129,0.5);
 }
 .niic{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .niic svg{width:16px;height:16px;stroke:var(--sb-icon);transition:stroke var(--dur) ease;}
@@ -1896,6 +1896,25 @@ select.sel{
 .chat-canal-time{font-size:9px;color:rgba(255,255,255,0.3);}
 .chat-canal-urgente{font-size:8px;font-weight:800;background:#EF4444;color:#fff;padding:2px 6px;border-radius:4px;letter-spacing:.3px;}
 @keyframes canalPulse{0%,100%{background:rgba(239,68,68,0.1);}50%{background:rgba(239,68,68,0.22);}}
+
+/* Piscar DM aguardando resposta */
+@keyframes aguardandoResp{
+  0%,100%{background:rgba(16,185,129,0.06);}
+  50%{background:rgba(16,185,129,0.18);}
+}
+.chat-dm.aguardando-resp{
+  animation:aguardandoResp 2s ease-in-out infinite;
+}
+.chat-dm.aguardando-resp .chat-canal-nome{color:#34D399!important;}
+.chat-canal.aguardando-resp{
+  animation:aguardandoResp 2s ease-in-out infinite;
+}
+.chat-aguardando-tag{
+  font-size:8px;font-weight:800;background:rgba(16,185,129,0.2);
+  color:#34D399;border:1px solid rgba(16,185,129,0.3);
+  padding:1px 6px;border-radius:4px;letter-spacing:.3px;
+  white-space:nowrap;
+}
 
 /* Badge */
 .chat-badge{background:#EF4444;color:#fff;border-radius:10px;font-size:9px;font-weight:800;padding:2px 6px;min-width:18px;text-align:center;line-height:1.4;}
@@ -6614,7 +6633,32 @@ function renderChat() {
   el.scrollTop = el.scrollHeight;
 }
 
-// ══ CHAT — NOVAS FUNCIONALIDADES ════════════════════════════════
+// ── Controle de DMs aguardando resposta ──────────────────────
+const _aguardandoResp = new Set(); // Set de canalIds aguardando resposta
+
+function marcarAguardandoResposta(canalId) {
+  _aguardandoResp.add(canalId);
+  const el = document.getElementById('canal-' + canalId);
+  if (!el) return;
+  el.classList.add('aguardando-resp');
+  // Adiciona tag se não existir
+  const meta = el.querySelector('.chat-canal-meta');
+  if (meta && !meta.querySelector('.chat-aguardando-tag')) {
+    const tag = document.createElement('span');
+    tag.className = 'chat-aguardando-tag';
+    tag.textContent = 'AGUARDANDO';
+    meta.appendChild(tag);
+  }
+}
+
+function limparAguardandoResposta(canalId) {
+  _aguardandoResp.delete(canalId);
+  const el = document.getElementById('canal-' + canalId);
+  if (!el) return;
+  el.classList.remove('aguardando-resp');
+  el.querySelector('.chat-aguardando-tag')?.remove();
+}
+// ──────────────────────────────────────────────────────────────
 
 let _chatPrioAtual = 'normal';
 
@@ -7176,6 +7220,11 @@ async function sendChat() {
   renderChat();
   // Reset prioridade após envio
   setChatPrio('normal');
+
+  // Marcar canal como aguardando resposta (só DMs)
+  if (curChId && curChId.startsWith('dm_')) {
+    marcarAguardandoResposta(curChId);
+  }
 
   // Salvar no Supabase
   try {
@@ -10925,18 +10974,15 @@ function iniciarChatGlobal() {
           const timeEl = cEl.querySelector('.chat-canal-time');
           if (prev) prev.textContent = nomeRem + ': ' + (m.texto||'📎').substring(0,35);
           if (timeEl) timeEl.textContent = h;
-          // Nome fica verde indicando mensagem não lida
           const nomeEl = cEl.querySelector('.chat-canal-nome');
-          if (nomeEl) {
-            nomeEl.style.color = '#10B981';
-            nomeEl.style.fontWeight = '900';
-          }
+          if (nomeEl) { nomeEl.style.color = '#10B981'; nomeEl.style.fontWeight = '900'; }
           let badge = cEl.querySelector('.chat-badge');
           if (!badge) { badge = document.createElement('div'); badge.className='chat-badge'; cEl.querySelector('.chat-canal-meta')?.appendChild(badge); }
           badge.textContent = (parseInt(badge.textContent)||0) + 1;
           badge.style.display = 'flex';
-          // Marcar unread com animação urgente se aplicável
           marcarCanalUnread(canalId, m.prioridade);
+          // Recebeu resposta — para de piscar
+          limparAguardandoResposta(canalId);
         }
 
         // Badge no ícone Chat do menu
@@ -10944,8 +10990,14 @@ function iniciarChatGlobal() {
         const navBadge = document.getElementById('chatNavBadge');
         if (navBadge) { navBadge.textContent = _chatPendentes > 9 ? '9+' : _chatPendentes; navBadge.style.display = 'flex'; }
 
-        // Popup de notificação
+        // Popup de notificação — SEMPRE mostrar (mesmo no chat, se canal diferente)
         mostrarNotifChat(nomeRem, m.texto||'📎 Arquivo', cor, m.autor, canalId);
+
+        // Som — desbloqueado com interação prévia do usuário
+        _tocarSomNotif();
+        _flashTela();
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        _piscarTitulo('💬 ' + nomeRem + ': ' + (m.texto||'').slice(0, 25));
 
         // Notificação do navegador (se permitido)
         if (Notification.permission === 'granted') {
@@ -10972,14 +11024,33 @@ function iniciarChatGlobal() {
     .subscribe();
 }
 
-let _notifStack = [];
-let _notifSoundCtx = null;
+let _audioCtxUnlocked = false;
+let _audioCtx = null;
+
+function _unlockAudio() {
+  if (_audioCtxUnlocked) return;
+  try {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Toca silêncio para desbloquear
+    const buf = _audioCtx.createBuffer(1, 1, 22050);
+    const src = _audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(_audioCtx.destination);
+    src.start(0);
+    _audioCtxUnlocked = true;
+  } catch(e) {}
+}
+
+// Desbloquear áudio no primeiro clique/toque
+document.addEventListener('click', _unlockAudio, { once: false });
+document.addEventListener('keydown', _unlockAudio, { once: false });
+document.addEventListener('touchstart', _unlockAudio, { once: false });
 
 function _tocarSomNotif() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
 
-    // Som 1 — bipe duplo marcante
     const tocar = (freq, inicio, dur, vol=0.3) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
@@ -10993,12 +11064,12 @@ function _tocarSomNotif() {
       o.stop(ctx.currentTime + inicio + dur);
     };
 
-    tocar(880, 0,    0.18, 0.35);
-    tocar(880, 0.05, 0.18, 0.35);
-    tocar(1320, 0.2, 0.25, 0.4);
-    tocar(1100, 0.4, 0.3,  0.3);
+    tocar(880,  0,    0.18, 0.35);
+    tocar(880,  0.05, 0.18, 0.35);
+    tocar(1320, 0.2,  0.25, 0.4);
+    tocar(1100, 0.4,  0.3,  0.3);
 
-  } catch(e) {}
+  } catch(e) { console.warn('Som bloqueado:', e); }
 }
 
 function _flashTela() {
