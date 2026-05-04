@@ -5182,18 +5182,35 @@ function renderKanban(l) {
   }
 
   const cols = [
-    {key:'to do',    label:'A Fazer',      c:'#EF4444',bg:'#FEF2F2',icon:'📋'},
-    {key:'andamento',label:'Em Andamento', c:'#F59E0B',bg:'#FFFBEB',icon:'⚡'},
-    {key:'testar',   label:'P/ Testar',    c:'#3B82F6',bg:'#EFF6FF',icon:'🔍'},
-    {key:'feito',    label:'Feito',        c:'#10B981',bg:'#F0FDF4',icon:'✅'},
+    {key:'to do',    label:'A Fazer',       c:'#EF4444',bg:'#FEF2F2',icon:'📋', sub:'to do'},
+    {key:'andamento',label:'Em Andamento',  c:'#F59E0B',bg:'#FFFBEB',icon:'⚡', sub:'em andamento · em revisão · aguardando · bloqueado'},
+    {key:'testar',   label:'P/ Testar',     c:'#3B82F6',bg:'#EFF6FF',icon:'🔍', sub:'pronto p/ testar'},
+    {key:'feito',    label:'Feito',         c:'#10B981',bg:'#F0FDF4',icon:'✅', sub:'feito'},
   ];
 
-  // Mapa ALINHADO com status reais do sistema
+  // Mapa EXATO — os 7 status do detalhe → 4 colunas do kanban
   const kmap = {
-    'to do':'to do','a fazer':'to do','a_fazer':'to do','pendente':'to do','novo':'to do','nova':'to do','aberto':'to do','backlog':'to do','não iniciado':'to do',
-    'em andamento':'andamento','em desenvolvimento':'andamento','andamento':'andamento','em revisão':'andamento','em revisao':'andamento','revisão':'andamento','revisao':'andamento','especif. em análise':'andamento','em análise':'andamento','em analise':'andamento','aguardando':'andamento','bloqueado':'andamento',
-    'pronto p/ testar':'testar','pronto para testar':'testar','p/ testar':'testar','em testes':'testar','disponível p/ teste':'testar','disponivel p/ teste':'testar','liberado versão':'testar','liberado versao':'testar',
-    'feito':'feito','feita':'feito','complete':'feito','concluido':'feito','concluída':'feito','concluído':'feito','done':'feito','finalizado':'feito',
+    // ── A FAZER ──
+    'to do':'to do', 'a fazer':'to do', 'a_fazer':'to do',
+    'pendente':'to do', 'novo':'to do', 'nova':'to do',
+    'aberto':'to do', 'backlog':'to do', 'não iniciado':'to do',
+    // ── EM ANDAMENTO ──
+    'em andamento':'andamento', 'em desenvolvimento':'andamento',
+    'andamento':'andamento',
+    'em revisão':'andamento', 'em revisao':'andamento',
+    'revisão':'andamento', 'revisao':'andamento',
+    'especif. em análise':'andamento', 'em análise':'andamento', 'em analise':'andamento',
+    'aguardando':'andamento',
+    'bloqueado':'andamento',
+    // ── P/ TESTAR ──
+    'pronto p/ testar':'testar', 'pronto para testar':'testar',
+    'p/ testar':'testar', 'em testes':'testar',
+    'disponível p/ teste':'testar', 'disponivel p/ teste':'testar',
+    'liberado versão':'testar', 'liberado versao':'testar',
+    // ── FEITO ──
+    'feito':'feito', 'feita':'feito', 'complete':'feito',
+    'concluido':'feito', 'concluída':'feito', 'concluído':'feito',
+    'done':'feito', 'finalizado':'feito',
   };
 
   document.getElementById('taskList').style.display = 'none';
@@ -5239,7 +5256,7 @@ function renderKanban(l) {
               return kmap[s]===col.key || (!kmap[s] && col.key==='to do');
             });
             return `<div class="kcol" data-status="${col.key}" style="background:${col.bg};border:1.5px solid ${col.c}22;border-radius:14px;padding:10px;">
-              <div class="khead" style="color:${col.c};background:${col.c}15;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px;">
+              <div class="khead" style="color:${col.c};background:${col.c}15;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px;" title="${col.sub}">
                 <span>${col.icon} ${col.label}</span>
                 <span style="background:${col.c};color:#fff;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;">${items.length}</span>
               </div>
@@ -5254,7 +5271,8 @@ function renderKanban(l) {
                   onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px ${priorCor}25'"
                   onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px ${priorCor}15'">
                   <div style="padding:10px 12px;">
-                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px;line-height:1.4;">${t.titulo||t.tit||'Sem título'}</div>
+                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:6px;line-height:1.4;">${t.titulo||t.tit||'Sem título'}</div>
+                    <div style="font-size:9px;color:#64748B;margin-bottom:6px;background:#F1F5F9;padding:2px 7px;border-radius:4px;display:inline-block;">${t.status||'to do'}</div>
                     <div style="display:flex;align-items:center;justify-content:space-between;">
                       <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:${priorBg};color:${priorCor};border:1px solid ${priorCor}33;">${(t.prior||'normal').toUpperCase()}</span>
                       <div style="width:24px;height:24px;border-radius:8px;background:${mCor}22;color:${mCor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;border:1.5px solid ${mCor}44;" title="${m?.nome||t.resp||'?'}">${t.resp||'?'}</div>
