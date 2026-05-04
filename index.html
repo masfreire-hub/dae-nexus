@@ -9643,24 +9643,43 @@ function renderNotifDrop() {
     lista.innerHTML = `<div style="padding:40px 20px;text-align:center;"><div style="font-size:48px;margin-bottom:12px;opacity:.3;">🔔</div><div style="font-size:14px;font-weight:700;color:var(--tx2);margin-bottom:4px;">Tudo em dia!</div><div style="font-size:12px;color:var(--tx3);">Nenhuma notificação pendente</div></div>`;
     return;
   }
-  const icones = {urgente:'🔴',alerta:'🟡',info:'🔵',sucesso:'🟢',reuniao:'📅',tarefa:'✅'};
-  const cores = {urgente:'#EF4444',alerta:'#F59E0B',info:'#3B82F6',sucesso:'#10B981',reuniao:'#8B5CF6',tarefa:'#10B981'};
-  const bgCores = {urgente:'#FEF2F2',alerta:'#FFFBEB',info:'#EFF6FF',sucesso:'#F0FDF4',reuniao:'#F5F3FF',tarefa:'#F0FDF4'};
+
+  const config = {
+    urgente: {ic:'🚨', cor:'#DC2626', bg:'#FEF2F2', borda:'#FECACA', label:'URGENTE'},
+    alerta:  {ic:'⚠️', cor:'#D97706', bg:'#FFFBEB', borda:'#FDE68A', label:'ALERTA'},
+    info:    {ic:'💬', cor:'#2563EB', bg:'#EFF6FF', borda:'#BFDBFE', label:'INFO'},
+    sucesso: {ic:'✅', cor:'#059669', bg:'#F0FDF4', borda:'#A7F3D0', label:'OK'},
+    reuniao: {ic:'📅', cor:'#7C3AED', bg:'#F5F3FF', borda:'#DDD6FE', label:'REUNIÃO'},
+    tarefa:  {ic:'📋', cor:'#0EA5E9', bg:'#F0F9FF', borda:'#BAE6FD', label:'TAREFA'},
+  };
+
   lista.innerHTML = notifs.map(n => {
     const tipo = n.tipo||'info';
-    const ic = icones[tipo]||'🔵';
-    const cor = cores[tipo]||'#3B82F6';
-    const bg = bgCores[tipo]||'#EFF6FF';
+    const c = config[tipo] || config.info;
     const diff = Math.floor((Date.now()-new Date(n.created_at))/1000);
     const tempo = diff<60?'agora mesmo':diff<3600?Math.floor(diff/60)+'min atrás':diff<86400?Math.floor(diff/3600)+'h atrás':Math.floor(diff/86400)+'d atrás';
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-      <div style="width:38px;height:38px;border-radius:11px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${ic}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:3px;">${n.titulo||''}</div>
-        <div style="font-size:11px;color:var(--tx2);margin-bottom:5px;">${n.texto||''}</div>
-        <div style="font-size:10px;color:var(--tx3);">🕐 ${tempo}</div>
+    const isAlerta = tipo === 'urgente' || tipo === 'alerta';
+
+    return `<div style="display:flex;align-items:flex-start;gap:0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;background:${isAlerta?c.bg+';border-left:4px solid '+c.cor:''}"
+      onmouseover="this.style.background='${c.bg}'" onmouseout="this.style.background='${isAlerta?c.bg:''}'"
+      onclick="if(event.target.tagName!=='BUTTON'){${n.tarefa_id?`openDet('task','${n.tarefa_id}');document.getElementById('notifDrop').style.display='none'`:'showAlerts()'}}">
+      <div style="flex:1;display:flex;gap:12px;padding:14px 16px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:${c.cor};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px ${c.cor}44;">${c.ic}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            <span style="font-size:9px;font-weight:800;background:${c.cor};color:#fff;padding:1px 6px;border-radius:4px;letter-spacing:.5px;">${c.label}</span>
+            <span style="font-size:10px;color:var(--tx3);">${tempo}</span>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:3px;line-height:1.4;">${n.titulo||''}</div>
+          <div style="font-size:11px;color:var(--tx2);line-height:1.5;">${n.texto||''}</div>
+          ${n.tarefa_id ? `<div style="font-size:10px;color:${c.cor};margin-top:4px;font-weight:600;">→ Clique para ver a tarefa</div>` : ''}
+        </div>
       </div>
-      <button onclick="marcarLida('${n.id}')" style="width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">✓</button>
+      <button onclick="event.stopPropagation();marcarLida('${n.id}')"
+        title="Marcar como lida"
+        style="width:32px;min-width:32px;height:auto;align-self:stretch;border:none;border-left:1px solid ${c.borda};background:${c.bg};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:${c.cor};transition:background .1s;"
+        onmouseover="this.style.background='${c.cor}';this.style.color='#fff'"
+        onmouseout="this.style.background='${c.bg}';this.style.color='${c.cor}'">✓</button>
     </div>`;
   }).join('');
 }
@@ -9683,10 +9702,15 @@ async function showAlerts() {
 }
 
 async function marcarLida(id) {
+  // Marca no banco
   await safeDb.from('notificacoes').update({ lida:true }).eq('id', id);
-  notifs = notifs.filter(x=>x.id!==id);
-  await loadNotifs();
-  showAlerts();
+  // Remove do array local IMEDIATAMENTE — não recarrega do banco
+  notifs = notifs.filter(x => String(x.id) !== String(id));
+  // Atualiza contador no sino
+  const cnt = document.getElementById('alertCount');
+  if (cnt) { cnt.textContent = notifs.length || ''; cnt.style.display = notifs.length ? 'flex' : 'none'; }
+  // Re-renderiza painel
+  renderNotifDrop();
 }
 
 async function notificarEquipe(titulo, texto, tipo, tarefaId, projetoId) {
@@ -10471,7 +10495,7 @@ _Enviado por ${curUser?.nome?.split(' ')[0] || 'Gestora'} via DAE Nexus_ ✨`);
 let _tlMonitorInterval = null;
 function iniciarMonitorTimeline() {
   if (_tlMonitorInterval) return;
-  _tlMonitorInterval = setInterval(() => {
+  _tlMonitorInterval = setInterval(async () => {
     const hoje = new Date();
     const tarefasParadas = tar.filter(t => {
       if (t.ok || !t.status?.includes('andamento')) return false;
@@ -10479,21 +10503,110 @@ function iniciarMonitorTimeline() {
       if (!ultimaAtu) return false;
       return (hoje - ultimaAtu) / 3600000 >= 4;
     });
-    if (tarefasParadas.length > 0) {
-      // Notificação interna para a gestora
-      safeDb.from('notificacoes').insert(tarefasParadas.map(t => ({
-        destinatario: curUser?.av || 'MA',
-        titulo: `⚠️ Tarefa parada: ${t.titulo}`,
-        texto: `"${t.titulo}" está em andamento há mais de 4h sem atualização.`,
-        tipo: 'alerta',
-        tarefa_id: t.id
-      }))).then(() => loadNotifs());
-      showToast(`⚠️ ${tarefasParadas.length} tarefa(s) parada(s) há 4h+!`);
-      // Atualizar timeline se estiver aberta
-      const tabGantt = document.getElementById('t-gantt');
-      if (tabGantt?.classList.contains('on')) renderTimeline();
-    }
+    if (!tarefasParadas.length) return;
+
+    // ✅ Verificar quais já têm notificação não lida antes de inserir
+    const { data: jaExistem } = await safeDb.from('notificacoes')
+      .select('tarefa_id')
+      .eq('destinatario', curUser?.av || 'MA')
+      .eq('lida', false)
+      .eq('tipo', 'alerta')
+      .in('tarefa_id', tarefasParadas.map(t => t.id));
+
+    const idsJaNotificados = new Set((jaExistem || []).map(n => n.tarefa_id));
+    const novas = tarefasParadas.filter(t => !idsJaNotificados.has(t.id));
+
+    if (!novas.length) return; // Todas já foram notificadas
+
+    await safeDb.from('notificacoes').insert(novas.map(t => ({
+      destinatario: curUser?.av || 'MA',
+      titulo: `⚠️ Tarefa parada: ${t.titulo}`,
+      texto: `"${t.titulo}" está em andamento há mais de 4h sem atualização.`,
+      tipo: 'alerta',
+      tarefa_id: t.id
+    })));
+
+    await loadNotifs();
+
+    // Alerta visual chamativo
+    mostrarAlertaParadas(novas);
+
   }, 30 * 60 * 1000); // 30 min
+}
+
+function mostrarAlertaParadas(tarefas) {
+  // Remove alertas antigos
+  document.querySelectorAll('.alerta-parada-popup').forEach(e => e.remove());
+
+  const popup = document.createElement('div');
+  popup.className = 'alerta-parada-popup';
+  popup.style.cssText = `
+    position:fixed;top:70px;right:16px;z-index:999999;
+    background:linear-gradient(135deg,#7C2D12,#991B1B);
+    color:#fff;border-radius:16px;padding:18px 20px;
+    min-width:300px;max-width:360px;
+    box-shadow:0 12px 40px rgba(239,68,68,.5),0 0 0 2px #EF4444;
+    animation:alertaEntrada .4s cubic-bezier(.16,1,.3,1);
+    cursor:pointer;border-left:5px solid #FCA5A5;
+  `;
+
+  if (!document.getElementById('_alertaStyle')) {
+    const s = document.createElement('style');
+    s.id = '_alertaStyle';
+    s.textContent = `
+      @keyframes alertaEntrada{from{opacity:0;transform:translateX(380px)}to{opacity:1;transform:translateX(0)}}
+      @keyframes alertaPulse{0%,100%{box-shadow:0 12px 40px rgba(239,68,68,.5),0 0 0 2px #EF4444}50%{box-shadow:0 12px 40px rgba(239,68,68,.8),0 0 0 4px #EF4444,0 0 30px rgba(239,68,68,.4)}}
+      .alerta-parada-popup{animation:alertaEntrada .4s cubic-bezier(.16,1,.3,1),alertaPulse 1.5s ease-in-out 0.4s 4!important;}
+    `;
+    document.head.appendChild(s);
+  }
+
+  popup.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="font-size:28px;flex-shrink:0;animation:alertaPulse 1s infinite;">⚠️</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:900;margin-bottom:6px;letter-spacing:.3px;">
+          ${tarefas.length} TAREFA${tarefas.length>1?'S':''} PARADA${tarefas.length>1?'S':''}!
+        </div>
+        <div style="font-size:11px;opacity:.85;line-height:1.6;margin-bottom:10px;">
+          ${tarefas.slice(0,3).map(t => `• ${t.titulo}`).join('<br>')}
+          ${tarefas.length > 3 ? `<br>• +${tarefas.length-3} outras...` : ''}
+        </div>
+        <div style="font-size:10px;opacity:.6;">Em andamento há mais de 4h sem atualização</div>
+      </div>
+      <button onclick="event.stopPropagation();this.closest('.alerta-parada-popup').remove();"
+        style="background:rgba(255,255,255,.15);border:none;color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button onclick="sw('tasks',document.querySelector('.ni[onclick*=tasks]'));this.closest('.alerta-parada-popup').remove();"
+        style="flex:1;padding:7px;border-radius:9px;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;">
+        📋 Ver Tarefas
+      </button>
+      <button onclick="showAlerts();this.closest('.alerta-parada-popup').remove();"
+        style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">
+        🔔 Ver Alertas
+      </button>
+    </div>
+  `;
+
+  popup.onclick = () => { showAlerts(); popup.remove(); };
+  document.body.appendChild(popup);
+
+  // Som de alerta
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.15, 0.3].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.3, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.12);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.12);
+    });
+  } catch(e) {}
+
+  // Auto fechar em 12s
+  setTimeout(() => popup?.remove(), 12000);
 }
 
 function renderTimeline() {
