@@ -6171,6 +6171,17 @@ async function iniciarTimer(tarefaId) {
   timerInicio = Date.now();
   localStorage.setItem('dae_timer', JSON.stringify({ tarefaId, inicio: timerInicio, base }));
 
+  // Salvar início da sessão na tabela time_entries
+  try {
+    const { data: entry } = await safeDb.from('time_entries').insert([{
+      tarefa_id: tarefaId,
+      membro_av: curUser?.av || 'MA',
+      inicio: new Date(timerInicio).toISOString(),
+      duracao: 0
+    }]).select().single();
+    if (entry) localStorage.setItem('dae_timer_entry_id', entry.id);
+  } catch(e) { console.warn('time_entries não existe ainda:', e.message); }
+
   // Limpa interval anterior e cria novo
   clearInterval(timerInterval);
   timerInterval = setInterval(_atualizarDisplayTimer, 1000);
@@ -6204,6 +6215,18 @@ async function pararTimer(tarefaId) {
   localStorage.removeItem('dae_timer');
   timerTarefaId = null;
   timerInicio = null;
+
+  // Atualizar time_entry com fim e duração
+  try {
+    const entryId = localStorage.getItem('dae_timer_entry_id');
+    localStorage.removeItem('dae_timer_entry_id');
+    if (entryId && elapsed > 0) {
+      await safeDb.from('time_entries').update({
+        fim: new Date().toISOString(),
+        duracao: elapsed
+      }).eq('id', entryId);
+    }
+  } catch(e) { console.warn('time_entries update:', e.message); }
 
   // Salvar no cache e no banco
   const t = tar.find(x=>x.id===tarefaId);
@@ -12495,156 +12518,198 @@ async function renderHoras() {
   if (!el) return;
 
   const dias = _diasDaSemana(_horasOffset);
-  const segunda = dias[0];
-  const domingo = dias[6];
-
-  // Label da semana
+  const segunda = dias[0], domingo = dias[6];
   const label = document.getElementById('horasSemanaLabel');
   if (label) {
     const opts = {day:'2-digit',month:'short'};
     label.textContent = `Seg, ${segunda.toLocaleDateString('pt-BR',opts)} – Dom, ${domingo.toLocaleDateString('pt-BR',opts)}`;
   }
 
+  el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--tx3);"><div style="font-size:24px;margin-bottom:8px;">⏳</div>Carregando horas...</div>`;
+
+  const inicioSemana = dias[0].toISOString();
+  const fimSemana = new Date(dias[6]); fimSemana.setHours(23,59,59,999);
+
+  let entries = [];
+  try {
+    const { data, error } = await safeDb.from('time_entries')
+      .select('id, tarefa_id, membro_av, inicio, duracao, tarefas(titulo, projeto_id)')
+      .gte('inicio', inicioSemana)
+      .lte('inicio', fimSemana.toISOString())
+      .gt('duracao', 0);
+    if (error) throw error;
+    entries = data || [];
+  } catch(e) {
+    el.innerHTML = `<div style="padding:40px;text-align:center;color:#EF4444;"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><b>Tabela time_entries não encontrada.</b><br><br>Execute o SQL <b>criar-time-entries.sql</b> no Supabase primeiro.</div>`;
+    return;
+  }
+
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const diasNomes = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-
-  // Buscar tempo_gasto por pessoa do banco (tarefas com data_inicio na semana)
-  // Agrupar membros
   const membrosAtivos = memb.filter(m => m.status_acesso !== 'inativo');
 
-  // Calcular horas por membro por dia (baseado em tarefas com data_inicio)
   const grid = membrosAtivos.map(m => {
     const horasPorDia = dias.map(dia => {
       const diaStr = dia.toISOString().split('T')[0];
-      // Somar tempo_gasto das tarefas cujo data_inicio é nesse dia e o responsável é esse membro
-      const tarefasDia = tar.filter(t => {
-        if (t.resp !== m.av) return false;
-        if (!t.data_inicio) return false;
-        return t.data_inicio.startsWith(diaStr);
-      });
-      const totalSeg = tarefasDia.reduce((acc, t) => acc + (t.tempo_gasto || 0), 0);
-      return { segundos: totalSeg, tarefas: tarefasDia };
+      const entriesDia = entries.filter(e => e.membro_av === m.av && e.inicio?.startsWith(diaStr));
+      return { segundos: entriesDia.reduce((a,e)=>a+(e.duracao||0),0), entries: entriesDia };
     });
-    const totalSemana = horasPorDia.reduce((acc, d) => acc + d.segundos, 0);
-    return { membro: m, dias: horasPorDia, total: totalSemana };
+    return { membro: m, dias: horasPorDia, total: horasPorDia.reduce((a,d)=>a+d.segundos,0) };
   });
 
-  // Totais por dia
-  const totaisDia = dias.map((_, i) => grid.reduce((acc, r) => acc + r.dias[i].segundos, 0));
-  const totalGeral = totaisDia.reduce((a, b) => a + b, 0);
+  const totaisDia = dias.map((_,i) => grid.reduce((a,r)=>a+r.dias[i].segundos,0));
+  const totalGeral = totaisDia.reduce((a,b)=>a+b,0);
 
-  const corCelula = (seg, limite = 28800) => { // 8h = 28800s
-    if (seg <= 0) return '';
-    if (seg > limite * 1.2) return 'background:rgba(239,68,68,0.12);color:#DC2626;font-weight:700;';
-    if (seg >= limite * 0.8) return 'background:rgba(59,130,246,0.1);color:#1D4ED8;font-weight:700;';
+  const corCelula = (seg) => {
+    if (seg<=0) return '';
+    if (seg>28800*1.2) return 'background:rgba(239,68,68,0.1);color:#DC2626;font-weight:700;';
+    if (seg>=28800*0.8) return 'background:rgba(59,130,246,0.1);color:#1D4ED8;font-weight:700;';
     return 'background:rgba(16,185,129,0.08);color:#065F46;';
   };
 
   el.innerHTML = `
     <style>
-      .horas-table{width:100%;border-collapse:collapse;font-family:var(--font);min-width:900px;}
-      .horas-table th,.horas-table td{padding:0;border:1px solid var(--border);}
-      .horas-table thead th{background:var(--surface2);font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;white-space:nowrap;}
-      .horas-table thead th.hoje-col{background:rgba(79,70,229,0.08);color:var(--brand);}
-      .horas-table tbody td{font-size:13px;padding:0;}
-      .horas-table tbody tr:hover td{background:rgba(0,0,0,.02);}
-      .horas-table .pessoa-cell{display:flex;align-items:center;gap:10px;padding:12px 14px;white-space:nowrap;}
-      .horas-table .hora-cell{text-align:center;padding:10px 8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .1s;}
-      .horas-table .hora-cell:hover{filter:brightness(.95);}
-      .horas-table .hora-cell.vazio{color:var(--tx4);font-weight:400;}
-      .horas-table .total-cell{text-align:center;padding:10px 12px;font-size:12px;font-weight:800;color:var(--tx2);background:var(--surface2);}
-      .horas-table tfoot td{background:var(--surface2);font-size:12px;font-weight:700;color:var(--tx2);padding:10px 14px;text-align:center;}
-      .horas-table tfoot .total-label{text-align:left;font-weight:800;}
-      .horas-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
-      .horas-nome{display:flex;flex-direction:column;}
-      .horas-nome .nm{font-size:13px;font-weight:700;color:var(--tx);}
-      .horas-nome .cr{font-size:10px;color:var(--tx3);}
-      .abrir-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap;}
-      .abrir-btn:hover{border-color:var(--brand);color:var(--brand);}
+      .ht{width:100%;border-collapse:collapse;font-family:var(--font);min-width:900px;}
+      .ht th,.ht td{border:1px solid var(--border);}
+      .ht thead th{background:var(--surface2);font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;white-space:nowrap;}
+      .ht thead th.hj{background:rgba(79,70,229,0.08);color:var(--brand);}
+      .ht .pc{display:flex;align-items:center;gap:10px;padding:12px 14px;white-space:nowrap;}
+      .ht .hc{text-align:center;padding:10px 8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .1s;}
+      .ht .hc:hover{filter:brightness(.92);}
+      .ht .hc.vz{color:var(--tx4);font-weight:400;cursor:default;}
+      .ht .tc{text-align:center;padding:10px 12px;font-size:12px;font-weight:800;color:var(--tx2);background:var(--surface2);}
+      .ht tfoot td{background:var(--surface2);font-size:12px;font-weight:700;color:var(--tx2);padding:10px 14px;text-align:center;}
+      .hab{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;}
+      .hab:hover{border-color:var(--brand);color:var(--brand);}
     </style>
-    <table class="horas-table">
+    <table class="ht">
       <thead>
         <tr>
-          <th style="text-align:left;min-width:260px;">Pessoas (${membrosAtivos.length})</th>
-          ${dias.map((d, i) => {
-            const isHoje = d.toDateString() === hoje.toDateString();
-            const isFds = d.getDay() === 0 || d.getDay() === 6;
-            return `<th class="${isHoje?'hoje-col':''}" style="${isFds?'opacity:.5;':''}">${diasNomes[i]}, ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</th>`;
+          <th style="text-align:left;min-width:280px;">Pessoas (${membrosAtivos.length})</th>
+          ${dias.map((d,i)=>{
+            const isHoje=d.toDateString()===hoje.toDateString();
+            const isFds=d.getDay()===0||d.getDay()===6;
+            return `<th class="${isHoje?'hj':''}" style="${isFds?'opacity:.5;':''}">${diasNomes[i]}, ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</th>`;
           }).join('')}
           <th>Total</th>
         </tr>
       </thead>
       <tbody>
-        ${grid.map(row => {
-          const av = row.membro.av || '?';
-          const cor = row.membro.cor || '#6366F1';
-          const foto = row.membro.foto;
-          const avatarHTML = foto
-            ? `<img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
-            : `<div class="horas-av" style="background:${cor}22;color:${cor};">${av}</div>`;
-
+        ${grid.map(row=>{
+          const cor=row.membro.cor||'#6366F1';
+          const avatarHTML=row.membro.foto?`<img src="${row.membro.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`:
+            `<div style="width:32px;height:32px;border-radius:50%;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">${row.membro.av}</div>`;
           return `<tr>
-            <td>
-              <div class="pessoa-cell">
-                ${avatarHTML}
-                <div class="horas-nome">
-                  <span class="nm">${row.membro.nome||av}</span>
-                  <span class="cr">${row.membro.cargo||'Membro'}</span>
-                </div>
-                <button class="abrir-btn" onclick="abrirDetalheHoras('${av}')">Abrir →</button>
-              </div>
-            </td>
-            ${row.dias.map((d, i) => {
-              const isHoje = dias[i].toDateString() === hoje.toDateString();
-              const isFds = dias[i].getDay() === 0 || dias[i].getDay() === 6;
-              const estilo = corCelula(d.segundos);
-              return `<td class="hora-cell ${d.segundos<=0?'vazio':''}" 
-                style="${estilo}${isHoje?'border-left:2px solid var(--brand);border-right:2px solid var(--brand);':''}${isFds?'opacity:.5;':''}"
-                title="${d.tarefas.map(t=>t.titulo||t.tit||'').join(', ')||'Sem registros'}"
-                onclick="abrirDetalheHorasDia('${av}','${dias[i].toISOString().split('T')[0]}')">
-                ${d.segundos > 0 ? _fmtHoras(d.segundos) : '0h'}
+            <td><div class="pc">${avatarHTML}
+              <div><div style="font-size:13px;font-weight:700;color:var(--tx);">${row.membro.nome||row.membro.av}</div>
+              <div style="font-size:10px;color:var(--tx3);">${row.membro.cargo||'Membro'}</div></div>
+              <button class="hab" onclick="abrirDetalheHoras('${row.membro.av}')">Abrir →</button>
+            </div></td>
+            ${row.dias.map((d,i)=>{
+              const isHoje=dias[i].toDateString()===hoje.toDateString();
+              const isFds=dias[i].getDay()===0||dias[i].getDay()===6;
+              const diaStr=dias[i].toISOString().split('T')[0];
+              const entriesJson=encodeURIComponent(JSON.stringify(d.entries));
+              return `<td class="hc ${d.segundos<=0?'vz':''}"
+                style="${corCelula(d.segundos)}${isHoje?'border-left:2px solid var(--brand);border-right:2px solid var(--brand);':''}${isFds?'opacity:.5;':''}"
+                ${d.segundos>0?`onclick="abrirDetalheHorasDia('${row.membro.av}','${diaStr}',decodeURIComponent('${entriesJson}'))"`:''}
+                title="${d.segundos>0?'Clique para ver detalhes por tarefa':'Sem registros'}">
+                ${d.segundos>0?_fmtHoras(d.segundos):'0h'}
               </td>`;
             }).join('')}
-            <td class="total-cell">${row.total > 0 ? `<span style="${corCelula(row.total, 144000)}">${_fmtHoras(row.total)}</span>` : '0h'}</td>
+            <td class="tc">${row.total>0?`<span style="${corCelula(row.total)}">${_fmtHoras(row.total)}</span>`:'0h'}</td>
           </tr>`;
         }).join('')}
       </tbody>
       <tfoot>
         <tr>
-          <td class="total-label" style="text-align:left;padding-left:14px;">TOTAL</td>
-          ${totaisDia.map((seg, i) => {
-            const isHoje = dias[i].toDateString() === hoje.toDateString();
-            return `<td style="text-align:center;${isHoje?'border-left:2px solid var(--brand);border-right:2px solid var(--brand);':''}">${_fmtHoras(seg)||'0h'}</td>`;
+          <td style="text-align:left;padding-left:14px;font-weight:800;">TOTAL</td>
+          ${totaisDia.map((seg,i)=>{
+            const isHoje=dias[i].toDateString()===hoje.toDateString();
+            return `<td style="${isHoje?'border-left:2px solid var(--brand);border-right:2px solid var(--brand);':''}">${_fmtHoras(seg)||'0h'}</td>`;
           }).join('')}
-          <td style="text-align:center;font-weight:800;color:var(--brand);">${_fmtHoras(totalGeral)||'0h'}</td>
+          <td style="font-weight:800;color:var(--brand);">${_fmtHoras(totalGeral)||'0h'}</td>
         </tr>
       </tfoot>
     </table>
-    <div style="margin-top:12px;display:flex;align-items:center;gap:16px;font-size:11px;color:var(--tx3);padding:0 4px;">
+    <div style="margin-top:10px;display:flex;align-items:center;gap:16px;font-size:11px;color:var(--tx3);">
       <span>Legenda:</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:rgba(16,185,129,0.15);display:inline-block;"></span> Normal</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:rgba(59,130,246,0.15);display:inline-block;"></span> ≥ 80% do limite</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:rgba(239,68,68,0.15);display:inline-block;"></span> Acima do limite</span>
+      <span><span style="width:10px;height:10px;border-radius:2px;background:rgba(16,185,129,0.2);display:inline-block;margin-right:4px;"></span>Normal</span>
+      <span><span style="width:10px;height:10px;border-radius:2px;background:rgba(59,130,246,0.2);display:inline-block;margin-right:4px;"></span>≥80% limite</span>
+      <span><span style="width:10px;height:10px;border-radius:2px;background:rgba(239,68,68,0.2);display:inline-block;margin-right:4px;"></span>Acima do limite</span>
+      <span style="margin-left:auto;color:var(--tx4);">💡 Clique numa célula para ver detalhes por tarefa</span>
     </div>
   `;
 }
 
 function abrirDetalheHoras(av) {
-  const m = memb.find(x => x.av === av);
-  const tarefasMembro = tar.filter(t => t.resp === av && t.tempo_gasto > 0);
-  const totalGeral = tarefasMembro.reduce((a, t) => a + (t.tempo_gasto||0), 0);
-  showToast(`⏱ ${m?.nome||av}: ${_fmtHoras(totalGeral)} registradas em ${tarefasMembro.length} tarefa(s)`);
+  const m = memb.find(x=>x.av===av);
+  showToast(`👤 ${m?.nome||av} — clique em uma célula com horas para ver detalhes`);
 }
 
-function abrirDetalheHorasDia(av, dataStr) {
-  const m = memb.find(x => x.av === av);
-  const tarefasDia = tar.filter(t => t.resp === av && t.data_inicio?.startsWith(dataStr) && t.tempo_gasto > 0);
-  if (!tarefasDia.length) { showToast(`Sem registros para ${m?.nome||av} em ${dataStr}`); return; }
-  const total = tarefasDia.reduce((a,t)=>a+(t.tempo_gasto||0),0);
-  showToast(`📅 ${m?.nome||av} — ${dataStr}: ${_fmtHoras(total)} (${tarefasDia.length} tarefa${tarefasDia.length>1?'s':''})`);
+function abrirDetalheHorasDia(av, dataStr, entriesJson) {
+  const m = memb.find(x=>x.av===av);
+  let entries = [];
+  try { entries = JSON.parse(entriesJson); } catch(e) { return; }
+  if (!entries?.length) return;
+
+  const porTarefa = {};
+  entries.forEach(e => {
+    const tid = e.tarefa_id;
+    if (!porTarefa[tid]) porTarefa[tid] = { titulo: e.tarefas?.titulo||'Sem título', segundos:0, sessoes:0 };
+    porTarefa[tid].segundos += e.duracao||0;
+    porTarefa[tid].sessoes++;
+  });
+
+  const total = entries.reduce((a,e)=>a+(e.duracao||0),0);
+  const data = new Date(dataStr+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+
+  let modal = document.getElementById('horasDetalheModal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'horasDetalheModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  modal.onclick = e => { if(e.target===modal) modal.remove(); };
+  document.body.appendChild(modal);
+
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:20px;width:500px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.25);">
+      <div style="padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:var(--tx);">⏱ ${_fmtHoras(total)}</div>
+          <div style="font-size:12px;color:var(--tx3);margin-top:3px;">${m?.nome||av} · ${data}</div>
+        </div>
+        <button onclick="document.getElementById('horasDetalheModal').remove()"
+          style="width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div style="padding:0 24px 20px;">
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Distribuição por tarefa</div>
+        ${Object.entries(porTarefa).map(([tid,info])=>{
+          const pct = Math.round((info.segundos/total)*100);
+          const cor = pct > 50 ? 'var(--brand)' : pct > 25 ? '#F59E0B' : '#10B981';
+          return `<div style="margin-bottom:14px;padding:12px 14px;background:var(--surface2);border-radius:12px;cursor:pointer;border:1px solid var(--border);transition:border-color .15s;"
+            onclick="document.getElementById('horasDetalheModal').remove();openDet('task','${tid}')"
+            onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:13px;font-weight:700;color:var(--tx);flex:1;margin-right:12px;">${info.titulo}</span>
+              <span style="font-size:13px;font-weight:800;color:${cor};white-space:nowrap;">${_fmtHoras(info.segundos)}</span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:6px;">
+              <div style="height:100%;width:${pct}%;background:${cor};border-radius:3px;"></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--tx3);">
+              <span>${pct}% do tempo do dia</span>
+              <span>${info.sessoes} sessão${info.sessoes>1?'ões':''} · <span style="color:var(--brand);">Ver tarefa →</span></span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
 }
 
 // ── FIM HORAS ────────────────────────────────────────────────
+
 
 // Lightbox para imagens do chat
 function abrirImagemChat(url) {
