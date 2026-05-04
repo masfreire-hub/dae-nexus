@@ -1474,7 +1474,8 @@ select,input[type="checkbox"]{accent-color:var(--brand);}
 .wd{font-size:11px;color:var(--tx3);}
 
 /* ── Kanban ── */
-.kb{display:flex;gap:11px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;}
+.kb{display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;scrollbar-width:thin;align-items:flex-start;}
+.kcol{min-width:200px;max-width:220px;flex-shrink:0;}
 .kb::-webkit-scrollbar{display:none;}
 .khead{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;color:var(--tx2);}
 .kct{font-size:12px;line-height:1.4;margin-bottom:7px;color:var(--tx);}
@@ -5182,35 +5183,26 @@ function renderKanban(l) {
   }
 
   const cols = [
-    {key:'to do',    label:'A Fazer',       c:'#EF4444',bg:'#FEF2F2',icon:'📋', sub:'to do'},
-    {key:'andamento',label:'Em Andamento',  c:'#F59E0B',bg:'#FFFBEB',icon:'⚡', sub:'em andamento · em revisão · aguardando · bloqueado'},
-    {key:'testar',   label:'P/ Testar',     c:'#3B82F6',bg:'#EFF6FF',icon:'🔍', sub:'pronto p/ testar'},
-    {key:'feito',    label:'Feito',         c:'#10B981',bg:'#F0FDF4',icon:'✅', sub:'feito'},
+    {key:'to do',             label:'A Fazer',         c:'#64748B', bg:'#F8FAFC', icon:'📋'},
+    {key:'em andamento',      label:'Em Andamento',    c:'#3B82F6', bg:'#EFF6FF', icon:'⚡'},
+    {key:'em revisão',        label:'Em Revisão',      c:'#8B5CF6', bg:'#F5F3FF', icon:'🔎'},
+    {key:'pronto p/ testar',  label:'Pronto p/ Testar',c:'#F59E0B', bg:'#FFFBEB', icon:'🧪'},
+    {key:'aguardando',        label:'Aguardando',      c:'#F97316', bg:'#FFF7ED', icon:'⏳'},
+    {key:'bloqueado',         label:'Bloqueado',       c:'#EF4444', bg:'#FEF2F2', icon:'🚫'},
+    {key:'feito',             label:'Feito',           c:'#10B981', bg:'#F0FDF4', icon:'✅'},
   ];
 
-  // Mapa EXATO — os 7 status do detalhe → 4 colunas do kanban
-  const kmap = {
-    // ── A FAZER ──
-    'to do':'to do', 'a fazer':'to do', 'a_fazer':'to do',
-    'pendente':'to do', 'novo':'to do', 'nova':'to do',
-    'aberto':'to do', 'backlog':'to do', 'não iniciado':'to do',
-    // ── EM ANDAMENTO ──
-    'em andamento':'andamento', 'em desenvolvimento':'andamento',
-    'andamento':'andamento',
-    'em revisão':'andamento', 'em revisao':'andamento',
-    'revisão':'andamento', 'revisao':'andamento',
-    'especif. em análise':'andamento', 'em análise':'andamento', 'em analise':'andamento',
-    'aguardando':'andamento',
-    'bloqueado':'andamento',
-    // ── P/ TESTAR ──
-    'pronto p/ testar':'testar', 'pronto para testar':'testar',
-    'p/ testar':'testar', 'em testes':'testar',
-    'disponível p/ teste':'testar', 'disponivel p/ teste':'testar',
-    'liberado versão':'testar', 'liberado versao':'testar',
-    // ── FEITO ──
-    'feito':'feito', 'feita':'feito', 'complete':'feito',
-    'concluido':'feito', 'concluída':'feito', 'concluído':'feito',
-    'done':'feito', 'finalizado':'feito',
+  // Match direto — sem mapeamento
+  const kmap = (status) => {
+    const s = (status||'').toLowerCase().trim();
+    // Normalizar variações para o status padrão
+    if (['a fazer','a_fazer','pendente','novo','nova','aberto','backlog','não iniciado'].includes(s)) return 'to do';
+    if (['andamento','em desenvolvimento'].includes(s)) return 'em andamento';
+    if (['em revisao','revisão','revisao'].includes(s)) return 'em revisão';
+    if (['pronto para testar','p/ testar','em testes','disponível p/ teste','disponivel p/ teste','liberado versão','liberado versao'].includes(s)) return 'pronto p/ testar';
+    if (['feita','complete','concluido','concluída','concluído','done','finalizado'].includes(s)) return 'feito';
+    // Status que já estão no formato correto
+    return s || 'to do';
   };
 
   document.getElementById('taskList').style.display = 'none';
@@ -5253,7 +5245,7 @@ function renderKanban(l) {
           ${cols.map(col => {
             const items = tarefasDoProjeto.filter(t => {
               const s = (t.status||'').toLowerCase().trim();
-              return kmap[s]===col.key || (!kmap[s] && col.key==='to do');
+              return kmap(s) === col.key || (kmap(s) === 'to do' && col.key === 'to do' && !s);
             });
             return `<div class="kcol" data-status="${col.key}" style="background:${col.bg};border:1.5px solid ${col.c}22;border-radius:14px;padding:10px;">
               <div class="khead" style="color:${col.c};background:${col.c}15;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px;" title="${col.sub}">
@@ -5271,8 +5263,7 @@ function renderKanban(l) {
                   onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px ${priorCor}25'"
                   onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px ${priorCor}15'">
                   <div style="padding:10px 12px;">
-                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:6px;line-height:1.4;">${t.titulo||t.tit||'Sem título'}</div>
-                    <div style="font-size:9px;color:#64748B;margin-bottom:6px;background:#F1F5F9;padding:2px 7px;border-radius:4px;display:inline-block;">${t.status||'to do'}</div>
+                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px;line-height:1.4;">${t.titulo||t.tit||'Sem título'}</div>
                     <div style="display:flex;align-items:center;justify-content:space-between;">
                       <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:${priorBg};color:${priorCor};border:1px solid ${priorCor}33;">${(t.prior||'normal').toUpperCase()}</span>
                       <div style="width:24px;height:24px;border-radius:8px;background:${mCor}22;color:${mCor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;border:1.5px solid ${mCor}44;" title="${m?.nome||t.resp||'?'}">${t.resp||'?'}</div>
