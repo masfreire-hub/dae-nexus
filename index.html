@@ -2083,10 +2083,20 @@ select.sel{
 }
 /* ── Mensagem com imagem ── */
 .chat-msg-img{
-  max-width:220px;border-radius:10px;display:block;
-  cursor:pointer;transition:opacity var(--dur) ease;
+  max-width:260px;max-height:220px;border-radius:10px;display:block;object-fit:cover;
+  cursor:zoom-in;transition:opacity var(--dur) ease,transform .15s;
 }
-.chat-msg-img:hover{opacity:.88;}
+.chat-msg-img:hover{opacity:.88;transform:scale(1.01);}
+
+/* Lightbox */
+#imgLightbox{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(6px);}
+#imgLightbox.show{display:flex;animation:lbIn .2s ease;}
+@keyframes lbIn{from{opacity:0}to{opacity:1}}
+#imgLightbox img{max-width:90vw;max-height:88vh;border-radius:12px;object-fit:contain;box-shadow:0 24px 80px rgba(0,0,0,.5);cursor:default;}
+#imgLightbox .lb-close{position:absolute;top:20px;right:24px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+#imgLightbox .lb-close:hover{background:rgba(255,255,255,.3);}
+#imgLightbox .lb-down{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);padding:8px 20px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+#imgLightbox .lb-down:hover{background:rgba(255,255,255,.25);}
 /* ── Mensagem com arquivo ── */
 .chat-msg-file{
   display:flex;align-items:center;gap:9px;
@@ -2477,6 +2487,21 @@ select.sel{
       <div class="chips" id="viewChips">
         <button class="chip on" onclick="setView('lista',this)">📋 Lista</button>
         <button class="chip" onclick="setView('kanban',this)">🗂️ Kanban</button>
+      </div>
+      <!-- Seletor cascata Kanban: Setor → Projeto -->
+      <div id="kanbanProjSelector" style="display:none;margin-bottom:8px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <!-- Nível 1: Setores -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;min-width:48px;">🏢 Setor</span>
+            <div id="kanbanSetorChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+          <!-- Nível 2: Projetos (aparece ao selecionar setor) -->
+          <div id="kanbanProjRow" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;min-width:48px;">📁 Projeto</span>
+            <div id="kanbanProjChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+        </div>
       </div>
       <div class="chips" id="tChips">
         <button class="chip on" onclick="filterT('todas',this)">Todas</button>
@@ -2878,6 +2903,19 @@ select.sel{
 
 <div class="tl-wrap">
 
+  <!-- SUB-ABAS da Timeline -->
+  <div style="display:flex;align-items:center;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);">
+    <button id="tlTabGantt" onclick="tlSetTab('gantt')" style="padding:10px 20px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--brand);border-bottom:2px solid var(--brand);margin-bottom:-2px;font-family:var(--fb);">
+      📊 Timeline
+    </button>
+    <button id="tlTabHoras" onclick="tlSetTab('horas')" style="padding:10px 20px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--tx3);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:var(--fb);">
+      ⏱ Planilha de Horas
+    </button>
+  </div>
+
+  <!-- CONTEÚDO: GANTT -->
+  <div id="tlContentGantt">
+
   <!-- KPIs -->
   <div class="tl-kpis" id="tlKpis"></div>
 
@@ -2917,7 +2955,21 @@ select.sel{
     <div id="tlBoard"></div>
   </div>
 
-</div>
+  </div><!-- /tlContentGantt -->
+
+  <!-- CONTEÚDO: PLANILHA DE HORAS -->
+  <div id="tlContentHoras" style="display:none;">
+    <!-- Navegação semana -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <button onclick="horasSemanaAnterior()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">‹</button>
+      <button onclick="horasProximaSemana()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">›</button>
+      <span id="horasSemanaLabel" style="font-size:15px;font-weight:800;color:var(--tx);min-width:220px;"></span>
+      <button onclick="horasHoje()" style="padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2);font-family:var(--fb);">Esta semana</button>
+    </div>
+    <div id="horasTabela" style="overflow-x:auto;"></div>
+  </div>
+
+</div><!-- /tl-wrap -->
 
 <div class="tab" id="t-meuespaco">
   <div class="ph">
@@ -2977,6 +3029,23 @@ select.sel{
 <!-- MEU ESPAÇO — Área exclusiva da Gestora                 -->
 <!-- ═══════════════════════════════════════════════════════ -->
 
+
+<!-- HORAS SEMANAIS -->
+<div class="tab" id="t-horas">
+  <div class="ph">
+    <div>
+      <div class="pt">HORAS DA EQUIPE</div>
+      <div class="ps">Registro semanal de tempo por pessoa</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btnadd" style="background:var(--surface2);color:var(--tx2);border:1px solid var(--border);" onclick="horasSemanaAnterior()">‹ Anterior</button>
+      <span id="horasSemanaLabel" style="font-size:12px;font-weight:700;color:var(--tx2);white-space:nowrap;min-width:200px;text-align:center;"></span>
+      <button class="btnadd" style="background:var(--surface2);color:var(--tx2);border:1px solid var(--border);" onclick="horasProximaSemana()">Próxima ›</button>
+      <button class="btnadd" onclick="horasHoje()">Hoje</button>
+    </div>
+  </div>
+  <div id="horasTabela" style="overflow-x:auto;"></div>
+</div>
 
 <div class="tab" id="t-config">
       <div class="ph"><div><div class="pt">CADASTROS</div><div class="ps">Gerencie estações, setores, cargos, tipos e status</div></div></div>
@@ -3911,7 +3980,7 @@ function sw(name, el) {
   if (!tabEl) return;
   tabEl.classList.add('on');
   if (el) el.classList.add('on');
-  const titles = {home:'Dashboard',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
+  const titles = {home:'Dashboard',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
   const ttEl = document.getElementById('topbar-page-title');
   if (ttEl) ttEl.textContent = titles[name] || '';
   // Renderizar aba ativa
@@ -3921,6 +3990,7 @@ function sw(name, el) {
     tasks:   () => { try{renderTasks();}catch(e){console.error('renderTasks',e)} },
     proj:    () => { try{renderHierarquia();}catch(e){} const _pt=document.getElementById('proj-page-title');if(_pt)_pt.textContent='Estações & Setores'; },
     meet:    () => { try{renderMeet();}catch(e){} },
+    horas:   () => { try{renderHoras();}catch(e){console.error('renderHoras',e)} },
     team:    () => { 
       try{renderMembers();}catch(e){}
       // Recarregar membros do Supabase ao abrir aba
@@ -5009,50 +5079,182 @@ function renderTasks() {
   document.getElementById('taskList').style.display = 'block';
 }
 
-function renderKanban(l) {
-  const cols = [
-    {key:'to do',label:'A Fazer',c:'#EF4444',bg:'#FEF2F2',icon:'📋'},
-    {key:'andamento',label:'Em Dev',c:'#F59E0B',bg:'#FFFBEB',icon:'⚡'},
-    {key:'testar',label:'P/ Testar',c:'#3B82F6',bg:'#EFF6FF',icon:'🔍'},
-    {key:'feito',label:'Feito',c:'#10B981',bg:'#F0FDF4',icon:'✅'},
+function _chipStyle(ativo, cor) {
+  return `padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${cor};transition:all .15s;background:${ativo?cor:'transparent'};color:${ativo?'#fff':cor};`;
+}
+
+function renderKanbanSetorChips() {
+  const wrap = document.getElementById('kanbanSetorChips');
+  if (!wrap) return;
+
+  const setoresEnv = [...new Set(
+    tar.map(t => { const p = proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; })
+  )];
+
+  const chips = [
+    { id:'todos', nome:'Todos os setores', cor:'#6366F1' },
+    ...setoresEnv.filter(s=>s!=='__sem__').map(sid => {
+      const s = espacos.find(x=>x.id===sid);
+      return { id:sid, nome:s?.nome||'Setor', cor:'#4F46E5' };
+    }),
+    ...(setoresEnv.includes('__sem__') ? [{id:'sem_setor', nome:'Sem setor', cor:'#94A3B8'}] : [])
   ];
-  const kmap = {'to do':'to do','a fazer':'to do','a_fazer':'to do','pendente':'to do','novo':'to do','nova':'to do','aberto':'to do','em andamento':'andamento','em desenvolvimento':'andamento','em revisão':'andamento','especif. em análise':'andamento','em revisao':'andamento','revisao':'andamento','revisão':'andamento','pronto p/ testar':'testar','aguardando':'testar','em testes':'testar','bloqueado':'testar','liberado versão':'feito','feito':'feito','complete':'feito','concluido':'feito','concluído':'feito','backlog':'to do'};
+
+  wrap.innerHTML = chips.map(c =>
+    `<button onclick="selecionarSetorKanban('${c.id}')" style="${_chipStyle(_kanbanSetorFiltro===c.id, c.cor)}">
+      ${_kanbanSetorFiltro===c.id?'✓ ':''}${c.nome}
+    </button>`
+  ).join('');
+}
+
+function selecionarSetorKanban(setorId) {
+  _kanbanSetorFiltro = setorId;
+  _kanbanProjFiltro  = 'todos'; // reset projeto ao mudar setor
+  renderKanbanSetorChips();
+
+  // Mostrar/ocultar linha de projetos
+  const projRow = document.getElementById('kanbanProjRow');
+  if (setorId === 'todos') {
+    if (projRow) projRow.style.display = 'none';
+  } else {
+    if (projRow) projRow.style.display = 'flex';
+    renderKanbanProjChips();
+  }
+  renderTasks();
+}
+
+function renderKanbanProjChips() {
+  const wrap = document.getElementById('kanbanProjChips');
+  if (!wrap) return;
+
+  // Projetos do setor selecionado que têm tarefas
+  let projetosDoSetor;
+  if (_kanbanSetorFiltro === 'todos') {
+    projetosDoSetor = [];
+  } else if (_kanbanSetorFiltro === 'sem_setor') {
+    projetosDoSetor = [...new Set(
+      tar.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return !p?.espaco_id; })
+         .map(t => t.projeto_id)
+    )];
+  } else {
+    projetosDoSetor = [...new Set(
+      tar.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return p?.espaco_id===_kanbanSetorFiltro; })
+         .map(t => t.projeto_id)
+    )];
+  }
+
+  const chips = [
+    { id:'todos', nome:'Todos os projetos', cor:'#6366F1' },
+    ...projetosDoSetor.map(pid => {
+      const p = proj.find(x=>x.id===pid);
+      return { id:pid, nome:p?.nome||'Projeto', cor:'#0EA5E9' };
+    })
+  ];
+
+  wrap.innerHTML = chips.map(c =>
+    `<button onclick="selecionarProjetoKanban('${c.id}')" style="${_chipStyle(_kanbanProjFiltro===c.id, c.cor)}">
+      ${_kanbanProjFiltro===c.id?'✓ ':''}${c.nome}
+    </button>`
+  ).join('');
+}
+
+function selecionarProjetoKanban(projId) {
+  _kanbanProjFiltro = projId;
+  renderKanbanProjChips();
+  renderTasks();
+}
+
+// mantém compatibilidade com código antigo
+function setKanbanProjeto(id) { selecionarSetorKanban(id); }
+
+function renderKanban(l) {
+  // Filtrar por setor
+  if (_kanbanSetorFiltro && _kanbanSetorFiltro !== 'todos') {
+    if (_kanbanSetorFiltro === 'sem_setor') {
+      l = l.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return !p?.espaco_id; });
+    } else {
+      l = l.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return String(p?.espaco_id)===String(_kanbanSetorFiltro); });
+    }
+  }
+  // Filtrar por projeto dentro do setor
+  if (_kanbanProjFiltro && _kanbanProjFiltro !== 'todos') {
+    l = l.filter(t => String(t.projeto_id) === String(_kanbanProjFiltro));
+  }
+
+  const cols = [
+    {key:'to do',    label:'A Fazer',      c:'#EF4444',bg:'#FEF2F2',icon:'📋'},
+    {key:'andamento',label:'Em Andamento', c:'#F59E0B',bg:'#FFFBEB',icon:'⚡'},
+    {key:'testar',   label:'P/ Testar',    c:'#3B82F6',bg:'#EFF6FF',icon:'🔍'},
+    {key:'feito',    label:'Feito',        c:'#10B981',bg:'#F0FDF4',icon:'✅'},
+  ];
+
+  // Mapa ALINHADO com status reais do sistema
+  const kmap = {
+    'to do':'to do','a fazer':'to do','a_fazer':'to do','pendente':'to do','novo':'to do','nova':'to do','aberto':'to do','backlog':'to do','não iniciado':'to do',
+    'em andamento':'andamento','em desenvolvimento':'andamento','andamento':'andamento','em revisão':'andamento','em revisao':'andamento','revisão':'andamento','revisao':'andamento','especif. em análise':'andamento','em análise':'andamento','em analise':'andamento','aguardando':'andamento','bloqueado':'andamento',
+    'pronto p/ testar':'testar','pronto para testar':'testar','p/ testar':'testar','em testes':'testar','disponível p/ teste':'testar','disponivel p/ teste':'testar','liberado versão':'testar','liberado versao':'testar',
+    'feito':'feito','feita':'feito','complete':'feito','concluido':'feito','concluída':'feito','concluído':'feito','done':'feito','finalizado':'feito',
+  };
+
   document.getElementById('taskList').style.display = 'none';
-  const kb = document.getElementById('kanbanBoard'); kb.style.display = 'block';
+  const kb = document.getElementById('kanbanBoard');
+  kb.style.display = 'block';
 
-  const projetosIds = [...new Set(l.map(t => t.projeto_id))];
+  if (!l.length) {
+    kb.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--tx3);"><div style="font-size:32px;margin-bottom:12px;">📋</div><div style="font-size:15px;font-weight:700;">Nenhuma tarefa encontrada</div></div>`;
+    return;
+  }
 
-  kb.innerHTML = projetosIds.map(pid => {
-    const p = proj.find(x => x.id === pid);
-    const nomeProjeto = p ? p.nome : '— Sem projeto';
-    const corProjeto = p ? '#4F46E5' : '#94A3B8';
-    const tarefasDoProjeto = l.filter(t => t.projeto_id === pid);
-    return `
-      <div style="margin-bottom:28px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:0 4px;">
-          <div style="width:4px;height:20px;border-radius:2px;background:${corProjeto};"></div>
-          <span style="font-size:13px;font-weight:800;color:${corProjeto};text-transform:uppercase;letter-spacing:.8px;">${nomeProjeto}</span>
-          <span style="font-size:10px;background:${corProjeto}18;color:${corProjeto};padding:2px 8px;border-radius:20px;font-weight:700;">${tarefasDoProjeto.length} tarefa${tarefasDoProjeto.length>1?'s':''}</span>
+  // Agrupar por Setor → Projeto
+  const setoresEnv = [...new Set(l.map(t=>{ const p=proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; }))];
+
+  kb.innerHTML = setoresEnv.map(setorId => {
+    const setor = setorId!=='__sem__' ? espacos.find(e=>e.id===setorId) : null;
+    const nomeSetor = setor?.nome || 'Sem setor';
+    const setorColor = '#6366F1';
+
+    const projetosDoSetor = [...new Set(
+      l.filter(t=>{ const p=proj.find(x=>x.id===t.projeto_id); return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId; })
+       .map(t=>t.projeto_id)
+    )];
+
+    const totalSetor = l.filter(t=>{ const p=proj.find(x=>x.id===t.projeto_id); return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId; }).length;
+
+    const projetosHtml = projetosDoSetor.map(pid => {
+      const p = proj.find(x=>x.id===pid);
+      const nomeProjeto = p?.nome || '— Sem projeto';
+      const corProjeto = '#4F46E5';
+      const tarefasDoProjeto = l.filter(t=>t.projeto_id===pid);
+
+      return `<div style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 2px;">
+          <div style="width:3px;height:16px;border-radius:2px;background:${corProjeto};"></div>
+          <span style="font-size:12px;font-weight:800;color:${corProjeto};letter-spacing:.5px;">${nomeProjeto}</span>
+          <span style="font-size:10px;background:${corProjeto}18;color:${corProjeto};padding:1px 8px;border-radius:20px;font-weight:700;">${tarefasDoProjeto.length} tarefa${tarefasDoProjeto.length>1?'s':''}</span>
         </div>
         <div class="kb">
           ${cols.map(col => {
-            const items = tarefasDoProjeto.filter(t => kmap[t.status]===col.key || (!kmap[t.status] && col.key==='to do'));
+            const items = tarefasDoProjeto.filter(t => {
+              const s = (t.status||'').toLowerCase().trim();
+              return kmap[s]===col.key || (!kmap[s] && col.key==='to do');
+            });
             return `<div class="kcol" data-status="${col.key}" style="background:${col.bg};border:1.5px solid ${col.c}22;border-radius:14px;padding:10px;">
               <div class="khead" style="color:${col.c};background:${col.c}15;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px;">
                 <span>${col.icon} ${col.label}</span>
                 <span style="background:${col.c};color:#fff;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;">${items.length}</span>
               </div>
               ${items.map(t => {
-                const priorCor = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'}[t.prior]||'#6B7280';
-                const priorBg = {urgente:'#FEF2F2',alta:'#FFF7ED',media:'#EFF6FF',baixa:'#F0FDF4'}[t.prior]||'#F8FAFC';
-                const m = memb.find(x => x.av===t.resp);
-                const mCor = m?.cor || priorCor;
+                const pr = (t.prior||'').toLowerCase();
+                const priorCor = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'}[pr]||'#6B7280';
+                const priorBg  = {urgente:'#FEF2F2',alta:'#FFF7ED',media:'#EFF6FF',baixa:'#F0FDF4'}[pr]||'#F8FAFC';
+                const m = memb.find(x=>x.av===t.resp);
+                const mCor = m?.cor||priorCor;
                 return `<div class="kcard" data-id="${t.id}" onclick="openDet('task','${t.id}')"
                   style="background:#fff;border:1.5px solid ${priorCor}33;border-left:4px solid ${priorCor};border-radius:10px;box-shadow:0 2px 8px ${priorCor}15;margin-bottom:8px;cursor:pointer;transition:all .15s;"
                   onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px ${priorCor}25'"
                   onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px ${priorCor}15'">
                   <div style="padding:10px 12px;">
-                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px;line-height:1.4;">${t.titulo||t.tit}</div>
+                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px;line-height:1.4;">${t.titulo||t.tit||'Sem título'}</div>
                     <div style="display:flex;align-items:center;justify-content:space-between;">
                       <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:${priorBg};color:${priorCor};border:1px solid ${priorCor}33;">${(t.prior||'normal').toUpperCase()}</span>
                       <div style="width:24px;height:24px;border-radius:8px;background:${mCor}22;color:${mCor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;border:1.5px solid ${mCor}44;" title="${m?.nome||t.resp||'?'}">${t.resp||'?'}</div>
@@ -5060,15 +5262,26 @@ function renderKanban(l) {
                   </div>
                 </div>`;
               }).join('')}
-              ${items.length === 0 ? `<div style="text-align:center;padding:20px 10px;color:${col.c}66;font-size:11px;border:1.5px dashed ${col.c}33;border-radius:10px;">Nenhuma tarefa</div>` : ''}
+              ${items.length===0?`<div style="text-align:center;padding:20px 10px;color:${col.c}66;font-size:11px;border:1.5px dashed ${col.c}33;border-radius:10px;">Nenhuma tarefa</div>`:''}
             </div>`;
           }).join('')}
         </div>
       </div>`;
+    }).join('');
+
+    return `<div style="margin-bottom:32px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:linear-gradient(135deg,${setorColor}12,${setorColor}06);border-radius:12px;border-left:4px solid ${setorColor};">
+        <span style="font-size:15px;">🏢</span>
+        <span style="font-size:14px;font-weight:800;color:${setorColor};letter-spacing:.3px;">${nomeSetor}</span>
+        <span style="font-size:10px;background:${setorColor}18;color:${setorColor};padding:2px 10px;border-radius:20px;font-weight:700;">${totalSetor} tarefas</span>
+      </div>
+      ${projetosHtml}
+    </div>`;
   }).join('');
 
   setTimeout(enableKanbanDragDrop, 50);
 }
+
 
 async function togTask(id) {
   const t = tar.find(x => x.id===id);
@@ -5095,7 +5308,15 @@ async function togTask(id) {
 }
 
 function filterT(f,b) { curTF=f; document.querySelectorAll('#tChips .chip').forEach(c=>c.classList.remove('on')); b.classList.add('on'); renderTasks(); }
-function setView(v,b) { curView=v; document.querySelectorAll('#viewChips .chip').forEach(c=>c.classList.remove('on')); b.classList.add('on'); renderTasks(); }
+function setView(v,b) {
+  curView = v;
+  document.querySelectorAll('#viewChips .chip').forEach(c=>c.classList.remove('on'));
+  b.classList.add('on');
+  const sel = document.getElementById('kanbanProjSelector');
+  if (sel) sel.style.display = v === 'kanban' ? 'block' : 'none';
+  if (v === 'kanban') renderKanbanSetorChips();
+  renderTasks();
+}
 
 async function addTask() {
   const btn = document.getElementById('btnSaveTask');
@@ -6596,7 +6817,7 @@ function renderChat() {
             </div>
           ` : m.tipo === 'imagem' ? `
             <div>
-              <img src="${m.anexoUrl}" class="chat-msg-img" onclick="window.open('${m.anexoUrl}','_blank')" loading="lazy">
+              <img src="${m.anexoUrl}" class="chat-msg-img" onclick="abrirImagemChat('${m.anexoUrl}')" loading="lazy" style="cursor:zoom-in;">
               ${m.t ? `<div class="chat-msg-bubble ${m.prioridade||''}" style="margin-top:4px;">${_sanitizarMsg(m.t)}</div>` : ''}
             </div>
           ` : m.tipo === 'arquivo' ? `
@@ -12038,6 +12259,281 @@ function meEditar(id, tipo) {
     btn.onclick = meSalvar; // restaurar
   };
 }
+
+// ── TIMELINE SUB-ABAS ────────────────────────────────────────
+let _tlTab = 'gantt';
+function tlSetTab(tab) {
+  _tlTab = tab;
+  const ganttContent = document.getElementById('tlContentGantt');
+  const horasContent = document.getElementById('tlContentHoras');
+  const btnGantt = document.getElementById('tlTabGantt');
+  const btnHoras = document.getElementById('tlTabHoras');
+
+  const ativo = 'color:var(--brand);border-bottom:2px solid var(--brand);margin-bottom:-2px;padding:10px 20px;font-size:13px;font-weight:700;border-top:none;border-left:none;border-right:none;background:none;cursor:pointer;font-family:var(--fb);';
+  const inativo = 'color:var(--tx3);border-bottom:2px solid transparent;margin-bottom:-2px;padding:10px 20px;font-size:13px;font-weight:700;border-top:none;border-left:none;border-right:none;background:none;cursor:pointer;font-family:var(--fb);';
+
+  if (tab === 'gantt') {
+    if (ganttContent) ganttContent.style.display = 'block';
+    if (horasContent) horasContent.style.display = 'none';
+    if (btnGantt) btnGantt.style.cssText = ativo;
+    if (btnHoras) btnHoras.style.cssText = inativo;
+    try { renderTimeline(); } catch(e) {}
+  } else {
+    if (ganttContent) ganttContent.style.display = 'none';
+    if (horasContent) horasContent.style.display = 'block';
+    if (btnGantt) btnGantt.style.cssText = inativo;
+    if (btnHoras) btnHoras.style.cssText = ativo;
+    try { renderHoras(); } catch(e) {}
+  }
+}
+// ── FIM TIMELINE SUB-ABAS ────────────────────────────────────
+
+// ── HORAS SEMANAIS ──────────────────────────────────────────
+let _horasOffset = 0; // semanas em relação à semana atual
+
+function horasHoje()          { _horasOffset = 0; renderHoras(); }
+function horasSemanaAnterior(){ _horasOffset--; renderHoras(); }
+function horasProximaSemana() { _horasOffset++; renderHoras(); }
+
+function _getSegundaFeira(offset = 0) {
+  const hoje = new Date();
+  const diaSemana = hoje.getDay(); // 0=dom, 1=seg...
+  const diff = (diaSemana === 0 ? -6 : 1 - diaSemana);
+  const segunda = new Date(hoje);
+  segunda.setDate(hoje.getDate() + diff + (offset * 7));
+  segunda.setHours(0, 0, 0, 0);
+  return segunda;
+}
+
+function _diasDaSemana(offset = 0) {
+  const segunda = _getSegundaFeira(offset);
+  return Array.from({length: 7}, (_, i) => {
+    const d = new Date(segunda);
+    d.setDate(segunda.getDate() + i);
+    return d;
+  });
+}
+
+function _fmtData(d) {
+  return d.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' });
+}
+
+function _fmtHoras(segundos) {
+  if (!segundos || segundos <= 0) return '0h';
+  const h = Math.floor(segundos / 3600);
+  const m = Math.floor((segundos % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function _getTarefasDia(membroAv, dia) {
+  // Filtra tarefas do membro que foram trabalhadas naquele dia
+  // Usa tempo_gasto e data_inicio como aproximação
+  const inicio = new Date(dia); inicio.setHours(0,0,0,0);
+  const fim = new Date(dia); fim.setHours(23,59,59,999);
+
+  return tar.filter(t => {
+    const resp = t.resp === membroAv || (t.co_responsaveis && JSON.parse(t.co_responsaveis||'[]').includes(membroAv));
+    if (!resp) return false;
+    if (!t.data_inicio) return false;
+    const di = new Date(t.data_inicio);
+    return di >= inicio && di <= fim;
+  });
+}
+
+async function renderHoras() {
+  const el = document.getElementById('horasTabela');
+  if (!el) return;
+
+  const dias = _diasDaSemana(_horasOffset);
+  const segunda = dias[0];
+  const domingo = dias[6];
+
+  // Label da semana
+  const label = document.getElementById('horasSemanaLabel');
+  if (label) {
+    const opts = {day:'2-digit',month:'short'};
+    label.textContent = `Seg, ${segunda.toLocaleDateString('pt-BR',opts)} – Dom, ${domingo.toLocaleDateString('pt-BR',opts)}`;
+  }
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const diasNomes = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+  // Buscar tempo_gasto por pessoa do banco (tarefas com data_inicio na semana)
+  // Agrupar membros
+  const membrosAtivos = memb.filter(m => m.status_acesso !== 'inativo');
+
+  // Calcular horas por membro por dia (baseado em tarefas com data_inicio)
+  const grid = membrosAtivos.map(m => {
+    const horasPorDia = dias.map(dia => {
+      const diaStr = dia.toISOString().split('T')[0];
+      // Somar tempo_gasto das tarefas cujo data_inicio é nesse dia e o responsável é esse membro
+      const tarefasDia = tar.filter(t => {
+        if (t.resp !== m.av) return false;
+        if (!t.data_inicio) return false;
+        return t.data_inicio.startsWith(diaStr);
+      });
+      const totalSeg = tarefasDia.reduce((acc, t) => acc + (t.tempo_gasto || 0), 0);
+      return { segundos: totalSeg, tarefas: tarefasDia };
+    });
+    const totalSemana = horasPorDia.reduce((acc, d) => acc + d.segundos, 0);
+    return { membro: m, dias: horasPorDia, total: totalSemana };
+  });
+
+  // Totais por dia
+  const totaisDia = dias.map((_, i) => grid.reduce((acc, r) => acc + r.dias[i].segundos, 0));
+  const totalGeral = totaisDia.reduce((a, b) => a + b, 0);
+
+  const corCelula = (seg, limite = 28800) => { // 8h = 28800s
+    if (seg <= 0) return '';
+    if (seg > limite * 1.2) return 'background:rgba(239,68,68,0.12);color:#DC2626;font-weight:700;';
+    if (seg >= limite * 0.8) return 'background:rgba(59,130,246,0.1);color:#1D4ED8;font-weight:700;';
+    return 'background:rgba(16,185,129,0.08);color:#065F46;';
+  };
+
+  el.innerHTML = `
+    <style>
+      .horas-table{width:100%;border-collapse:collapse;font-family:var(--font);min-width:900px;}
+      .horas-table th,.horas-table td{padding:0;border:1px solid var(--border);}
+      .horas-table thead th{background:var(--surface2);font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;white-space:nowrap;}
+      .horas-table thead th.hoje-col{background:rgba(79,70,229,0.08);color:var(--brand);}
+      .horas-table tbody td{font-size:13px;padding:0;}
+      .horas-table tbody tr:hover td{background:rgba(0,0,0,.02);}
+      .horas-table .pessoa-cell{display:flex;align-items:center;gap:10px;padding:12px 14px;white-space:nowrap;}
+      .horas-table .hora-cell{text-align:center;padding:10px 8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .1s;}
+      .horas-table .hora-cell:hover{filter:brightness(.95);}
+      .horas-table .hora-cell.vazio{color:var(--tx4);font-weight:400;}
+      .horas-table .total-cell{text-align:center;padding:10px 12px;font-size:12px;font-weight:800;color:var(--tx2);background:var(--surface2);}
+      .horas-table tfoot td{background:var(--surface2);font-size:12px;font-weight:700;color:var(--tx2);padding:10px 14px;text-align:center;}
+      .horas-table tfoot .total-label{text-align:left;font-weight:800;}
+      .horas-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+      .horas-nome{display:flex;flex-direction:column;}
+      .horas-nome .nm{font-size:13px;font-weight:700;color:var(--tx);}
+      .horas-nome .cr{font-size:10px;color:var(--tx3);}
+      .abrir-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap;}
+      .abrir-btn:hover{border-color:var(--brand);color:var(--brand);}
+    </style>
+    <table class="horas-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;min-width:260px;">Pessoas (${membrosAtivos.length})</th>
+          ${dias.map((d, i) => {
+            const isHoje = d.toDateString() === hoje.toDateString();
+            const isFds = d.getDay() === 0 || d.getDay() === 6;
+            return `<th class="${isHoje?'hoje-col':''}" style="${isFds?'opacity:.5;':''}">${diasNomes[i]}, ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</th>`;
+          }).join('')}
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${grid.map(row => {
+          const av = row.membro.av || '?';
+          const cor = row.membro.cor || '#6366F1';
+          const foto = row.membro.foto;
+          const avatarHTML = foto
+            ? `<img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
+            : `<div class="horas-av" style="background:${cor}22;color:${cor};">${av}</div>`;
+
+          return `<tr>
+            <td>
+              <div class="pessoa-cell">
+                ${avatarHTML}
+                <div class="horas-nome">
+                  <span class="nm">${row.membro.nome||av}</span>
+                  <span class="cr">${row.membro.cargo||'Membro'}</span>
+                </div>
+                <button class="abrir-btn" onclick="abrirDetalheHoras('${av}')">Abrir →</button>
+              </div>
+            </td>
+            ${row.dias.map((d, i) => {
+              const isHoje = dias[i].toDateString() === hoje.toDateString();
+              const isFds = dias[i].getDay() === 0 || dias[i].getDay() === 6;
+              const estilo = corCelula(d.segundos);
+              return `<td class="hora-cell ${d.segundos<=0?'vazio':''}" 
+                style="${estilo}${isHoje?'border-left:2px solid var(--brand);border-right:2px solid var(--brand);':''}${isFds?'opacity:.5;':''}"
+                title="${d.tarefas.map(t=>t.titulo||t.tit||'').join(', ')||'Sem registros'}"
+                onclick="abrirDetalheHorasDia('${av}','${dias[i].toISOString().split('T')[0]}')">
+                ${d.segundos > 0 ? _fmtHoras(d.segundos) : '0h'}
+              </td>`;
+            }).join('')}
+            <td class="total-cell">${row.total > 0 ? `<span style="${corCelula(row.total, 144000)}">${_fmtHoras(row.total)}</span>` : '0h'}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="total-label" style="text-align:left;padding-left:14px;">TOTAL</td>
+          ${totaisDia.map((seg, i) => {
+            const isHoje = dias[i].toDateString() === hoje.toDateString();
+            return `<td style="text-align:center;${isHoje?'border-left:2px solid var(--brand);border-right:2px solid var(--brand);':''}">${_fmtHoras(seg)||'0h'}</td>`;
+          }).join('')}
+          <td style="text-align:center;font-weight:800;color:var(--brand);">${_fmtHoras(totalGeral)||'0h'}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:16px;font-size:11px;color:var(--tx3);padding:0 4px;">
+      <span>Legenda:</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:rgba(16,185,129,0.15);display:inline-block;"></span> Normal</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:rgba(59,130,246,0.15);display:inline-block;"></span> ≥ 80% do limite</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:rgba(239,68,68,0.15);display:inline-block;"></span> Acima do limite</span>
+    </div>
+  `;
+}
+
+function abrirDetalheHoras(av) {
+  const m = memb.find(x => x.av === av);
+  const tarefasMembro = tar.filter(t => t.resp === av && t.tempo_gasto > 0);
+  const totalGeral = tarefasMembro.reduce((a, t) => a + (t.tempo_gasto||0), 0);
+  showToast(`⏱ ${m?.nome||av}: ${_fmtHoras(totalGeral)} registradas em ${tarefasMembro.length} tarefa(s)`);
+}
+
+function abrirDetalheHorasDia(av, dataStr) {
+  const m = memb.find(x => x.av === av);
+  const tarefasDia = tar.filter(t => t.resp === av && t.data_inicio?.startsWith(dataStr) && t.tempo_gasto > 0);
+  if (!tarefasDia.length) { showToast(`Sem registros para ${m?.nome||av} em ${dataStr}`); return; }
+  const total = tarefasDia.reduce((a,t)=>a+(t.tempo_gasto||0),0);
+  showToast(`📅 ${m?.nome||av} — ${dataStr}: ${_fmtHoras(total)} (${tarefasDia.length} tarefa${tarefasDia.length>1?'s':''})`);
+}
+
+// ── FIM HORAS ────────────────────────────────────────────────
+
+// Lightbox para imagens do chat
+function abrirImagemChat(url) {
+  const lb = document.getElementById('imgLightbox');
+  const img = document.getElementById('imgLightboxImg');
+  const btn = document.getElementById('imgLightboxDown');
+  if (!lb) {
+    // Criar lightbox se não existir
+    const div = document.createElement('div');
+    div.id = 'imgLightbox';
+    div.onclick = fecharLightbox;
+    div.innerHTML = `
+      <button class="lb-close" onclick="event.stopPropagation();fecharLightbox()">✕</button>
+      <img id="imgLightboxImg" src="${url}" onclick="event.stopPropagation()">
+      <a class="lb-down" href="${url}" download onclick="event.stopPropagation();">⬇ Baixar imagem</a>
+    `;
+    document.body.appendChild(div);
+    setTimeout(() => div.classList.add('show'), 10);
+    document.addEventListener('keydown', _lbKeyClose);
+    return;
+  }
+  img.src = url;
+  if (btn) { btn.href = url; btn.download = ''; }
+  lb.classList.add('show');
+  document.addEventListener('keydown', _lbKeyClose);
+}
+function fecharLightbox() {
+  const lb = document.getElementById('imgLightbox');
+  if (lb) lb.classList.remove('show');
+  document.removeEventListener('keydown', _lbKeyClose);
+}
+function _lbKeyClose(e) { if (e.key === 'Escape') fecharLightbox(); }
+
+// Kanban — variável de filtro de projeto
+let _kanbanProjetoFiltro = 'todos';
+let _kanbanSetorFiltro = 'todos';   // setor selecionado
+let _kanbanProjFiltro  = 'todos';   // projeto selecionado dentro do setor
 
 // sw integrado abaixo
 
