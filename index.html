@@ -5591,18 +5591,10 @@ async function openDet(type, id) {
     const isTimerOn = String(timerTarefaId) === String(id);
     let tempoGasto = 0;
     if (isTimerOn && timerInicio) {
-      // Só usa base do localStorage se for EXATAMENTE esta tarefa
-      try {
-        const salvo = JSON.parse(localStorage.getItem('dae_timer') || '{}');
-        if (String(salvo.tarefaId) === String(id)) {
-          const base = salvo.base || 0;
-          tempoGasto = base + Math.floor((Date.now() - timerInicio) / 1000);
-        } else {
-          tempoGasto = t.tempo_gasto || 0;
-        }
-      } catch(e) { tempoGasto = t.tempo_gasto || 0; }
+      // Timer ativo — mostra acumulado + elapsed da sessão atual
+      const acumulado = (() => { try { return JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado||0; } catch(e){ return t.tempo_gasto||0; } })();
+      tempoGasto = acumulado + Math.floor((Date.now() - timerInicio) / 1000);
     } else {
-      // Tarefa sem timer ativo — usa APENAS o valor salvo no banco
       tempoGasto = t.tempo_gasto || 0;
     }
     // Detecta tempo corrompido (> 24h) e exibe aviso
@@ -5634,8 +5626,9 @@ async function openDet(type, id) {
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div class="det-timer-label">${isTimerOn?'<span class="det-timer-dot"></span> EM ANDAMENTO':'⏱ TEMPO REGISTRADO'}</div>
         </div>
-        <div class="det-timer-display" id="tempoDisplay" data-tid="${id}" style="${tempoSuspeito?'color:#EF4444;font-size:18px;':''}">${tempoSuspeito?'⚠️ '+fmtTempo(tempoGasto):fmtTempo(tempoGasto)}</div>
-        ${tempoSuspeito ? `<div style="font-size:10px;color:#EF4444;margin-bottom:6px;font-weight:600;">Tempo suspeito — clique em Zerar antes de iniciar</div>` : ''}
+        <div class="det-timer-display" id="tempoDisplay" data-tid="${id}">${isTimerOn ? fmtTempo(tempoGasto) : (tempoSuspeito?'⚠️ '+fmtTempo(tempoGasto):fmtTempo(tempoGasto))}</div>
+        ${isTimerOn ? `<div style="font-size:10px;opacity:.55;text-align:center;margin-bottom:4px;">Acumulado: ${fmtTempo(t.tempo_gasto||0)}</div>` : ''}
+        ${tempoSuspeito && !isTimerOn ? `<div style="font-size:10px;color:#EF4444;margin-bottom:6px;font-weight:600;">Tempo suspeito — clique em Zerar antes de iniciar</div>` : ''}
         <div class="${isTimerOn?'det-timer-actions':''}">
           ${isTimerOn
             ? `<button class="det-timer-btn det-timer-btn-stop" onclick="pararTimer('${id}')">⏹ PARAR</button>`
@@ -5856,13 +5849,15 @@ async function openDet(type, id) {
       // Limpar interval duplicado se houver
       clearInterval(timerInterval);
       timerInterval = null;
-
-      timerInterval = setInterval(_atualizarDisplayTimer, 1000);
-
-      // Atualizar display imediatamente
-      _atualizarDisplayTimer();
-
-      // Garantir bloco no estado running
+      const _ac = (() => { try { return JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado||0; } catch(e){ return 0; } })();
+      timerInterval = setInterval(() => {
+        const el = document.getElementById('tempoDisplay');
+        if (!el || String(el.dataset.tid) !== String(timerTarefaId)) return;
+        el.textContent = fmtTempo(_ac + Math.floor((Date.now() - timerInicio) / 1000));
+      }, 1000);
+      const _elNow = Math.floor((Date.now() - timerInicio) / 1000);
+      const _el2 = document.getElementById('tempoDisplay');
+      if (_el2) _el2.textContent = fmtTempo(_ac + _elNow);
       const tb = document.getElementById('detTimerBlock');
       if (tb) tb.classList.add('running');
     }
@@ -6145,54 +6140,51 @@ function toggleTimer(tarefaId) {
 }
 
 async function iniciarTimer(tarefaId) {
-  // Buscar base confiável do banco
-  let base = 0;
+  // Buscar total acumulado do banco — timer continua de onde parou
+  let totalAcumulado = 0;
   try {
     const { data } = await safeDb.from('tarefas').select('tempo_gasto').eq('id', tarefaId).single();
-    base = data?.tempo_gasto || 0;
+    totalAcumulado = data?.tempo_gasto || 0;
   } catch(e) {
-    base = tar.find(x=>x.id===tarefaId)?.tempo_gasto || 0;
+    totalAcumulado = tar.find(x=>x.id===tarefaId)?.tempo_gasto || 0;
   }
 
-  // ⚠️ Anti-corrupção: tempo > 24h é suspeito — confirma antes de usar
-  if (base > 86400) {
-    const confirmar = confirm(`⚠️ Essa tarefa tem ${fmtTempo(base)} registrados — parece corrompido.\n\nClicar OK vai zerar e iniciar do zero.\nClicar Cancelar mantém o valor atual.`);
-    if (confirmar) {
-      base = 0;
-      await safeDb.from('tarefas').update({ tempo_gasto: 0 }).eq('id', tarefaId);
-    }
-  }
-
-  // Atualizar cache local
   const t = tar.find(x=>x.id===tarefaId);
-  if (t) t.tempo_gasto = base;
+  if (t) t.tempo_gasto = totalAcumulado;
+
+  clearInterval(timerInterval);
+  timerInterval = null;
+  localStorage.removeItem('dae_timer');
+  localStorage.removeItem('dae_timer_entry_id');
 
   timerTarefaId = tarefaId;
   timerInicio = Date.now();
-  localStorage.setItem('dae_timer', JSON.stringify({ tarefaId, inicio: timerInicio, base }));
 
-  // Salvar início da sessão na tabela time_entries
+  // Salva acumulado — display mostra acumulado + elapsed (continua de onde parou)
+  localStorage.setItem('dae_timer', JSON.stringify({ tarefaId, inicio: timerInicio, acumulado: totalAcumulado }));
+
+  // Salvar sessão no time_entries
   try {
     const { data: entry } = await safeDb.from('time_entries').insert([{
-      tarefa_id: tarefaId,
-      membro_av: curUser?.av || 'MA',
-      inicio: new Date(timerInicio).toISOString(),
-      duracao: 0
+      tarefa_id: tarefaId, membro_av: curUser?.av || 'MA',
+      inicio: new Date(timerInicio).toISOString(), duracao: 0
     }]).select().single();
     if (entry) localStorage.setItem('dae_timer_entry_id', entry.id);
-  } catch(e) { console.warn('time_entries não existe ainda:', e.message); }
+  } catch(e) {}
 
-  // Limpa interval anterior e cria novo
-  clearInterval(timerInterval);
-  timerInterval = setInterval(_atualizarDisplayTimer, 1000);
+  // Interval — mostra acumulado + tempo desta sessão
+  timerInterval = setInterval(() => {
+    const el = document.getElementById('tempoDisplay');
+    if (!el || String(el.dataset.tid) !== String(timerTarefaId)) return;
+    el.textContent = fmtTempo(totalAcumulado + Math.floor((Date.now() - timerInicio) / 1000));
+  }, 1000);
 
-  // Atualizar visual do bloco
   const tb = document.getElementById('detTimerBlock');
   if (tb) {
     tb.classList.add('running');
     tb.innerHTML = `
       <div class="det-timer-label"><span class="det-timer-dot"></span> EM ANDAMENTO</div>
-      <div class="det-timer-display" id="tempoDisplay" data-tid="${tarefaId}">${fmtTempo(base)}</div>
+      <div class="det-timer-display" id="tempoDisplay" data-tid="${tarefaId}">${fmtTempo(totalAcumulado)}</div>
       <div class="det-timer-actions">
         <button class="det-timer-btn det-timer-btn-stop" onclick="pararTimer('${tarefaId}')">⏹ PARAR</button>
         <small style="display:block;text-align:center;margin-top:4px;font-size:10px;opacity:.5;cursor:pointer;" onclick="resetarTimer('${tarefaId}')">🔄 Zerar tempo</small>
@@ -6208,58 +6200,44 @@ async function pararTimer(tarefaId) {
   timerInterval = null;
 
   const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
-  let base = 0;
-  try { base = JSON.parse(localStorage.getItem('dae_timer')||'{}').base||0; } catch(e) {}
-  const total = base + elapsed;
+  let acumulado = 0;
+  try { acumulado = JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado || 0; } catch(e) {}
+  const novoTotal = acumulado + elapsed;
 
   localStorage.removeItem('dae_timer');
   timerTarefaId = null;
   timerInicio = null;
 
-  // Atualizar time_entry com fim e duração
+  // Atualizar time_entry
   try {
     const entryId = localStorage.getItem('dae_timer_entry_id');
     localStorage.removeItem('dae_timer_entry_id');
     if (entryId && elapsed > 0) {
-      await safeDb.from('time_entries').update({
-        fim: new Date().toISOString(),
-        duracao: elapsed
-      }).eq('id', entryId);
+      await safeDb.from('time_entries').update({ fim: new Date().toISOString(), duracao: elapsed }).eq('id', entryId);
     }
-  } catch(e) { console.warn('time_entries update:', e.message); }
+  } catch(e) {}
 
-  // Salvar no cache e no banco
+  // Salvar total no banco
   const t = tar.find(x=>x.id===tarefaId);
-  if (t) t.tempo_gasto = total;
+  if (t) t.tempo_gasto = novoTotal;
   if (!String(tarefaId).startsWith('local_')) {
-    await safeDb.from('tarefas').update({ tempo_gasto: total }).eq('id', tarefaId);
+    await safeDb.from('tarefas').update({ tempo_gasto: novoTotal }).eq('id', tarefaId);
   }
 
-  // Atualizar visual
   const tb = document.getElementById('detTimerBlock');
   if (tb) {
     tb.classList.remove('running');
     tb.innerHTML = `
       <div class="det-timer-label">⏱ TEMPO REGISTRADO</div>
-      <div class="det-timer-display" id="tempoDisplay" data-tid="${tarefaId}">${fmtTempo(total)}</div>
+      <div class="det-timer-display" id="tempoDisplay" data-tid="${tarefaId}">${fmtTempo(novoTotal)}</div>
       <div class="det-timer-actions">
         <button class="det-timer-btn det-timer-btn-full" onclick="iniciarTimer('${tarefaId}')">▶ Iniciar timer</button>
         <small style="display:block;text-align:center;margin-top:4px;font-size:10px;opacity:.5;cursor:pointer;" onclick="resetarTimer('${tarefaId}')">🔄 Zerar tempo</small>
       </div>`;
   }
-  showToast('⏹ Tempo salvo: ' + fmtTempo(total));
+  showToast('⏹ +' + fmtTempo(elapsed) + ' | Total: ' + fmtTempo(novoTotal));
 }
 
-function switchDetTab(tab) {
-  const map = {com:'Com', desc:'Desc', anexos:'Anexos', log:'Log'};
-  Object.keys(map).forEach(t => {
-    const tabBtn = document.getElementById('detTab'+map[t]);
-    const tabContent = document.getElementById('detTabContent'+map[t]);
-    if (tabBtn) tabBtn.classList.toggle('on', t===tab);
-    if (tabContent) tabContent.classList.toggle('on', t===tab);
-  });
-  if (tab === 'log') carregarLogTarefa(window._detTarefaId);
-}
 
 async function carregarLogTarefa(tarefaId) {
   const el = document.getElementById('detLogList');
@@ -11759,14 +11737,18 @@ async function entrarNoApp(usuario) {
           // Verificar se o timer não está rodando há mais de 24h (corrompido)
           const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
           if (elapsed > 86400) {
-            // Timer corrompido — limpar
             localStorage.removeItem('dae_timer');
             timerTarefaId = null;
             timerInicio = null;
           } else {
             if (timerInterval) clearInterval(timerInterval);
-            // Usar _atualizarDisplayTimer que verifica data-tid antes de atualizar
-            timerInterval = setInterval(_atualizarDisplayTimer, 1000);
+            // Mostra só o tempo da sessão atual (elapsed desde o início)
+            timerInterval = setInterval(() => {
+              const el = document.getElementById('tempoDisplay');
+              if (!el || String(el.dataset.tid) !== String(timerTarefaId)) return;
+              const e = Math.floor((Date.now() - timerInicio) / 1000);
+              el.textContent = fmtTempo(e);
+            }, 1000);
             showToast('⏱ Timer restaurado: ' + (t.titulo||'').slice(0,30));
           }
         } else {
