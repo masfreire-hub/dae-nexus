@@ -6198,7 +6198,10 @@ async function iniciarTimer(tarefaId) {
       </div>`;
   }
   showToast('▶ Timer iniciado!');
-  _iniciarAutoSaveTimer();(tarefaId) {
+  _iniciarAutoSaveTimer();
+}
+
+async function pararTimer(tarefaId) {
   if (!timerInicio) return;
 
   clearInterval(timerInterval);
