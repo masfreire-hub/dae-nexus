@@ -4343,8 +4343,8 @@ async function loadAll() {
           const tarLocal = tar.find(x => String(x.id) === String(timerTarefaId));
           const timerSalvo = (() => { try { return JSON.parse(localStorage.getItem('dae_timer')||'null'); } catch(e) { return null; } })();
           if (tarLocal && timerSalvo) {
-            // Usar o base salvo no timer (valor correto antes de iniciar)
-            tarLocal.tempo_gasto = timerSalvo.base || tarLocal.tempo_gasto || 0;
+            // Usar o acumulado salvo no timer (valor correto antes de iniciar esta sessão)
+            tarLocal.tempo_gasto = timerSalvo.acumulado ?? timerSalvo.base ?? tarLocal.tempo_gasto ?? 0;
           }
         }
       }
@@ -5595,7 +5595,14 @@ async function openDet(type, id) {
       const acumulado = (() => { try { return JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado||0; } catch(e){ return t.tempo_gasto||0; } })();
       tempoGasto = acumulado + Math.floor((Date.now() - timerInicio) / 1000);
     } else {
-      tempoGasto = t.tempo_gasto || 0;
+      // Busca valor FRESCO do banco — garante que nunca mostra valor desatualizado
+      try {
+        const { data: fresh } = await safeDb.from('tarefas').select('tempo_gasto').eq('id', id).single();
+        tempoGasto = fresh?.tempo_gasto || 0;
+        if (t) t.tempo_gasto = tempoGasto;
+      } catch(e) {
+        tempoGasto = t.tempo_gasto || 0;
+      }
     }
     // Detecta tempo corrompido (> 24h) e exibe aviso
     const tempoCorreto = tempoGasto > 0 && tempoGasto <= 86400;
@@ -6191,9 +6198,7 @@ async function iniciarTimer(tarefaId) {
       </div>`;
   }
   showToast('▶ Timer iniciado!');
-}
-
-async function pararTimer(tarefaId) {
+  _iniciarAutoSaveTimer();(tarefaId) {
   if (!timerInicio) return;
 
   clearInterval(timerInterval);
@@ -6236,6 +6241,7 @@ async function pararTimer(tarefaId) {
       </div>`;
   }
   showToast('⏹ +' + fmtTempo(elapsed) + ' | Total: ' + fmtTempo(novoTotal));
+  clearInterval(_timerAutoSaveInterval);
 }
 
 
@@ -11750,6 +11756,7 @@ async function entrarNoApp(usuario) {
               el.textContent = fmtTempo(e);
             }, 1000);
             showToast('⏱ Timer restaurado: ' + (t.titulo||'').slice(0,30));
+            _iniciarAutoSaveTimer();
           }
         } else {
           localStorage.removeItem('dae_timer');
@@ -12441,7 +12448,28 @@ function tlSetTab(tab) {
 }
 // ── FIM TIMELINE SUB-ABAS ────────────────────────────────────
 
-// ── HORAS SEMANAIS ──────────────────────────────────────────
+// ── Auto-save do timer a cada 30s ─────────────────────────
+let _timerAutoSaveInterval = null;
+
+function _iniciarAutoSaveTimer() {
+  clearInterval(_timerAutoSaveInterval);
+  _timerAutoSaveInterval = setInterval(async () => {
+    if (!timerTarefaId || !timerInicio) return;
+    const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
+    if (elapsed < 10) return; // não salva sessões muito curtas
+    let acumulado = 0;
+    try { acumulado = JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado || 0; } catch(e) {}
+    const total = acumulado + elapsed;
+    // Salva no banco silenciosamente
+    try {
+      await safeDb.from('tarefas').update({ tempo_gasto: total }).eq('id', timerTarefaId);
+      const t = tar.find(x => x.id === timerTarefaId);
+      if (t) t.tempo_gasto = total;
+    } catch(e) {}
+  }, 30000); // a cada 30 segundos
+}
+
+// ── FIM Auto-save ──────────────────────────────────────────
 let _horasOffset = 0; // semanas em relação à semana atual
 
 function horasHoje()          { _horasOffset = 0; renderHoras(); }
