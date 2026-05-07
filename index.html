@@ -2517,7 +2517,7 @@ select.sel{
     </div>
     <!-- TAREFAS / KANBAN -->
     <div class="tab" id="t-tasks">
-      <div class="ph"><div><div class="pt">TAREFAS</div><div class="ps">Dados reais · ClickUp</div></div><button class="btnadd" onclick="openM('mTask')">+ NOVA</button></div>
+      <div class="ph"><div><div class="pt">TAREFAS</div><div class="ps">Gestão de tarefas da equipe</div></div><button class="btnadd" onclick="openM('mTask')">+ NOVA</button></div>
       <div class="chips" id="viewChips">
         <button class="chip on" onclick="setView('lista',this)">📋 Lista</button>
         <button class="chip" onclick="setView('kanban',this)">🗂️ Kanban</button>
@@ -2547,7 +2547,20 @@ select.sel{
       </div>
       <div id="taskList"></div>
       <div id="kanbanBoard" style="display:none"></div>
-      <div id="arvoreBoard" style="display:none"></div>
+      <div id="arvoreBoard" style="display:none">
+        <!-- Filtros da Árvore -->
+        <div id="arvoreFiltros" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;min-width:52px;">🏢 Setor</span>
+            <div id="arvoreSetorChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+          <div id="arvoreProjRow" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;min-width:52px;">📁 Projeto</span>
+            <div id="arvoreProjChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+        </div>
+        <div id="arvoreConteudo"></div>
+      </div>
     </div>
 
     <!-- CHAT -->
@@ -3719,6 +3732,15 @@ select.sel{
     <div><label class="lbl">Responsável</label><select class="sel" id="ntR"></select></div>
     <div><label class="lbl">Prioridade</label><select class="sel" id="ntPr"><option>urgente</option><option>alta</option><option>media</option><option>baixa</option></select></div>
   </div>
+
+  <label class="lbl" style="display:flex;align-items:center;gap:6px;">
+    👥 Co-responsáveis
+    <span style="font-size:10px;color:var(--tx3);font-weight:400;">— podem usar o timer simultaneamente</span>
+  </label>
+  <div id="ntCoRespWrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;min-height:28px;"></div>
+  <select class="sel" id="ntCoRespAdd" onchange="adicionarCoRespForm(this.value)" style="margin-bottom:8px;">
+    <option value="">+ Adicionar co-responsável...</option>
+  </select>
   <label class="lbl">Status</label><select class="sel" id="ntSt">
     <option value="to do">📋 A Fazer</option>
     <option value="especif. em análise (po)">🔵 Especif. em Análise (PO)</option>
@@ -3744,8 +3766,8 @@ select.sel{
   <div id="ntPaiPreview" style="display:none;font-size:11px;color:var(--tx3);margin-top:-8px;margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;"></div>
 
   <div style="font-size:10px;color:var(--tx3);margin-bottom:12px;">* Campos obrigatórios</div>
-  <button class="btnp" id="btnSaveTask" onclick="addTask()">CRIAR TAREFA</button>
-  <button class="btncanc" onclick="const b=document.getElementById('btnSaveTask');if(b){b.textContent='CRIAR TAREFA';b.disabled=false;b.onclick=addTask;}document.getElementById('mTaskTitle').textContent='NOVA TAREFA';closeM('mTask')">Cancelar</button>
+  <button class="btnp" id="btnSaveTask" onclick="executarSalvarTarefa()">CRIAR TAREFA</button>
+  <button class="btncanc" onclick="resetarModalTarefa();closeM('mTask')">Cancelar</button>
 </div></div>
 
 <div class="ov" id="mMeet"><div class="modal">
@@ -5140,18 +5162,30 @@ function trow(t) {
   const pc = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#22C55E'}[t.prior]||'#C9920A';
   const p = proj.find(x => x.id === t.projeto_id);
   const m = memb.find(x => x.av === t.resp);
+  // Buscar setor
+  const espaco = p ? espacos.find(e => e.id === p.espaco_id) : null;
+  const nomeSetor = espaco?.nome || '';
+  // Co-responsáveis
+  const coResp = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  const coAvatares = coResp.slice(0,3).map(av => {
+    const mb = memb.find(x=>x.av===av);
+    return `<div style="width:22px;height:22px;border-radius:6px;background:${mb?.cor||'#6366F1'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;flex-shrink:0;" title="${mb?.nome||av}">${av}</div>`;
+  }).join('');
   return `<div class="ti" onclick="openDet('task','${t.id}')">
     <div class="tc ${t.ok?'ok':''}" onclick="event.stopPropagation();togTask('${t.id}')">${t.ok?'✓':''}</div>
-    <div style="flex:1">
+    <div style="flex:1;min-width:0;">
       <div class="tt ${t.ok?'done':''}">${t.titulo||t.tit}</div>
-      <div style="font-size:10px;color:var(--tx3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap">
-        <span>${p?p.nome.split(' ')[0]:''}</span>
+      <div style="font-size:10px;color:var(--tx3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        ${nomeSetor ? `<span style="font-weight:600;color:var(--brand);">${nomeSetor}</span><span>›</span>` : ''}
+        <span>${p?p.nome:''}</span>
         <span>·</span><span>${m?m.av:t.resp||'—'}</span>
         <span>·</span><span class="badge" style="background:var(--surface3);color:var(--tx3);font-size:8px;padding:1px 5px">${t.status}</span>
+        ${t.prazo ? `<span>·</span><span style="color:${new Date(t.prazo)<new Date()&&!t.ok?'#EF4444':'var(--tx3)'};">📅 ${new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>` : ''}
       </div>
     </div>
-    <div style="display:flex;gap:6px;align-items:center">
-      <div style="width:26px;height:26px;border-radius:7px;background:${m?.cor||'#4F46E5'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0">${m?.av||t.resp||'?'}</div>
+    <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+      ${coAvatares}
+      <div style="width:26px;height:26px;border-radius:7px;background:${m?.cor||'#4F46E5'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0" title="${m?.nome||t.resp||'?'}">${m?.av||t.resp||'?'}</div>
       <div class="tpr" style="background:${pc}"></div>
       <button onclick="event.stopPropagation();openEditTask('${t.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:10px;color:var(--tx2);cursor:pointer">✏️</button>
       <button onclick="event.stopPropagation();delTask('${t.id}')" style="background:rgba(239,68,68,.1);border:none;border-radius:5px;padding:4px 6px;font-size:10px;color:#EF4444;cursor:pointer">🗑</button>
@@ -5215,105 +5249,162 @@ function _chipStyle(ativo, cor) {
   return `padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${cor};transition:all .15s;background:${ativo?cor:'transparent'};color:${ativo?'#fff':cor};`;
 }
 
+let _arvoreSetorFiltro = 'todos';
+let _arvoreProjFiltro  = 'todos';
+
+function _arvoreChipStyle(ativo, cor) {
+  return `padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${cor};transition:all .15s;background:${ativo?cor:'transparent'};color:${ativo?'#fff':cor};`;
+}
+
+function renderArvoreSetorChips() {
+  const wrap = document.getElementById('arvoreSetorChips');
+  if (!wrap) return;
+  const setoresEnv = [...new Set(tar.map(t => { const p = proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; }))];
+  const chips = [
+    {id:'todos', nome:'Todos os setores', cor:'#6366F1'},
+    ...setoresEnv.filter(s=>s!=='__sem__').map(sid => { const s = espacos.find(x=>x.id===sid); return {id:sid, nome:s?.nome||'Setor', cor:'#4F46E5'}; }),
+    ...(setoresEnv.includes('__sem__') ? [{id:'sem_setor', nome:'Sem setor', cor:'#94A3B8'}] : [])
+  ];
+  wrap.innerHTML = chips.map(c => `<button onclick="selecionarArvoreSetor('${c.id}')" style="${_arvoreChipStyle(_arvoreSetorFiltro===c.id, c.cor)}">${_arvoreSetorFiltro===c.id?'✓ ':''}${c.nome}</button>`).join('');
+}
+
+function renderArvoreProjChips() {
+  const wrap = document.getElementById('arvoreProjChips');
+  if (!wrap) return;
+  let projetosFiltro = [];
+  if (_arvoreSetorFiltro === 'todos') { projetosFiltro = []; }
+  else if (_arvoreSetorFiltro === 'sem_setor') {
+    projetosFiltro = [...new Set(tar.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return !p?.espaco_id; }).map(t=>t.projeto_id))];
+  } else {
+    projetosFiltro = [...new Set(tar.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return p?.espaco_id===_arvoreSetorFiltro; }).map(t=>t.projeto_id))];
+  }
+  const chips = [
+    {id:'todos', nome:'Todos os projetos', cor:'#6366F1'},
+    ...projetosFiltro.map(pid => { const p=proj.find(x=>x.id===pid); return {id:pid, nome:p?.nome||'Projeto', cor:'#0EA5E9'}; })
+  ];
+  wrap.innerHTML = chips.map(c => `<button onclick="selecionarArvoreProjeto('${c.id}')" style="${_arvoreChipStyle(_arvoreProjFiltro===c.id, c.cor)}">${_arvoreProjFiltro===c.id?'✓ ':''}${c.nome}</button>`).join('');
+}
+
+function selecionarArvoreSetor(id) {
+  _arvoreSetorFiltro = id;
+  _arvoreProjFiltro  = 'todos';
+  renderArvoreSetorChips();
+  const projRow = document.getElementById('arvoreProjRow');
+  if (projRow) projRow.style.display = id === 'todos' ? 'none' : 'flex';
+  if (id !== 'todos') renderArvoreProjChips();
+  renderArvoreConteudo();
+}
+
+function selecionarArvoreProjeto(id) {
+  _arvoreProjFiltro = id;
+  renderArvoreProjChips();
+  renderArvoreConteudo();
+}
+
 function renderArvore() {
   const board = document.getElementById('arvoreBoard');
   if (!board) return;
   document.getElementById('taskList').style.display = 'none';
   document.getElementById('kanbanBoard').style.display = 'none';
   board.style.display = 'block';
+  renderArvoreSetorChips();
+  renderArvoreConteudo();
+}
+
+function renderArvoreConteudo() {
+  const board = document.getElementById('arvoreConteudo');
+  if (!board) return;
 
   const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
   const _isFech = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
-
-  const statusCor = {
-    'to do':'#94A3B8', 'a fazer':'#94A3B8',
-    'especif. em análise (po)':'#6366F1', 'pronto para desenvolver':'#8B5CF6',
-    'em desenvolvimento':'#3B82F6', 'pronto p/ testar (qa/po)':'#0EA5E9',
-    'em teste':'#F59E0B', 'teste reprovado':'#EF4444',
-    'teste aprovado':'#92400E', 'publicado em produção':'#10B981',
-    'concluído':'#059669', 'feito':'#059669',
-  };
+  const statusCor = {'to do':'#94A3B8','a fazer':'#94A3B8','especif. em análise (po)':'#6366F1','pronto para desenvolver':'#8B5CF6','em desenvolvimento':'#3B82F6','pronto p/ testar (qa/po)':'#0EA5E9','em teste':'#F59E0B','teste reprovado':'#EF4444','teste aprovado':'#92400E','publicado em produção':'#10B981','concluído':'#059669','feito':'#059669'};
   const getCorStatus = s => statusCor[(s||'').toLowerCase()] || '#94A3B8';
 
-  // Agrupar por Setor → Projeto → Tarefa
-  const setoresEnv = [...new Set(
-    tar.map(t => { const p = proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; })
-  )];
+  // Filtrar tarefas
+  let tarefasFiltradas = [...tar];
+  if (_arvoreSetorFiltro !== 'todos') {
+    tarefasFiltradas = tarefasFiltradas.filter(t => {
+      const p = proj.find(x=>x.id===t.projeto_id);
+      if (_arvoreSetorFiltro === 'sem_setor') return !p?.espaco_id;
+      return p?.espaco_id === _arvoreSetorFiltro;
+    });
+  }
+  if (_arvoreProjFiltro !== 'todos') {
+    tarefasFiltradas = tarefasFiltradas.filter(t => String(t.projeto_id) === String(_arvoreProjFiltro));
+  }
 
-  if (!tar.length) {
+  if (!tarefasFiltradas.length) {
     board.innerHTML = `<div class="arvore-empty"><div style="font-size:32px;margin-bottom:8px;">🌳</div><div style="font-size:14px;font-weight:700;color:var(--tx3);">Nenhuma tarefa encontrada</div></div>`;
     return;
   }
 
-  board.innerHTML = `<div class="arvore-wrap">` + setoresEnv.map(setorId => {
+  // Agrupar por Setor → Projeto
+  const setoresEnv = [...new Set(tarefasFiltradas.map(t => { const p=proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; }))];
+
+  board.innerHTML = setoresEnv.map(setorId => {
     const setor = setorId !== '__sem__' ? espacos.find(e=>e.id===setorId) : null;
     const nomeSetor = setor?.nome || '— Sem setor';
-
-    const projetosDoSetor = [...new Set(
-      tar.filter(t => {
-        const p = proj.find(x=>x.id===t.projeto_id);
-        return setorId==='__sem__' ? !p?.espaco_id : p?.espaco_id===setorId;
-      }).map(t => t.projeto_id)
-    )];
-
-    const totalTarefas = tar.filter(t => {
-      const p = proj.find(x=>x.id===t.projeto_id);
-      return setorId==='__sem__' ? !p?.espaco_id : p?.espaco_id===setorId;
-    }).length;
+    const projetosDoSetor = [...new Set(tarefasFiltradas.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId; }).map(t=>t.projeto_id))];
+    const totalTarefas = tarefasFiltradas.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId; }).length;
 
     const projetosHtml = projetosDoSetor.map(pid => {
       const p = proj.find(x=>x.id===pid);
       const nomeProjeto = p?.nome || '— Sem projeto';
-      const tarefasDoProjeto = tar.filter(t => String(t.projeto_id) === String(pid));
+      const tarefasDoProjeto = tarefasFiltradas.filter(t => String(t.projeto_id) === String(pid));
       const concluidas = tarefasDoProjeto.filter(t => _isFech(t)).length;
       const prog = tarefasDoProjeto.length ? Math.round((concluidas/tarefasDoProjeto.length)*100) : 0;
       const isProjFechado = ['concluido','concluída','cancelado','done'].includes((p?.status||'').toLowerCase());
 
-      const tarefasHtml = tarefasDoProjeto
-        .filter(t => !t.tarefa_pai_id) // só tarefas raiz
-        .map((t, idx, arr) => {
-          const fechada = _isFech(t);
-          const m = memb.find(x=>x.av===t.resp);
-          const mCor = m?.cor || '#6366F1';
-          const status = t.status || 'to do';
-          const corStatus = getCorStatus(status);
-          const isLast = idx === arr.length - 1;
+      const tarefasHtml = tarefasDoProjeto.filter(t => !t.tarefa_pai_id).map((t, idx, arr) => {
+        const fechada = _isFech(t);
+        const m = memb.find(x=>x.av===t.resp);
+        const mCor = m?.cor || '#6366F1';
+        const corStatus = getCorStatus(t.status||'');
+        const isLast = idx === arr.length - 1;
 
-          // Subtarefas desta tarefa
-          const subtarefas = tarefasDoProjeto.filter(st => st.tarefa_pai_id === t.id);
-          const subtarefasHtml = subtarefas.length ? `
-            <div style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:3px;position:relative;">
-              <div style="position:absolute;left:1px;top:0;bottom:10px;width:1px;background:var(--border2);"></div>
-              ${subtarefas.map((st, si, sa) => {
-                const stFech = _isFech(st);
-                const sm = memb.find(x=>x.av===st.resp);
-                const smCor = sm?.cor||'#6366F1';
-                const isLastSt = si === sa.length - 1;
-                return `<div class="arvore-task${stFech?' done':''}" onclick="openDet('task','${st.id}')" style="position:relative;">
-                  <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
-                  ${!isLastSt?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
-                  <div class="arvore-task-check${stFech?' done':''}">${stFech?'✓':''}</div>
-                  <div class="arvore-task-title" style="font-size:11px;">${st.titulo||st.tit||''}</div>
-                  <span class="arvore-task-status" style="background:${getCorStatus(st.status||'')}18;color:${getCorStatus(st.status||'')};border:1px solid ${getCorStatus(st.status||'')}33;">${st.status||'to do'}</span>
-                  <div class="arvore-task-resp" style="background:${smCor}22;color:${smCor};" title="${sm?.nome||st.resp||'?'}">${st.resp||'?'}</div>
-                </div>`;
-              }).join('')}
-            </div>` : '';
-
-          return `<div style="position:relative;">
-            ${!isLast?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
-            <div class="arvore-task${fechada?' done':''}" onclick="openDet('task','${t.id}')" style="position:relative;">
-              <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
-              <div class="arvore-task-check${fechada?' done':''}">${fechada?'✓':''}</div>
-              <div class="arvore-task-title">${t.titulo||t.tit||'Sem título'}</div>
-              ${subtarefas.length?`<span style="font-size:9px;color:var(--brand);background:var(--brand-light);padding:1px 6px;border-radius:10px;">${subtarefas.length} sub</span>`:''}
-              <span class="arvore-task-status" style="background:${corStatus}18;color:${corStatus};border:1px solid ${corStatus}33;">${status}</span>
-              ${t.prazo?`<span style="font-size:9px;color:${new Date(t.prazo)<new Date()&&!fechada?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
-              <div class="arvore-task-resp" style="background:${mCor}22;color:${mCor};" title="${m?.nome||t.resp||'?'}">${t.resp||'?'}</div>
-            </div>
-            ${subtarefasHtml}
-          </div>`;
+        // Co-responsáveis
+        const coResp = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+        const todos = [t.resp, ...coResp].filter(Boolean);
+        const respAvatares = todos.map(av => {
+          const mb = memb.find(x=>x.av===av);
+          return `<div style="width:20px;height:20px;border-radius:5px;background:${mb?.cor||'#6366F1'}22;color:${mb?.cor||'#6366F1'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1px solid ${mb?.cor||'#6366F1'}44;" title="${mb?.nome||av}">${av}</div>`;
         }).join('');
+
+        // Subtarefas
+        const subtarefas = tarefasDoProjeto.filter(st => st.tarefa_pai_id === t.id);
+        const subtarefasHtml = subtarefas.length ? `
+          <div style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:3px;position:relative;">
+            <div style="position:absolute;left:1px;top:0;bottom:10px;width:1px;background:var(--border2);"></div>
+            ${subtarefas.map((st,si,sa) => {
+              const stFech = _isFech(st);
+              const sm = memb.find(x=>x.av===st.resp);
+              const stCoResp = (() => { try { return JSON.parse(st.co_responsaveis||'[]'); } catch(e){ return []; } })();
+              const stTodos = [st.resp, ...stCoResp].filter(Boolean);
+              return `<div class="arvore-task${stFech?' done':''}" onclick="openDet('task','${st.id}')" style="position:relative;">
+                <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
+                ${si<sa.length-1?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
+                <div class="arvore-task-check${stFech?' done':''}">${stFech?'✓':''}</div>
+                <div class="arvore-task-title" style="font-size:11px;">${st.titulo||st.tit||''}</div>
+                <span class="arvore-task-status" style="background:${getCorStatus(st.status||'')}18;color:${getCorStatus(st.status||'')};border:1px solid ${getCorStatus(st.status||'')}33;">${st.status||'to do'}</span>
+                <div style="display:flex;gap:2px;">${stTodos.map(av=>{ const mb=memb.find(x=>x.av===av); return `<div style="width:18px;height:18px;border-radius:4px;background:${mb?.cor||'#6366F1'}22;color:${mb?.cor||'#6366F1'};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;">${av}</div>`; }).join('')}</div>
+              </div>`;
+            }).join('')}
+          </div>` : '';
+
+        return `<div style="position:relative;">
+          ${!isLast?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
+          <div class="arvore-task${fechada?' done':''}" onclick="openDet('task','${t.id}')" style="position:relative;">
+            <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
+            <div class="arvore-task-check${fechada?' done':''}">${fechada?'✓':''}</div>
+            <div class="arvore-task-title">${t.titulo||t.tit||'Sem título'}</div>
+            ${subtarefas.length?`<span style="font-size:9px;color:var(--brand);background:var(--brand-light);padding:1px 6px;border-radius:10px;">${subtarefas.length} sub</span>`:''}
+            <span class="arvore-task-status" style="background:${corStatus}18;color:${corStatus};border:1px solid ${corStatus}33;">${t.status||'to do'}</span>
+            ${t.prazo?`<span style="font-size:9px;color:${new Date(t.prazo)<new Date()&&!fechada?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
+            <div style="display:flex;gap:2px;">${respAvatares}</div>
+          </div>
+          ${subtarefasHtml}
+        </div>`;
+      }).join('');
 
       return `<div class="arvore-proj">
         <div class="arvore-proj-title" onclick="openDet('proj','${pid}')">
@@ -5338,32 +5429,87 @@ function renderArvore() {
       </div>
       ${projetosHtml}
     </div>`;
-  }).join('') + `</div>`;
+  }).join('');
+}
+function adicionarCoRespForm(av) {
+  if (!av) return;
+  if (!window._ntCoResps) window._ntCoResps = [];
+  // Não duplicar, não adicionar o responsável principal
+  const respPrincipal = document.getElementById('ntR')?.value;
+  if (window._ntCoResps.includes(av) || av === respPrincipal) {
+    document.getElementById('ntCoRespAdd').value = '';
+    showToast('Este membro já é responsável'); return;
+  }
+  window._ntCoResps.push(av);
+  const mb = memb.find(x=>x.av===av);
+  const wrap = document.getElementById('ntCoRespWrap');
+  if (wrap) {
+    const chip = document.createElement('div');
+    chip.style.cssText = `display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:${mb?.cor||'#6366F1'}18;color:${mb?.cor||'#6366F1'};border:1px solid ${mb?.cor||'#6366F1'}44;font-size:11px;font-weight:600;cursor:pointer;`;
+    chip.innerHTML = `${mb?.nome?.split(' ')[0]||av} <span style="opacity:.5;font-size:13px;" title="Remover">×</span>`;
+    chip.onclick = () => {
+      window._ntCoResps = window._ntCoResps.filter(x=>x!==av);
+      chip.remove();
+    };
+    wrap.appendChild(chip);
+  }
+  document.getElementById('ntCoRespAdd').value = '';
 }
 
-function adicionarSubtarefa(paiId, projetoId, tituloMae) {
-  // Abre o modal de nova tarefa com pai pré-selecionado
-  openM('mTask');
-  // Aguarda o modal abrir e pré-seleciona
-  setTimeout(() => {
-    // Preencher projeto
-    const ntPj = document.getElementById('ntPj');
-    if (ntPj && projetoId) {
-      ntPj.value = projetoId;
-      popularArvoreProjeto(projetoId);
-      // Pré-selecionar a tarefa pai
-      setTimeout(() => {
-        const ntPai = document.getElementById('ntPai');
-        if (ntPai) {
-          ntPai.value = paiId;
-          ntPai.dispatchEvent(new Event('change'));
-        }
-      }, 100);
-    }
-    // Atualizar título do modal
-    const mtitle = document.getElementById('mTaskTitle');
-    if (mtitle) mtitle.textContent = `NOVA SUBTAREFA${tituloMae ? ' — ' + tituloMae.slice(0,30) : ''}`;
-  }, 150);
+function abrirSeletorCoResp(tarefaId) {
+  const t = tar.find(x=>x.id===tarefaId);
+  if (!t) return;
+  const coAtual = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  const disponiveis = memb.filter(m => m.av !== t.resp && !coAtual.includes(m.av) && m.status_acesso !== 'inativo');
+  document.querySelectorAll('.co-resp-picker').forEach(e=>e.remove());
+  const picker = document.createElement('div');
+  picker.className = 'co-resp-picker';
+  picker.style.cssText = 'position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;width:280px;box-shadow:0 8px 30px rgba(0,0,0,.2);max-height:320px;overflow-y:auto;';
+  let html = '<div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">👥 Adicionar co-responsável</div>';
+  if (!disponiveis.length) {
+    html += '<div style="font-size:12px;color:var(--tx3);padding:8px;">Todos os membros já são responsáveis</div>';
+  } else {
+    disponiveis.forEach(function(mb) {
+      const av = mb.av, cor = mb.cor||'#6366F1';
+      html += '<div onclick="adicionarCoResp(\'' + tarefaId + '\',\'' + av + '\');document.querySelectorAll(\'.co-resp-picker\').forEach(function(e){e.remove()})" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;cursor:pointer;" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="width:28px;height:28px;border-radius:8px;background:' + cor + '22;color:' + cor + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">' + av + '</div>'
+        + '<div><div style="font-size:12px;font-weight:600;color:var(--tx);">' + mb.nome + '</div><div style="font-size:10px;color:var(--tx3);">' + (mb.cargo||'Membro') + '</div></div>'
+        + '</div>';
+    });
+  }
+  html += '<button onclick="document.querySelectorAll(\'.co-resp-picker\').forEach(function(e){e.remove()})" style="width:100%;margin-top:8px;padding:7px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);font-size:12px;cursor:pointer;font-family:inherit;">Cancelar</button>';
+  picker.innerHTML = html;
+  document.body.appendChild(picker);
+  setTimeout(function() {
+    document.addEventListener('click', function f(e) {
+      if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', f); }
+    });
+  }, 100);
+}
+
+
+async function adicionarCoResp(tarefaId, av) {
+  const t = tar.find(x=>x.id===tarefaId);
+  if (!t) return;
+  const coAtual = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  if (coAtual.includes(av)) return;
+  const novosCo = [...coAtual, av];
+  await safeDb.from('tarefas').update({ co_responsaveis: JSON.stringify(novosCo) }).eq('id', tarefaId);
+  t.co_responsaveis = JSON.stringify(novosCo);
+  showToast(`👥 ${memb.find(x=>x.av===av)?.nome||av} adicionado!`);
+  openDet('task', tarefaId);
+}
+
+async function removerCoResp(tarefaId, av) {
+  if (!confirm('Remover co-responsável?')) return;
+  const t = tar.find(x=>x.id===tarefaId);
+  if (!t) return;
+  const coAtual = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  const novosCo = coAtual.filter(x=>x!==av);
+  await safeDb.from('tarefas').update({ co_responsaveis: JSON.stringify(novosCo) }).eq('id', tarefaId);
+  t.co_responsaveis = JSON.stringify(novosCo);
+  showToast('✅ Co-responsável removido');
+  openDet('task', tarefaId);
 }
 
 function adicionarSubtarefa(paiId, projetoId, tituloMae) {
@@ -5724,7 +5870,9 @@ async function addTask() {
     }
   }
   const paiId = document.getElementById('ntPai')?.value || null;
-  const nova = { titulo:t, descricao:'', projeto_id:projId, resp:document.getElementById('ntR').value||curUser?.av, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value||'to do', ok:false, tarefa_pai_id: paiId || null };
+  const coResps = window._ntCoResps || [];
+  const nova = { titulo:t, descricao:'', projeto_id:projId, resp:document.getElementById('ntR').value||curUser?.av, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value||'to do', ok:false, tarefa_pai_id: paiId || null, co_responsaveis: JSON.stringify(coResps) };
+  window._ntCoResps = [];
   const { data, error } = await safeDb.from('tarefas').insert([nova]).select().single();
   if (error) { 
     showToast('❌ Erro: ' + error.message); 
@@ -5747,6 +5895,7 @@ async function addTask() {
   }
   closeM('mTask'); renderTasks(); renderUrgent(); renderChart(); popSels();
   document.getElementById('ntT').value = '';
+  _modoEdicaoTarefa = null;
   const btnFinal = document.getElementById('btnSaveTask');
   if (btnFinal) { btnFinal.disabled = false; btnFinal.textContent = 'CRIAR TAREFA'; }
   document.getElementById('mTaskTitle').textContent = 'NOVA TAREFA';
@@ -5775,13 +5924,33 @@ async function delTask(id) {
   showToast('🗑 Tarefa excluída');
 }
 
+// ── Controle do modal de tarefa ──────────────────────────────
+let _modoEdicaoTarefa = null; // null = nova, id = editando
+
+function executarSalvarTarefa() {
+  if (_modoEdicaoTarefa) {
+    saveEditTask(_modoEdicaoTarefa);
+  } else {
+    addTask();
+  }
+}
+
+function resetarModalTarefa() {
+  _modoEdicaoTarefa = null;
+  const btn = document.getElementById('btnSaveTask');
+  if (btn) { btn.textContent = 'CRIAR TAREFA'; btn.disabled = false; }
+  const title = document.getElementById('mTaskTitle');
+  if (title) title.textContent = 'NOVA TAREFA';
+}
+// ─────────────────────────────────────────────────────────────
+
 function openEditTask(id) {
+  _modoEdicaoTarefa = id;
   const t = tar.find(x => x.id===id);
   if (!t) return;
 
-  // Resetar modal primeiro
   const btn = document.getElementById('btnSaveTask');
-  if (btn) { btn.textContent = 'SALVAR ALTERAÇÕES'; btn.disabled = false; btn.onclick = () => saveEditTask(id); }
+  if (btn) { btn.textContent = 'SALVAR ALTERAÇÕES'; btn.disabled = false; }
   document.getElementById('mTaskTitle').textContent = 'EDITAR TAREFA';
 
   // Popular campos básicos
@@ -5796,42 +5965,102 @@ function openEditTask(id) {
   const espaco = espacos.find(e => e.id === (p?.espaco_id || t.espaco_id));
   const estacaoVal = espaco?.estacao || p?.dept || '';
 
-  // Popular estação
-  const ntEstacao = document.getElementById('ntEstacao');
-  if (ntEstacao && estacaoVal) {
-    ntEstacao.value = estacaoVal;
-    // Disparar filtro de espaços
-    filtrarEspacosPorEstacao();
-  }
+  // Guardar projeto_id original para caso o select não carregue
+  window._editTaskProjetoId = t.projeto_id || null;
+  const coAtualEdit = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
 
-  // Popular setor após filtrar
-  setTimeout(() => {
-    if (espaco) {
-      const ntEspaco = document.getElementById('ntEspaco');
-      if (ntEspaco) {
-        ntEspaco.value = espaco.id;
-        filtrarProjetosPorEspaco();
-      }
-    }
-    // Popular projeto após filtrar
-    setTimeout(() => {
-      document.getElementById('ntPj').value = t.projeto_id||'';
-    }, 50);
-  }, 50);
-
+  // Abre o modal primeiro
   openM('mTask');
+
+  // IMPORTANTE: setar _ntCoResps DEPOIS do openM (openM pode resetar para [])
+  window._ntCoResps = [...coAtualEdit];
+
+  // Popular campos após o modal abrir (timeouts em cascata)
+  setTimeout(() => {
+    // 1. Título e campos simples
+    document.getElementById('ntT').value = t.titulo || t.tit || '';
+    document.getElementById('ntR').value = t.resp||'';
+    document.getElementById('ntPr').value = t.prior||'media';
+    document.getElementById('ntD').value = t.prazo||'';
+    const stEl = document.getElementById('ntSt');
+    if (stEl) stEl.value = t.status||'to do';
+
+    // 2. Popular estação
+    const ntEstacao = document.getElementById('ntEstacao');
+    if (ntEstacao && estacaoVal) {
+      ntEstacao.value = estacaoVal;
+      filtrarEspacosPorEstacao();
+    }
+
+    setTimeout(() => {
+      // 3. Popular setor
+      if (espaco) {
+        const ntEspaco = document.getElementById('ntEspaco');
+        if (ntEspaco) {
+          ntEspaco.value = espaco.id;
+          filtrarProjetosPorEspaco();
+        }
+      }
+      setTimeout(() => {
+        // 4. Popular projeto
+        const ntPj = document.getElementById('ntPj');
+        if (ntPj && t.projeto_id) ntPj.value = t.projeto_id;
+
+        // 5. Popular árvore do projeto
+        popularArvoreProjeto(t.projeto_id);
+        setTimeout(() => {
+          const ntPai = document.getElementById('ntPai');
+          if (ntPai && t.tarefa_pai_id) ntPai.value = t.tarefa_pai_id;
+        }, 50);
+
+        // 6. Re-confirmar título e botão (openM pode ter resetado)
+        document.getElementById('mTaskTitle').textContent = 'EDITAR TAREFA';
+        const btnEl = document.getElementById('btnSaveTask');
+        if (btnEl) btnEl.textContent = 'SALVAR ALTERAÇÕES';
+
+        // 7. Co-responsáveis
+        const wrapEdit = document.getElementById('ntCoRespWrap');
+        if (wrapEdit) {
+          wrapEdit.innerHTML = '';
+          coAtualEdit.forEach(av => {
+            const mb = memb.find(x=>x.av===av);
+            const chip = document.createElement('div');
+            chip.style.cssText = `display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:${mb?.cor||'#6366F1'}18;color:${mb?.cor||'#6366F1'};border:1px solid ${mb?.cor||'#6366F1'}44;font-size:11px;font-weight:600;cursor:pointer;margin:2px;`;
+            chip.innerHTML = `${mb?.nome?.split(' ')[0]||av} <span style="opacity:.5;font-size:13px;">×</span>`;
+            chip.onclick = () => { window._ntCoResps = window._ntCoResps.filter(x=>x!==av); chip.remove(); };
+            wrapEdit.appendChild(chip);
+          });
+        }
+      }, 100);
+    }, 100);
+  }, 50);
 }
 
 async function saveEditTask(id) {
-  const upd = { titulo:document.getElementById('ntT').value.trim(), projeto_id:document.getElementById('ntPj').value||null, resp:document.getElementById('ntR').value||null, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value, updated_at: new Date().toISOString() };
+  const coRespsEdit = window._ntCoResps || [];
+  // Usar projeto_id do campo ou fallback do original (evita salvar null se select não carregou)
+  const projIdVal = document.getElementById('ntPj')?.value || window._editTaskProjetoId || null;
+  const upd = {
+    titulo:    document.getElementById('ntT').value.trim(),
+    projeto_id: projIdVal,
+    resp:      document.getElementById('ntR').value || null,
+    prior:     document.getElementById('ntPr').value,
+    prazo:     document.getElementById('ntD').value || null,
+    status:    document.getElementById('ntSt').value,
+    co_responsaveis: JSON.stringify(coRespsEdit),
+    updated_at: new Date().toISOString()
+  };
+  window._ntCoResps = [];
+  window._editTaskProjetoId = null;
   // Nunca sobrescrever tempo_gasto no update de edição
   const { error } = await safeDb.from('tarefas').update(upd).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   const idx = tar.findIndex(t => t.id===id);
   if (idx >= 0) tar[idx] = { ...tar[idx], ...upd }; // spread preserva tempo_gasto local
   const btn = document.getElementById('btnSaveTask');
-  if (btn) { btn.textContent = 'CRIAR TAREFA'; btn.disabled = false; btn.onclick = addTask; }
+  if (btn) { btn.textContent = 'CRIAR TAREFA'; btn.disabled = false; }
   document.getElementById('mTaskTitle').textContent = 'NOVA TAREFA';
+  _modoEdicaoTarefa = null;
   closeM('mTask'); renderTasks();
   showToast('✅ Tarefa atualizada!');
 }
@@ -5945,13 +6174,21 @@ async function openDet(type, id) {
     const coResp = (() => { try { return JSON.parse(t.co_responsaveis || '[]'); } catch(e) { return []; } })();
     const metaRow = document.getElementById('detMetaRow');
     if (metaRow) metaRow.innerHTML = `
-      <div class="det-meta-chip">
+      <div class="det-meta-chip" title="Responsável principal">
         <div class="det-meta-av">${t.resp||'—'}</div>
         <strong>${m?m.nome.split(' ')[0]:t.resp||'—'}</strong>
       </div>
-      ${coResp.length ? `<div class="det-meta-chip" style="background:rgba(99,102,241,0.2);gap:4px;" title="Co-responsáveis">
-        👥 ${coResp.map(av => { const mb = memb.find(x=>x.av===av); return `<span style="font-size:10px;">${mb?.nome?.split(' ')[0]||av}</span>`; }).join(', ')}
-      </div>` : ''}
+      ${coResp.map(av => {
+        const mb = memb.find(x=>x.av===av);
+        return `<div class="det-meta-chip" style="background:rgba(99,102,241,0.15);gap:4px;cursor:pointer;" title="${mb?.nome||av} (co-resp) — clique para remover" onclick="removerCoResp('${id}','${av}')">
+          <div class="det-meta-av" style="background:${mb?.cor||'#6366F1'}33;color:${mb?.cor||'#6366F1'}">${av}</div>
+          <span style="font-size:10px;">${mb?.nome?.split(' ')[0]||av}</span>
+          <span style="font-size:9px;opacity:.5;">✕</span>
+        </div>`;
+      }).join('')}
+      <div class="det-meta-chip" style="background:rgba(255,255,255,.08);cursor:pointer;border:1px dashed rgba(255,255,255,.3);" onclick="abrirSeletorCoResp('${id}')" title="Adicionar co-responsável">
+        <span style="font-size:11px;">👥 +</span>
+      </div>
       ${p ? `<div class="det-meta-chip">📌 <strong>${p.nome}</strong></div>` : ''}
       ${t.prazo ? `<div class="det-meta-chip">📅 <strong>${new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</strong></div>` : ''}
       <div style="margin-left:auto">
@@ -5964,10 +6201,11 @@ async function openDet(type, id) {
       <div class="det-timer-block${isTimerOn?' running':''}" id="detTimerBlock">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div class="det-timer-label">${isTimerOn?'<span class="det-timer-dot"></span> EM ANDAMENTO':'⏱ TEMPO REGISTRADO'}</div>
+          <div style="font-size:9px;opacity:.6;color:#fff;">${curUser?.av||''}</div>
         </div>
-        <div class="det-timer-display" id="tempoDisplay" data-tid="${id}">${isTimerOn ? fmtTempo(tempoGasto) : (tempoSuspeito?'⚠️ '+fmtTempo(tempoGasto):fmtTempo(tempoGasto))}</div>
-        ${isTimerOn ? `<div style="font-size:10px;opacity:.55;text-align:center;margin-bottom:4px;">Acumulado: ${fmtTempo(t.tempo_gasto||0)}</div>` : ''}
-        ${tempoSuspeito && !isTimerOn ? `<div style="font-size:10px;color:#EF4444;margin-bottom:6px;font-weight:600;">Tempo suspeito — clique em Zerar antes de iniciar</div>` : ''}
+        <div class="det-timer-display" id="tempoDisplay" data-tid="${id}">${isTimerOn ? fmtTempo(tempoGasto) : fmtTempo(tempoGasto)}</div>
+        ${isTimerOn ? `<div style="font-size:10px;opacity:.55;text-align:center;margin-bottom:4px;">Sessão do dia</div>` : ''}
+        ${tempoSuspeito && !isTimerOn ? `<div style="font-size:10px;color:#EF4444;margin-bottom:6px;font-weight:600;">Tempo suspeito — clique em Zerar</div>` : ''}
         <div class="${isTimerOn?'det-timer-actions':''}">
           ${isTimerOn
             ? `<button class="det-timer-btn det-timer-btn-stop" onclick="pararTimer('${id}')">⏹ PARAR</button>`
@@ -11433,10 +11671,16 @@ function openM(id) {
   document.getElementById(id).classList.add('on');
   if (id === 'mTask') {
     popTaskEstacoes();
-    document.getElementById('ntR').innerHTML = memb.map(m=>`<option value="${m.av}">${m.nome}</option>`).join('');
-    document.getElementById('mTaskTitle').textContent = 'NOVA TAREFA';
-    document.getElementById('btnSaveTask').textContent = 'CRIAR TAREFA';
-    document.getElementById('btnSaveTask').onclick = addTask;
+    const membOpts = memb.map(m=>`<option value="${m.av}">${m.nome}</option>`).join('');
+    document.getElementById('ntR').innerHTML = membOpts;
+    document.getElementById('ntCoRespAdd').innerHTML = '<option value="">+ Adicionar co-responsável...</option>' + membOpts;
+    // Só reseta se NÃO estiver em modo edição
+    if (!_modoEdicaoTarefa) {
+      document.getElementById('mTaskTitle').textContent = 'NOVA TAREFA';
+      document.getElementById('btnSaveTask').textContent = 'CRIAR TAREFA';
+      document.getElementById('ntCoRespWrap').innerHTML = '';
+      window._ntCoResps = [];
+    }
   }
   if (id === 'mMeet') {
     conviteParticipantes = [curUser?.av||curUser?.av||'?'];
