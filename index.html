@@ -2056,6 +2056,31 @@ select.sel{
 
 
 
+/* ══ ÁRVORE DO PROJETO ══════════════════════════════════════ */
+.arvore-wrap{padding:8px 0;}
+.arvore-setor{margin-bottom:24px;}
+.arvore-setor-title{display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,rgba(79,70,229,.08),rgba(99,102,241,.04));border-radius:12px;border-left:4px solid var(--brand);margin-bottom:12px;cursor:pointer;user-select:none;}
+.arvore-setor-title span{font-size:13px;font-weight:800;color:var(--brand);}
+.arvore-setor-count{font-size:10px;font-weight:700;background:var(--brand-light);color:var(--brand);padding:2px 8px;border-radius:20px;}
+.arvore-proj{margin-bottom:16px;padding-left:20px;}
+.arvore-proj-title{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:10px;border-left:3px solid #6366F1;margin-bottom:6px;cursor:pointer;}
+.arvore-proj-title span{font-size:12px;font-weight:700;color:var(--tx2);}
+.arvore-proj-prog{font-size:10px;font-weight:700;color:var(--tx3);}
+.arvore-proj-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;max-width:80px;}
+.arvore-proj-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--brand),var(--brand2));}
+.arvore-tasks{padding-left:24px;display:flex;flex-direction:column;gap:3px;}
+.arvore-task{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;cursor:pointer;transition:background .1s;position:relative;}
+.arvore-task:hover{background:var(--surface2);}
+.arvore-task-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;}
+.arvore-task-check.done{background:#10B981;border-color:#10B981;color:#fff;}
+.arvore-task-title{flex:1;font-size:12px;font-weight:500;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.arvore-task.done .arvore-task-title{text-decoration:line-through;color:var(--tx4);}
+.arvore-task-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.arvore-task-resp{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;flex-shrink:0;}
+.arvore-connector{position:absolute;left:-1px;top:0;bottom:0;width:1px;background:var(--border2);}
+.arvore-connector-h{position:absolute;left:-13px;top:50%;width:13px;height:1px;background:var(--border2);}
+/* ══ FIM ÁRVORE ═════════════════════════════════════════════ */
+
 /* ── Chat: botão de áudio ── */
 .chat-audio-btn{
   background:none;border:none;cursor:pointer;
@@ -2430,6 +2455,14 @@ select.sel{
         </div>
       </div>
 
+      <!-- PROJETOS CONCLUÍDOS -->
+      <div class="dash-card" style="margin-bottom:16px;">
+        <div class="card-hdr">
+          <span class="sec-title" style="color:#16A34A;">✅ Projetos Concluídos</span>
+        </div>
+        <div id="projetosConcluidos" style="padding:0 16px 16px;"></div>
+      </div>
+
       <!-- SAÚDE DOS PROJETOS -->
       <div class="section-card">
         <div class="sec-header">
@@ -2488,6 +2521,7 @@ select.sel{
       <div class="chips" id="viewChips">
         <button class="chip on" onclick="setView('lista',this)">📋 Lista</button>
         <button class="chip" onclick="setView('kanban',this)">🗂️ Kanban</button>
+        <button class="chip" onclick="setView('arvore',this)">🌳 Árvore</button>
       </div>
       <!-- Seletor cascata Kanban: Setor → Projeto -->
       <div id="kanbanProjSelector" style="display:none;margin-bottom:8px;">
@@ -2513,6 +2547,7 @@ select.sel{
       </div>
       <div id="taskList"></div>
       <div id="kanbanBoard" style="display:none"></div>
+      <div id="arvoreBoard" style="display:none"></div>
     </div>
 
     <!-- CHAT -->
@@ -3677,7 +3712,7 @@ select.sel{
     </div>
   </div>
   <label class="lbl">Projeto <span style="color:#EF4444">*</span></label>
-  <select class="sel" id="ntPj">
+  <select class="sel" id="ntPj" onchange="popularArvoreProjeto(this.value)">
     <option value="">Selecione o projeto...</option>
   </select>
   <div class="fg">
@@ -3697,6 +3732,17 @@ select.sel{
     <option value="concluído">✅ Concluído</option>
   </select>
   <label class="lbl">Prazo <span style="color:#EF4444">*</span></label><input class="inp" type="date" id="ntD">
+
+  <!-- ÁRVORE DO PROJETO -->
+  <label class="lbl" style="display:flex;align-items:center;gap:6px;">
+    🌳 Árvore do Projeto
+    <span style="font-size:10px;color:var(--tx3);font-weight:400;">— vincular como subtarefa de</span>
+  </label>
+  <select class="sel" id="ntPai">
+    <option value="">— Tarefa raiz (nível principal)</option>
+  </select>
+  <div id="ntPaiPreview" style="display:none;font-size:11px;color:var(--tx3);margin-top:-8px;margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;"></div>
+
   <div style="font-size:10px;color:var(--tx3);margin-bottom:12px;">* Campos obrigatórios</div>
   <button class="btnp" id="btnSaveTask" onclick="addTask()">CRIAR TAREFA</button>
   <button class="btncanc" onclick="const b=document.getElementById('btnSaveTask');if(b){b.textContent='CRIAR TAREFA';b.disabled=false;b.onclick=addTask;}document.getElementById('mTaskTitle').textContent='NOVA TAREFA';closeM('mTask')">Cancelar</button>
@@ -4166,6 +4212,21 @@ const safeDb = db ? db : makeSafeDb();
 
 // ── ESTADO LOCAL (cache em memória) ───────────────────────────────
 let proj = [], tar = [], memb = [], ferias = [], riscos = [], reun = [], agenda = [], ativs = [], notifs = [], espacos = [];
+
+// ── Variáveis globais — declaradas aqui para evitar "before initialization" ──
+let _kanbanProjetoFiltro = 'todos';
+let _kanbanSetorFiltro   = 'todos';
+let _kanbanProjFiltro    = 'todos';
+let _chatGlobalSub       = null;
+let _chatPendentes       = 0;
+let _aguardandoResp      = new Set();
+let _notifStack          = [];
+let _audioCtxUnlocked    = false;
+let _audioCtx            = null;
+let _tituloInterval      = null;
+let _tlMonitorInterval   = null;
+let _timerAutoSaveInterval = null;
+let _horasOffset         = 0;
 let timerTarefaId = null, timerInicio = null, timerInterval = null;
 let curPF = 'todos', curTF = 'todas', curView = 'lista', curChId = null;
 let curChName = '', curTeamView = 'cards', curUser = null;
@@ -4501,59 +4562,80 @@ function renderChatDMs() {
 
 function renderDashInteligente() {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const projAtivos = proj.filter(p => p.status !== 'concluido' && p.status !== 'cancelado');
-  const projAtrasados = projAtivos.filter(p => p.fim && new Date(p.fim) < hoje);
-  const projRisco = projAtivos.filter(p => p.fim && new Date(p.fim) - hoje < 7*24*60*60*1000 && new Date(p.fim) >= hoje);
-  const tarUrgentes = tar.filter(t => !t.ok && t.prior === 'urgente');
-  const riscosAtivos = riscos.filter(r => r.status !== 'resolvido');
-  const riscosAltos = riscosAtivos.filter(r => r.sev === 'Alta');
+  const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate()+7);
 
-  // Badges
+  const statusFechado = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const isFechada = t => t.ok || statusFechado.includes((t.status||'').toLowerCase().trim());
+  const isProjFechado = p => ['concluido','concluída','cancelado','finalizado','done'].includes((p.status||'').toLowerCase().trim());
+
+  // Projetos
+  const projAtivos    = proj.filter(p => !isProjFechado(p));
+  const projConcluidos= proj.filter(p => isProjFechado(p));
+  const projNoPrazo   = projConcluidos.filter(p => !p.fim || new Date(p.fim+'T23:59') >= new Date(p.updated_at||p.fim));
+  const projForaPrazo = projConcluidos.filter(p => p.fim && p.updated_at && new Date(p.updated_at) > new Date(p.fim+'T23:59'));
+  const projAtrasados = projAtivos.filter(p => p.fim && new Date(p.fim+'T23:59') < hoje);
+  const projRisco     = projAtivos.filter(p => p.fim && new Date(p.fim+'T23:59') >= hoje && new Date(p.fim+'T23:59') <= em7dias);
+
+  // Tarefas
+  const tarAbertas  = tar.filter(t => !isFechada(t));
+  const tarUrgentes = tarAbertas.filter(t => t.prior === 'urgente');
+  const tarAtrasadas= tarAbertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+
+  // Riscos
+  const riscosAtivos = riscos.filter(r => r.status !== 'resolvido');
+  const riscosAltos  = riscosAtivos.filter(r => r.sev === 'Alta');
+
+  // Badges do cabeçalho
+  const el = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
   const bp = document.getElementById('badgeProj'); if(bp) bp.textContent = projAtivos.length + ' estações ativas';
   const bu = document.getElementById('badgeUrgente'); if(bu) bu.textContent = tarUrgentes.length + ' urgentes';
   const bm = document.getElementById('badgeMembros'); if(bm) bm.textContent = memb.length + ' membros';
 
-  // Stats (sem emoji)
-  const el = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
-  el('statProjAtivos', projAtivos.length);
-  el('statProjNomes', projAtivos.slice(0,3).map(p=>p.nome.split(' ')[0]).join('·')||'—');
-  el('statAtrasados', projAtrasados.length);
-  el('statAtrasadosNomes', projAtrasados.length ? projAtrasados.slice(0,2).map(p=>p.nome.split(' ')[0]).join(', ') : 'Nenhum');
-  el('statUrgentes', tarUrgentes.length);
-  el('statUrgentesNomes', tarUrgentes.length ? tarUrgentes.slice(0,2).map(t=>t.titulo||(t.titulo||t.tit)||'').join(', ') : 'Tudo ok');
-  el('statRiscos', riscosAtivos.length);
-  el('statRiscosStr', riscosAltos.length ? riscosAltos.length + ' de alta severidade' : 'Sem riscos altos');
+  // KPIs
+  el('statProjAtivos',      projAtivos.length);
+  el('statProjNomes',       projAtivos.slice(0,3).map(p=>p.nome.split(' ')[0]).join('·')||'—');
+  el('statAtrasados',       projAtrasados.length);
+  el('statAtrasadosNomes',  projAtrasados.length ? projAtrasados.slice(0,2).map(p=>p.nome.split(' ')[0]).join(', ') : 'Nenhum');
+  el('statUrgentes',        tarUrgentes.length);
+  el('statUrgentesNomes',   tarUrgentes.length ? tarUrgentes.slice(0,2).map(t=>t.titulo||t.tit||'').join(', ') : 'Tudo ok');
+  el('statRiscos',          riscosAtivos.length);
+  el('statRiscosStr',       riscosAltos.length ? riscosAltos.length + ' de alta severidade' : 'Sem riscos altos');
 
-  // Alertas inteligentes — SVG icons, sem emoji
-  const SVG_ALERTA_RED = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-  const SVG_ALERTA_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-  const SVG_ALERTA_OK = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-  const SVG_ALERTA_FIRE = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+  // SVGs
+  const SVG_RED  = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  const SVG_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  const SVG_OK   = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+  const SVG_FIRE = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+  const SVG_CHECK= '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+
+  // Alertas
   const alertas = [];
   projAtrasados.forEach(p => {
-    const dias = Math.floor((hoje - new Date(p.fim)) / 86400000);
-    alertas.push({ tipo:'red', svg:SVG_ALERTA_RED, titulo:`${p.nome} — atrasado ${dias} dia${dias>1?'s':''}`, sub:`Prazo era ${new Date(p.fim).toLocaleDateString('pt-BR')} · Setor: ${p.dept||'—'}` });
+    const dias = Math.floor((hoje - new Date(p.fim+'T23:59')) / 86400000);
+    alertas.push({ tipo:'red', svg:SVG_RED, titulo:`${p.nome} — atrasado ${dias} dia${dias>1?'s':''}`, sub:`Prazo era ${new Date(p.fim).toLocaleDateString('pt-BR')} · Setor: ${p.dept||'—'}` });
   });
   projRisco.forEach(p => {
-    const dias = Math.ceil((new Date(p.fim) - hoje) / 86400000);
-    alertas.push({ tipo:'yellow', svg:SVG_ALERTA_WARN, titulo:`${p.nome} — prazo em ${dias} dia${dias>1?'s':''}`, sub:`Progresso atual: ${p.prog||0}% · Setor: ${p.dept||'—'}` });
+    const dias = Math.ceil((new Date(p.fim+'T23:59') - hoje) / 86400000);
+    alertas.push({ tipo:'yellow', svg:SVG_WARN, titulo:`${p.nome} — prazo em ${dias} dia${dias>1?'s':''}`, sub:`Progresso atual: ${p.prog||0}% · Setor: ${p.dept||'—'}` });
   });
   riscosAltos.forEach(r => {
-    alertas.push({ tipo:'red', svg:SVG_ALERTA_RED, titulo:`Risco ALTO: ${(r.descricao||r.desc||'').slice(0,50)}`, sub:`Projeto: ${proj.find(p=>p.id===r.projeto_id)?.nome||'—'} · Responsável: ${memb.find(m=>m.av===r.resp)?.nome||r.resp||'—'}` });
+    alertas.push({ tipo:'red', svg:SVG_RED, titulo:`Risco ALTO: ${(r.descricao||r.desc||'').slice(0,50)}`, sub:`Projeto: ${proj.find(p=>p.id===r.projeto_id)?.nome||'—'}` });
   });
   if (tarUrgentes.length) {
-    alertas.push({ tipo:'yellow', svg:SVG_ALERTA_FIRE, titulo:`${tarUrgentes.length} tarefa${tarUrgentes.length>1?'s':''} urgente${tarUrgentes.length>1?'s':''}`, sub:tarUrgentes.slice(0,3).map(t=>t.titulo||(t.titulo||t.tit)||'').join(' · ') });
+    alertas.push({ tipo:'yellow', svg:SVG_FIRE, titulo:`${tarUrgentes.length} tarefa${tarUrgentes.length>1?'s':''} urgente${tarUrgentes.length>1?'s':''}`, sub:tarUrgentes.slice(0,3).map(t=>t.titulo||t.tit||'').join(' · ') });
   }
-  const adEl = document.getElementById('alertasDash');
-  if (adEl) {
-    if (alertas.length === 0) {
-      adEl.innerHTML = `<div class="alerta-card alerta-blue"><div class="alerta-ico">${SVG_ALERTA_OK}</div><div><div class="alerta-title">Tudo nos trilhos!</div><div class="alerta-sub">Nenhum alerta crítico no momento.</div></div></div>`;
-    } else {
-      adEl.innerHTML = alertas.slice(0,5).map(a => `<div class="alerta-card alerta-${a.tipo}"><div class="alerta-ico">${a.svg}</div><div><div class="alerta-title">${a.titulo}</div><div class="alerta-sub">${a.sub}</div></div></div>`).join('');
-    }
+  if (tarAtrasadas.length) {
+    alertas.push({ tipo:'red', svg:SVG_RED, titulo:`${tarAtrasadas.length} tarefa${tarAtrasadas.length>1?'s':''} atrasada${tarAtrasadas.length>1?'s':''}`, sub:tarAtrasadas.slice(0,3).map(t=>t.titulo||t.tit||'').join(' · ') });
   }
 
-  // Progresso por sistema (barras horizontais)
+  const adEl = document.getElementById('alertasDash');
+  if (adEl) {
+    adEl.innerHTML = alertas.length === 0
+      ? `<div class="alerta-card alerta-blue"><div class="alerta-ico">${SVG_OK}</div><div><div class="alerta-title">Tudo nos trilhos!</div><div class="alerta-sub">Nenhum alerta crítico no momento.</div></div></div>`
+      : alertas.slice(0,6).map(a => `<div class="alerta-card alerta-${a.tipo}"><div class="alerta-ico">${a.svg}</div><div><div class="alerta-title">${a.titulo}</div><div class="alerta-sub">${a.sub}</div></div></div>`).join('');
+  }
+
+  // ── PROGRESSO POR SISTEMA ─────────────────────────────────────────
   const sistemas = [...new Set(projAtivos.map(p => p.dept).filter(Boolean))];
   const psEl = document.getElementById('progSistemas');
   if (psEl) {
@@ -4571,57 +4653,90 @@ function renderDashInteligente() {
     }
   }
 
-  // Radar de risco automático
+  // ── PROJETOS CONCLUÍDOS (no prazo vs fora do prazo) ───────────────
+  const pcEl = document.getElementById('projetosConcluidos');
+  if (pcEl) {
+    if (!projConcluidos.length) {
+      pcEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:16px;text-align:center">Nenhum projeto concluído ainda</div>';
+    } else {
+      pcEl.innerHTML = `
+        <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:120px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:12px 16px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#16A34A;">${projConcluidos.length}</div>
+            <div style="font-size:11px;font-weight:600;color:#15803D;">Total concluídos</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:12px 16px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#16A34A;">${projNoPrazo.length}</div>
+            <div style="font-size:11px;font-weight:600;color:#15803D;">✅ No prazo</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 16px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#DC2626;">${projForaPrazo.length}</div>
+            <div style="font-size:11px;font-weight:600;color:#B91C1C;">⚠️ Fora do prazo</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;">
+          ${projConcluidos.slice(0,10).map(p => {
+            const noPrazo = !p.fim || !p.updated_at || new Date(p.updated_at) <= new Date(p.fim+'T23:59');
+            const cor = noPrazo ? '#16A34A' : '#DC2626';
+            const bg  = noPrazo ? '#F0FDF4' : '#FEF2F2';
+            const tag = noPrazo ? '✅ No prazo' : '⚠️ Atrasado';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${bg};border-radius:8px;font-size:12px;">
+              <span style="font-weight:600;color:var(--tx);">${p.nome}</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${p.fim ? `<span style="font-size:10px;color:var(--tx3);">Prazo: ${new Date(p.fim).toLocaleDateString('pt-BR')}</span>` : ''}
+                <span style="font-size:10px;font-weight:700;color:${cor};background:${bg};border:1px solid ${cor}33;padding:2px 8px;border-radius:20px;">${tag}</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
+
+  // ── RADAR DE RISCO ───────────────────────────────────────────────
   const radarEl = document.getElementById('radarRisco');
   if (radarEl) {
     const radarItens = [];
     projAtivos.forEach(p => {
-      const tarefasProj = tar.filter(t => t.projeto_id === p.id);
-      const atrasadas = tarefasProj.filter(t => !t.ok && t.prazo && new Date(t.prazo) < hoje);
+      const tarefasProj = tar.filter(t => String(t.projeto_id) === String(p.id));
+      const atrasadas = tarefasProj.filter(t => !isFechada(t) && t.prazo && new Date(t.prazo) < hoje);
       const semAtualiz = p.updated_at && (hoje - new Date(p.updated_at)) > 5 * 86400000;
-      if (atrasadas.length >= 2) radarItens.push({ sev:'alto', texto:`${p.nome}`, sub:`${atrasadas.length} tarefas atrasadas` });
-      else if (semAtualiz) radarItens.push({ sev:'medio', texto:`${p.nome}`, sub:`Sem atualização há mais de 5 dias` });
-      else if (projRisco.includes(p) && (p.prog||0) < 50) radarItens.push({ sev:'medio', texto:`${p.nome}`, sub:`Prazo próximo com ${p.prog||0}% de progresso` });
+      if (atrasadas.length >= 2) radarItens.push({ sev:'alto', texto:p.nome, sub:`${atrasadas.length} tarefas atrasadas` });
+      else if (semAtualiz) radarItens.push({ sev:'medio', texto:p.nome, sub:'Sem atualização há mais de 5 dias' });
+      else if (projRisco.includes(p) && (p.prog||0) < 50) radarItens.push({ sev:'medio', texto:p.nome, sub:`Prazo próximo com ${p.prog||0}% de progresso` });
     });
-    if (!radarItens.length) {
-      radarEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Nenhum risco detectado automaticamente</div>';
-    } else {
-      radarEl.innerHTML = radarItens.slice(0,5).map(r => `
+    radarEl.innerHTML = !radarItens.length
+      ? '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Nenhum risco detectado</div>'
+      : radarItens.slice(0,5).map(r => `
         <div class="radar-item">
           <span class="radar-sev sev-${r.sev}">${r.sev.toUpperCase()}</span>
           <div><div class="radar-nome">${r.texto}</div><div class="radar-sub">${r.sub}</div></div>
         </div>`).join('');
-    }
   }
 
-  // Saúde dos projetos
+  // ── SAÚDE DOS PROJETOS ───────────────────────────────────────────
   const saudeEl = document.getElementById('saudeProjetos');
   if (saudeEl) {
-    saudeEl.innerHTML = projAtivos.slice(0,6).map(p => {
-      const tf = tar.filter(t => t.projeto_id === p.id);
-      const atrasadas = tf.filter(t => !t.ok && t.prazo && new Date(t.prazo) < hoje).length;
-      const rp = riscos.filter(r => r.projeto_id === p.id && r.status !== 'resolvido').length;
-      const prazoOk = !p.fim || new Date(p.fim) >= hoje;
-      const dotPrazo = prazoOk ? '#22C55E' : '#EF4444';
-      const dotTarefas = atrasadas === 0 ? '#22C55E' : atrasadas <= 2 ? '#EAB308' : '#EF4444';
-      const dotRisco = rp === 0 ? '#22C55E' : rp <= 1 ? '#EAB308' : '#EF4444';
+    saudeEl.innerHTML = projAtivos.slice(0,6).map((p,i) => {
+      const tf = tar.filter(t => String(t.projeto_id) === String(p.id));
+      const atrasadas = tf.filter(t => !isFechada(t) && t.prazo && new Date(t.prazo) < hoje).length;
+      const rp = riscos.filter(r => String(r.projeto_id) === String(p.id) && r.status !== 'resolvido').length;
+      const prazoOk = !p.fim || new Date(p.fim+'T23:59') >= hoje;
       const prog = p.prog || 0;
-      const cor = CL[projAtivos.indexOf(p) % CL.length];
+      const cor = CL[i % CL.length];
       return `<div class="saude-row">
         <div style="width:36px;height:36px;border-radius:50%;background:conic-gradient(${cor} ${prog*3.6}deg,var(--surface2) 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px">
           <div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">${prog}%</div>
         </div>
         <div class="saude-nome">${p.nome}<div style="font-size:10px;color:var(--tx3);font-weight:400">${p.dept||''}</div></div>
         <div class="saude-dots">
-          <div class="saude-dot" style="background:${dotPrazo}" title="Prazo"></div><span style="font-size:9px;color:var(--tx3)">Prazo</span>
-          <div class="saude-dot" style="background:${dotTarefas};margin-left:6px" title="Tarefas"></div><span style="font-size:9px;color:var(--tx3)">Tarefas</span>
-          <div class="saude-dot" style="background:${dotRisco};margin-left:6px" title="Riscos"></div><span style="font-size:9px;color:var(--tx3)">Riscos</span>
+          <div class="saude-dot" style="background:${prazoOk?'#22C55E':'#EF4444'}" title="Prazo"></div><span style="font-size:9px;color:var(--tx3)">Prazo</span>
+          <div class="saude-dot" style="background:${atrasadas===0?'#22C55E':atrasadas<=2?'#EAB308':'#EF4444'};margin-left:6px" title="Tarefas"></div><span style="font-size:9px;color:var(--tx3)">Tarefas</span>
+          <div class="saude-dot" style="background:${rp===0?'#22C55E':rp<=1?'#EAB308':'#EF4444'};margin-left:6px" title="Riscos"></div><span style="font-size:9px;color:var(--tx3)">Riscos</span>
         </div>
       </div>`;
     }).join('') || '<div style="color:var(--tx3);font-size:12px;padding:8px">Nenhum projeto ativo</div>';
   }
 }
-
 function showLoading(on) {
   let el = document.getElementById('globalLoader');
   if (!el) { el = document.createElement('div'); el.id = 'globalLoader'; el.style.cssText='position:fixed;inset:0;background:rgba(2,12,27,0.97);backdrop-filter:blur(12px);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:18px;letter-spacing:3px;color:var(--c2)'; el.innerHTML='<div>CARREGANDO DAE NEXUS</div>'; document.body.appendChild(el); }
@@ -5045,18 +5160,23 @@ function trow(t) {
 }
 
 function renderTasks() {
+  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const _isFech = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
+
   let l = [...tar];
   if (curTF==='minhas') l = l.filter(t => {
     if (t.resp === curUser?.av) return true;
     if (t.resp_original === curUser?.av) return true;
     try { const co = JSON.parse(t.co_responsaveis || '[]'); return co.includes(curUser?.av); } catch(e) { return false; }
   });
-  if (curTF==='urgente') l = l.filter(t => t.prior==='urgente' && !t.ok);
-  if (curTF==='andamento') l = l.filter(t => !t.ok && ((t.status||'').includes('andamento')||(t.status||'').includes('desenvolv')));
-  if (curTF==='concluidas') l = l.filter(t => t.ok);
+  if (curTF==='urgente')    l = l.filter(t => t.prior==='urgente' && !_isFech(t));
+  if (curTF==='andamento')  l = l.filter(t => !_isFech(t) && ((t.status||'').includes('andamento')||(t.status||'').includes('desenvolv')));
+  if (curTF==='concluidas') l = l.filter(t => _isFech(t));
+  // Por padrão (Todas) — mostra só abertas
+  if (curTF==='todas')      l = l.filter(t => !_isFech(t));
   if (curView==='kanban') { renderKanban(l); return; }
 
-  const ab = l.filter(t => !t.ok), dn = l.filter(t => t.ok);
+  const ab = l.filter(t => !_isFech(t)), dn = l.filter(t => _isFech(t));
   let h = '';
 
   if (!l.length) {
@@ -5095,9 +5215,213 @@ function _chipStyle(ativo, cor) {
   return `padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${cor};transition:all .15s;background:${ativo?cor:'transparent'};color:${ativo?'#fff':cor};`;
 }
 
+function renderArvore() {
+  const board = document.getElementById('arvoreBoard');
+  if (!board) return;
+  document.getElementById('taskList').style.display = 'none';
+  document.getElementById('kanbanBoard').style.display = 'none';
+  board.style.display = 'block';
+
+  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const _isFech = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
+
+  const statusCor = {
+    'to do':'#94A3B8', 'a fazer':'#94A3B8',
+    'especif. em análise (po)':'#6366F1', 'pronto para desenvolver':'#8B5CF6',
+    'em desenvolvimento':'#3B82F6', 'pronto p/ testar (qa/po)':'#0EA5E9',
+    'em teste':'#F59E0B', 'teste reprovado':'#EF4444',
+    'teste aprovado':'#92400E', 'publicado em produção':'#10B981',
+    'concluído':'#059669', 'feito':'#059669',
+  };
+  const getCorStatus = s => statusCor[(s||'').toLowerCase()] || '#94A3B8';
+
+  // Agrupar por Setor → Projeto → Tarefa
+  const setoresEnv = [...new Set(
+    tar.map(t => { const p = proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; })
+  )];
+
+  if (!tar.length) {
+    board.innerHTML = `<div class="arvore-empty"><div style="font-size:32px;margin-bottom:8px;">🌳</div><div style="font-size:14px;font-weight:700;color:var(--tx3);">Nenhuma tarefa encontrada</div></div>`;
+    return;
+  }
+
+  board.innerHTML = `<div class="arvore-wrap">` + setoresEnv.map(setorId => {
+    const setor = setorId !== '__sem__' ? espacos.find(e=>e.id===setorId) : null;
+    const nomeSetor = setor?.nome || '— Sem setor';
+
+    const projetosDoSetor = [...new Set(
+      tar.filter(t => {
+        const p = proj.find(x=>x.id===t.projeto_id);
+        return setorId==='__sem__' ? !p?.espaco_id : p?.espaco_id===setorId;
+      }).map(t => t.projeto_id)
+    )];
+
+    const totalTarefas = tar.filter(t => {
+      const p = proj.find(x=>x.id===t.projeto_id);
+      return setorId==='__sem__' ? !p?.espaco_id : p?.espaco_id===setorId;
+    }).length;
+
+    const projetosHtml = projetosDoSetor.map(pid => {
+      const p = proj.find(x=>x.id===pid);
+      const nomeProjeto = p?.nome || '— Sem projeto';
+      const tarefasDoProjeto = tar.filter(t => String(t.projeto_id) === String(pid));
+      const concluidas = tarefasDoProjeto.filter(t => _isFech(t)).length;
+      const prog = tarefasDoProjeto.length ? Math.round((concluidas/tarefasDoProjeto.length)*100) : 0;
+      const isProjFechado = ['concluido','concluída','cancelado','done'].includes((p?.status||'').toLowerCase());
+
+      const tarefasHtml = tarefasDoProjeto
+        .filter(t => !t.tarefa_pai_id) // só tarefas raiz
+        .map((t, idx, arr) => {
+          const fechada = _isFech(t);
+          const m = memb.find(x=>x.av===t.resp);
+          const mCor = m?.cor || '#6366F1';
+          const status = t.status || 'to do';
+          const corStatus = getCorStatus(status);
+          const isLast = idx === arr.length - 1;
+
+          // Subtarefas desta tarefa
+          const subtarefas = tarefasDoProjeto.filter(st => st.tarefa_pai_id === t.id);
+          const subtarefasHtml = subtarefas.length ? `
+            <div style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:3px;position:relative;">
+              <div style="position:absolute;left:1px;top:0;bottom:10px;width:1px;background:var(--border2);"></div>
+              ${subtarefas.map((st, si, sa) => {
+                const stFech = _isFech(st);
+                const sm = memb.find(x=>x.av===st.resp);
+                const smCor = sm?.cor||'#6366F1';
+                const isLastSt = si === sa.length - 1;
+                return `<div class="arvore-task${stFech?' done':''}" onclick="openDet('task','${st.id}')" style="position:relative;">
+                  <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
+                  ${!isLastSt?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
+                  <div class="arvore-task-check${stFech?' done':''}">${stFech?'✓':''}</div>
+                  <div class="arvore-task-title" style="font-size:11px;">${st.titulo||st.tit||''}</div>
+                  <span class="arvore-task-status" style="background:${getCorStatus(st.status||'')}18;color:${getCorStatus(st.status||'')};border:1px solid ${getCorStatus(st.status||'')}33;">${st.status||'to do'}</span>
+                  <div class="arvore-task-resp" style="background:${smCor}22;color:${smCor};" title="${sm?.nome||st.resp||'?'}">${st.resp||'?'}</div>
+                </div>`;
+              }).join('')}
+            </div>` : '';
+
+          return `<div style="position:relative;">
+            ${!isLast?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
+            <div class="arvore-task${fechada?' done':''}" onclick="openDet('task','${t.id}')" style="position:relative;">
+              <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
+              <div class="arvore-task-check${fechada?' done':''}">${fechada?'✓':''}</div>
+              <div class="arvore-task-title">${t.titulo||t.tit||'Sem título'}</div>
+              ${subtarefas.length?`<span style="font-size:9px;color:var(--brand);background:var(--brand-light);padding:1px 6px;border-radius:10px;">${subtarefas.length} sub</span>`:''}
+              <span class="arvore-task-status" style="background:${corStatus}18;color:${corStatus};border:1px solid ${corStatus}33;">${status}</span>
+              ${t.prazo?`<span style="font-size:9px;color:${new Date(t.prazo)<new Date()&&!fechada?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
+              <div class="arvore-task-resp" style="background:${mCor}22;color:${mCor};" title="${m?.nome||t.resp||'?'}">${t.resp||'?'}</div>
+            </div>
+            ${subtarefasHtml}
+          </div>`;
+        }).join('');
+
+      return `<div class="arvore-proj">
+        <div class="arvore-proj-title" onclick="openDet('proj','${pid}')">
+          <span style="font-size:14px;">${isProjFechado?'✅':'📁'}</span>
+          <span>${nomeProjeto}</span>
+          <div class="arvore-proj-bar"><div class="arvore-proj-bar-fill" style="width:${prog}%"></div></div>
+          <span class="arvore-proj-prog">${prog}%</span>
+          <span style="font-size:10px;color:var(--tx3);">${tarefasDoProjeto.length} tarefa${tarefasDoProjeto.length>1?'s':''}</span>
+        </div>
+        <div class="arvore-tasks" style="position:relative;padding-left:24px;">
+          <div style="position:absolute;left:1px;top:0;bottom:0;width:1px;background:var(--border2);"></div>
+          ${tarefasHtml || '<div style="padding:8px 12px;font-size:11px;color:var(--tx3);">Nenhuma tarefa</div>'}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="arvore-setor">
+      <div class="arvore-setor-title">
+        <span style="font-size:16px;">🏢</span>
+        <span>${nomeSetor}</span>
+        <span class="arvore-setor-count">${projetosDoSetor.length} projeto${projetosDoSetor.length>1?'s':''} · ${totalTarefas} tarefa${totalTarefas>1?'s':''}</span>
+      </div>
+      ${projetosHtml}
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function adicionarSubtarefa(paiId, projetoId, tituloMae) {
+  // Abre o modal de nova tarefa com pai pré-selecionado
+  openM('mTask');
+  // Aguarda o modal abrir e pré-seleciona
+  setTimeout(() => {
+    // Preencher projeto
+    const ntPj = document.getElementById('ntPj');
+    if (ntPj && projetoId) {
+      ntPj.value = projetoId;
+      popularArvoreProjeto(projetoId);
+      // Pré-selecionar a tarefa pai
+      setTimeout(() => {
+        const ntPai = document.getElementById('ntPai');
+        if (ntPai) {
+          ntPai.value = paiId;
+          ntPai.dispatchEvent(new Event('change'));
+        }
+      }, 100);
+    }
+    // Atualizar título do modal
+    const mtitle = document.getElementById('mTaskTitle');
+    if (mtitle) mtitle.textContent = `NOVA SUBTAREFA${tituloMae ? ' — ' + tituloMae.slice(0,30) : ''}`;
+  }, 150);
+}
+
+function adicionarSubtarefa(paiId, projetoId, tituloMae) {
+  openM('mTask');
+  setTimeout(() => {
+    const ntPj = document.getElementById('ntPj');
+    if (ntPj && projetoId) {
+      ntPj.value = projetoId;
+      popularArvoreProjeto(projetoId);
+      setTimeout(() => {
+        const ntPai = document.getElementById('ntPai');
+        if (ntPai) { ntPai.value = paiId; ntPai.dispatchEvent(new Event('change')); }
+      }, 100);
+    }
+    const mtitle = document.getElementById('mTaskTitle');
+    if (mtitle) mtitle.textContent = `NOVA SUBTAREFA${tituloMae ? ' — ' + tituloMae.slice(0,30) : ''}`;
+  }, 150);
+}
+
+function popularArvoreProjeto(projetoId) {
+  const sel = document.getElementById('ntPai');
+  const preview = document.getElementById('ntPaiPreview');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Tarefa raiz (nível principal)</option>';
+  if (preview) preview.style.display = 'none';
+  if (!projetoId) return;
+  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const tarefasDoProjeto = tar.filter(t =>
+    String(t.projeto_id) === String(projetoId) &&
+    !(_stFech.includes((t.status||'').toLowerCase().trim()) || t.ok) &&
+    !t.tarefa_pai_id
+  );
+  if (!tarefasDoProjeto.length) {
+    sel.innerHTML = '<option value="">— Nenhuma tarefa disponível (será raiz)</option>';
+    return;
+  }
+  tarefasDoProjeto.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.titulo || t.tit || 'Sem título';
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => {
+    const pId = sel.value;
+    if (!pId || !preview) { if (preview) preview.style.display = 'none'; return; }
+    const pai = tar.find(x => x.id === pId);
+    if (pai) {
+      const p = proj.find(x => x.id === projetoId);
+      preview.innerHTML = `📁 ${p?.nome||''} → 📋 ${pai.titulo||pai.tit||''} → 📌 <strong>[nova tarefa]</strong>`;
+      preview.style.display = 'block';
+    }
+  };
+}
+
+// ── FIM ÁRVORE ────────────────────────────────────────────────
+
 function renderKanbanSetorChips() {
   const wrap = document.getElementById('kanbanSetorChips');
-  if (!wrap) return;
 
   const setoresEnv = [...new Set(
     tar.map(t => { const p = proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; })
@@ -5338,8 +5662,15 @@ function setView(v,b) {
   document.querySelectorAll('#viewChips .chip').forEach(c=>c.classList.remove('on'));
   b.classList.add('on');
   const sel = document.getElementById('kanbanProjSelector');
+  const arv = document.getElementById('arvoreBoard');
+  const kb  = document.getElementById('kanbanBoard');
+  const tl  = document.getElementById('taskList');
   if (sel) sel.style.display = v === 'kanban' ? 'block' : 'none';
+  if (arv) arv.style.display = v === 'arvore' ? 'block' : 'none';
+  if (kb)  kb.style.display  = v === 'kanban' ? 'block' : 'none';
+  if (tl)  tl.style.display  = v === 'lista'  ? 'block' : 'none';
   if (v === 'kanban') renderKanbanSetorChips();
+  if (v === 'arvore') { renderArvore(); return; }
   renderTasks();
 }
 
@@ -5392,7 +5723,8 @@ async function addTask() {
       return;
     }
   }
-  const nova = { titulo:t, descricao:'', projeto_id:projId, resp:document.getElementById('ntR').value||curUser?.av, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value||'to do', ok:false };
+  const paiId = document.getElementById('ntPai')?.value || null;
+  const nova = { titulo:t, descricao:'', projeto_id:projId, resp:document.getElementById('ntR').value||curUser?.av, prior:document.getElementById('ntPr').value, prazo:document.getElementById('ntD').value||null, status:document.getElementById('ntSt').value||'to do', ok:false, tarefa_pai_id: paiId || null };
   const { data, error } = await safeDb.from('tarefas').insert([nova]).select().single();
   if (error) { 
     showToast('❌ Erro: ' + error.message); 
@@ -5591,11 +5923,11 @@ async function openDet(type, id) {
     const isTimerOn = String(timerTarefaId) === String(id);
     let tempoGasto = 0;
     if (isTimerOn && timerInicio) {
-      // Timer ativo — mostra acumulado + elapsed da sessão atual
-      const acumulado = (() => { try { return JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado||0; } catch(e){ return t.tempo_gasto||0; } })();
+      // Timer ativo DESTA sessão — mostra acumulado + elapsed
+      const acumulado = (() => { try { return JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado||0; } catch(e){ return 0; } })();
       tempoGasto = acumulado + Math.floor((Date.now() - timerInicio) / 1000);
     } else {
-      // Busca valor FRESCO do banco — garante que nunca mostra valor desatualizado
+      // Busca do banco — mas só mostra se FOR o responsável ou timer desta sessão
       try {
         const { data: fresh } = await safeDb.from('tarefas').select('tempo_gasto').eq('id', id).single();
         tempoGasto = fresh?.tempo_gasto || 0;
@@ -5840,8 +6172,37 @@ async function openDet(type, id) {
         : `<button class="det-btn-concluir" onclick="togTask('${id}');openDet('task','${id}')">✓ Concluir tarefa</button>`
       }
       <button class="det-btn-editar" onclick="openEditTask('${id}');closeDet()">✏ Editar</button>
+      <button class="det-btn-editar" style="background:rgba(99,102,241,.15);color:#6366F1;" onclick="adicionarSubtarefa('${id}','${t.projeto_id||''}','${t.titulo?.replace(/'/g,'')||''}')">🌿 + Subtarefa</button>
       <button class="det-btn-excluir" onclick="if(confirm('Excluir esta tarefa?')){delTask('${id}');closeDet()}" title="Excluir tarefa">🗑</button>
     `;
+
+    // ── Subtarefas existentes ───────────────────────────────────────
+    const subtarefas = tar.filter(st => String(st.tarefa_pai_id) === String(id));
+    if (subtarefas.length) {
+      const _stFech2 = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+      const subHtml = subtarefas.map(st => {
+        const fechada = st.ok || _stFech2.includes((st.status||'').toLowerCase().trim());
+        const sm = memb.find(x=>x.av===st.resp);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);margin-bottom:4px;border:1px solid var(--border);" onclick="openDet('task','${st.id}')">
+          <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid ${fechada?'#10B981':'var(--border2)'};background:${fechada?'#10B981':'transparent'};display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0;">${fechada?'✓':''}</div>
+          <span style="flex:1;font-size:12px;color:var(--tx2);${fechada?'text-decoration:line-through;color:var(--tx4);':''}">${st.titulo||st.tit||''}</span>
+          <span style="font-size:9px;font-weight:700;color:var(--tx3);">${st.status||'to do'}</span>
+          ${sm?`<div style="width:20px;height:20px;border-radius:5px;background:${sm.cor||'#6366F1'}22;color:${sm.cor||'#6366F1'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;">${sm.av}</div>`:''}
+        </div>`;
+      }).join('');
+
+      // Injeta subtarefas no painel de comentários após carregar
+      setTimeout(() => {
+        const comEl = document.getElementById('detTabContentCom');
+        if (comEl && !comEl.querySelector('#subtarefasBlock')) {
+          const blk = document.createElement('div');
+          blk.id = 'subtarefasBlock';
+          blk.style.cssText = 'margin-bottom:16px;';
+          blk.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🌿 Subtarefas (${subtarefas.length})</div>${subHtml}`;
+          comEl.insertBefore(blk, comEl.firstChild);
+        }
+      }, 100);
+    }
     // Carregar anexos da tarefa
     carregarAnexosTarefa(id);
     // Retomar display do timer se estiver ativo
@@ -6316,15 +6677,57 @@ async function salvarDescricaoAgora(tarefaId, valor) {
 
 
 async function salvarStatus(tarefaId, status) {
-  const ok = status === 'feito';
+  const statusFechado = ['concluído','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const ok = statusFechado.includes(status.toLowerCase().trim());
+
   await safeDb.from('tarefas').update({ status, ok, updated_at: new Date().toISOString() }).eq('id', tarefaId);
   const t = tar.find(x => x.id === tarefaId);
   if (t) { t.status = status; t.ok = ok; }
-  if (ok) await calcularProgressoAuto(t?.projeto_id);
+
+  // Recalcular progresso do projeto
+  if (t?.projeto_id) {
+    await calcularProgressoAuto(t.projeto_id);
+    // ✅ Verificar se TODAS as tarefas do projeto estão concluídas
+    await _verificarConclusaoProjeto(t.projeto_id);
+  }
+
   renderTasks(); renderDashInteligente();
-  // Atualizar banner e sidebar sem fechar painel
   if (window._detTarefaId === tarefaId) { try { await openDet('task', tarefaId); } catch(e){} }
   showToast('✅ Status: ' + status);
+}
+
+async function _verificarConclusaoProjeto(projetoId) {
+  if (!projetoId) return;
+  const statusFechado = ['concluído','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const tarefasDoProjeto = tar.filter(t => String(t.projeto_id) === String(projetoId));
+  if (!tarefasDoProjeto.length) return;
+
+  const todasConcluidas = tarefasDoProjeto.every(t =>
+    t.ok || statusFechado.includes((t.status||'').toLowerCase().trim())
+  );
+
+  const p = proj.find(x => x.id === projetoId);
+  if (!p) return;
+
+  if (todasConcluidas && p.status !== 'concluido') {
+    // Fechar projeto automaticamente
+    await safeDb.from('projetos').update({
+      status: 'concluido',
+      prog: 100,
+      updated_at: new Date().toISOString()
+    }).eq('id', projetoId);
+    p.status = 'concluido';
+    p.prog = 100;
+    showToast(`🎉 Projeto "${p.nome}" concluído automaticamente!`);
+    renderDashInteligente();
+  } else if (!todasConcluidas && p.status === 'concluido') {
+    // Reabrir projeto se alguma tarefa for reaberta
+    await safeDb.from('projetos').update({
+      status: 'em andamento',
+      updated_at: new Date().toISOString()
+    }).eq('id', projetoId);
+    p.status = 'em andamento';
+  }
 }
 
 async function salvarPrioridade(tarefaId, prior) {
@@ -6911,7 +7314,7 @@ function renderChat() {
 }
 
 // ── Controle de DMs aguardando resposta ──────────────────────
-const _aguardandoResp = new Set(); // Set de canalIds aguardando resposta
+// ── Controle de DMs aguardando resposta ──────────────────────
 
 function marcarAguardandoResposta(canalId) {
   _aguardandoResp.add(canalId);
@@ -9451,20 +9854,25 @@ function renderRiscos() {
   const amanha = new Date(hoje); amanha.setDate(amanha.getDate()+1);
   const em7dias = new Date(hoje); em7dias.setDate(em7dias.getDate()+7);
 
-  // Dados calculados
-  const tarefasAbertas = tar.filter(t => !t.ok);
+  // Status que indicam tarefa FECHADA/CONCLUÍDA
+  const statusFechado = ['concluído','concluida','feito','feita','done','finalizado','complete','concluido','publicado em produção','teste aprovado'];
+  const isFechada = t => t.ok || statusFechado.includes((t.status||'').toLowerCase().trim());
+  const isProjFechado = p => ['concluido','concluída','cancelado','finalizado','done'].includes((p.status||'').toLowerCase().trim());
+
+  // Dados calculados — excluindo tarefas e projetos fechados
+  const tarefasAbertas = tar.filter(t => !isFechada(t));
   const tarefasAtrasadas = tarefasAbertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
   const riscosAtivos = riscos.filter(r => r.status === 'aberto');
   const riscosCriticos = riscosAtivos.filter(r => r.sev === 'Alta');
   const reunioesHoje = reun.filter(r => r.data === hoje.toISOString().split('T')[0]);
   
-  // Carga por membro
+  // Carga por membro — só tarefas abertas
   const carga = {};
   tarefasAbertas.forEach(t => { carga[t.resp] = (carga[t.resp]||0) + 1; });
   const sobrecarregados = Object.entries(carga).filter(([,n]) => n >= 4);
   
-  // Projetos atrasados ou sem progresso
-  const projAtivos = proj.filter(p => p.status !== 'concluido' && p.status !== 'cancelado');
+  // Projetos atrasados ou sem progresso — excluindo concluídos/cancelados
+  const projAtivos = proj.filter(p => !isProjFechado(p));
   const projAtrasados = projAtivos.filter(p => p.fim && new Date(p.fim) < hoje);
   const projSemProgresso = projAtivos.filter(p => (p.prog||0) === 0 && p.status !== 'planejamento');
   const projEmRisco = [...new Set([...projAtrasados, ...projSemProgresso])];
@@ -10022,7 +10430,11 @@ function renderHierarquia() {
     const todasTar = tar.filter(function(t){ return projEstacao.some(function(p){ return p.id === t.projeto_id; }); });
     const nAb  = todasTar.filter(function(t){ return !t.ok; }).length;
     const nFt  = todasTar.filter(function(t){ return t.ok; }).length;
-    const nVc  = todasTar.filter(function(t){ return !t.ok && t.prazo && new Date(t.prazo) < hoje; }).length;
+    const nVc  = todasTar.filter(function(t){ 
+    const s = (t.status||'').toLowerCase().trim();
+    const fechada = t.ok || ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'].includes(s);
+    return !fechada && t.prazo && new Date(t.prazo) < hoje; 
+  }).length;
     const mediaProg = projEstacao.length > 0 ? Math.round(projEstacao.reduce(function(a,p){ return a+(p.prog||0); },0)/projEstacao.length) : 0;
 
     // Membros únicos
@@ -10465,9 +10877,10 @@ function filtrarProjetosPorEspaco() {
 // ══ PROGRESSO AUTOMÁTICO ════════════════════════════════════════
 async function calcularProgressoAuto(projetoId) {
   if (!projetoId) return;
-  const tarefasProjeto = tar.filter(t => t.projeto_id === projetoId);
+  const tarefasProjeto = tar.filter(t => String(t.projeto_id) === String(projetoId));
   if (!tarefasProjeto.length) return;
-  const concluidas = tarefasProjeto.filter(t => t.ok).length;
+  const statusFechado = ['concluído','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const concluidas = tarefasProjeto.filter(t => t.ok || statusFechado.includes((t.status||'').toLowerCase().trim())).length;
   const progresso = Math.round((concluidas / tarefasProjeto.length) * 100);
   await safeDb.from('projetos').update({ prog: progresso, updated_at: new Date().toISOString() }).eq('id', projetoId);
   const p = proj.find(x => x.id === projetoId);
@@ -10513,7 +10926,6 @@ _Enviado por ${curUser?.nome?.split(' ')[0] || 'Gestora'} via DAE Nexus_ ✨`);
 }
 
 // Monitor automático — verifica a cada 30 min tarefas paradas há 4h+
-let _tlMonitorInterval = null;
 function iniciarMonitorTimeline() {
   if (_tlMonitorInterval) return;
   _tlMonitorInterval = setInterval(async () => {
@@ -11315,9 +11727,6 @@ async function salvarProgressoProj(projId, val) {
 
 
 // ── NOTIFICAÇÕES GLOBAIS DE CHAT ─────────────────────────────
-let _chatGlobalSub = null;
-let _chatPendentes = 0;
-
 function iniciarChatGlobal() {
   if (!db || !curUser) { console.warn('[Chat] db ou curUser não disponível'); return; }
   if (_chatGlobalSub) { try { _chatGlobalSub.unsubscribe(); } catch(e) {} }
@@ -11450,10 +11859,6 @@ function iniciarChatGlobal() {
 }
 
 
-
-let _notifStack = [];
-let _audioCtxUnlocked = false;
-let _audioCtx = null;
 
 function _unlockAudio() {
   if (_audioCtxUnlocked) return;
@@ -11589,7 +11994,6 @@ function _fecharNotif(popup) {
   }, 200);
 }
 
-let _tituloInterval = null;
 const _tituloOriginal = document.title;
 function _piscarTitulo(msg) {
   clearInterval(_tituloInterval);
@@ -12463,8 +12867,6 @@ function tlSetTab(tab) {
 // ── FIM TIMELINE SUB-ABAS ────────────────────────────────────
 
 // ── Auto-save do timer a cada 30s ─────────────────────────
-let _timerAutoSaveInterval = null;
-
 function _iniciarAutoSaveTimer() {
   clearInterval(_timerAutoSaveInterval);
   _timerAutoSaveInterval = setInterval(async () => {
@@ -12500,8 +12902,6 @@ function switchDetTab(tab) {
 }
 
 // ── FIM Auto-save ──────────────────────────────────────────
-let _horasOffset = 0; // semanas em relação à semana atual
-
 function horasHoje()          { _horasOffset = 0; renderHoras(); }
 function horasSemanaAnterior(){ _horasOffset--; renderHoras(); }
 function horasProximaSemana() { _horasOffset++; renderHoras(); }
@@ -12782,11 +13182,6 @@ function fecharLightbox() {
   document.removeEventListener('keydown', _lbKeyClose);
 }
 function _lbKeyClose(e) { if (e.key === 'Escape') fecharLightbox(); }
-
-// Kanban — variável de filtro de projeto
-let _kanbanProjetoFiltro = 'todos';
-let _kanbanSetorFiltro = 'todos';   // setor selecionado
-let _kanbanProjFiltro  = 'todos';   // projeto selecionado dentro do setor
 
 // sw integrado abaixo
 
