@@ -6205,6 +6205,7 @@ async function pararTimer(tarefaId) {
   if (!timerInicio) return;
 
   clearInterval(timerInterval);
+  clearInterval(_timerAutoSaveInterval);
   timerInterval = null;
 
   const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
@@ -6216,20 +6217,31 @@ async function pararTimer(tarefaId) {
   timerTarefaId = null;
   timerInicio = null;
 
-  // Atualizar time_entry
+  // Atualizar time_entry (opcional - não bloqueia se falhar)
   try {
     const entryId = localStorage.getItem('dae_timer_entry_id');
     localStorage.removeItem('dae_timer_entry_id');
     if (entryId && elapsed > 0) {
-      await safeDb.from('time_entries').update({ fim: new Date().toISOString(), duracao: elapsed }).eq('id', entryId);
+      safeDb.from('time_entries').update({ fim: new Date().toISOString(), duracao: elapsed }).eq('id', entryId).then(()=>{}).catch(()=>{});
     }
   } catch(e) {}
 
-  // Salvar total no banco
+  // ✅ SALVAR TOTAL NO BANCO — SEMPRE, independente do time_entries
   const t = tar.find(x=>x.id===tarefaId);
   if (t) t.tempo_gasto = novoTotal;
+
   if (!String(tarefaId).startsWith('local_')) {
-    await safeDb.from('tarefas').update({ tempo_gasto: novoTotal }).eq('id', tarefaId);
+    try {
+      const { error } = await safeDb.from('tarefas').update({ tempo_gasto: novoTotal }).eq('id', tarefaId);
+      if (error) {
+        // Tenta de novo
+        await safeDb.from('tarefas').update({ tempo_gasto: novoTotal }).eq('id', tarefaId);
+      }
+    } catch(e) {
+      console.error('Erro ao salvar tempo:', e);
+      showToast('⚠️ Erro ao salvar tempo — tente novamente');
+      return;
+    }
   }
 
   const tb = document.getElementById('detTimerBlock');
@@ -6244,7 +6256,6 @@ async function pararTimer(tarefaId) {
       </div>`;
   }
   showToast('⏹ +' + fmtTempo(elapsed) + ' | Total: ' + fmtTempo(novoTotal));
-  clearInterval(_timerAutoSaveInterval);
 }
 
 
@@ -12459,17 +12470,33 @@ function _iniciarAutoSaveTimer() {
   _timerAutoSaveInterval = setInterval(async () => {
     if (!timerTarefaId || !timerInicio) return;
     const elapsed = Math.floor((Date.now() - timerInicio) / 1000);
-    if (elapsed < 10) return; // não salva sessões muito curtas
+    if (elapsed < 10) return;
     let acumulado = 0;
     try { acumulado = JSON.parse(localStorage.getItem('dae_timer')||'{}').acumulado || 0; } catch(e) {}
     const total = acumulado + elapsed;
-    // Salva no banco silenciosamente
     try {
       await safeDb.from('tarefas').update({ tempo_gasto: total }).eq('id', timerTarefaId);
       const t = tar.find(x => x.id === timerTarefaId);
       if (t) t.tempo_gasto = total;
     } catch(e) {}
-  }, 30000); // a cada 30 segundos
+  }, 30000);
+}
+
+function switchDetTab(tab) {
+  ['com','desc','anexos','log'].forEach(t => {
+    const btn = document.getElementById('detTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    const content = document.getElementById('detTabContent' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) btn.classList.remove('on');
+    if (content) content.classList.remove('on');
+  });
+  const btnMap = {com:'detTabCom', desc:'detTabDesc', anexos:'detTabAnexos', log:'detTabLog'};
+  const contentMap = {com:'detTabContentCom', desc:'detTabContentDesc', anexos:'detTabContentAnexos', log:'detTabContentLog'};
+  const btn = document.getElementById(btnMap[tab]);
+  const content = document.getElementById(contentMap[tab]);
+  if (btn) btn.classList.add('on');
+  if (content) content.classList.add('on');
+  const comInput = document.getElementById('detComInput');
+  if (comInput) comInput.style.display = tab === 'com' ? 'flex' : 'none';
 }
 
 // ── FIM Auto-save ──────────────────────────────────────────
