@@ -5553,22 +5553,44 @@ function popularArvoreProjeto(projetoId) {
   sel.innerHTML = '<option value="">— Tarefa raiz (nível principal)</option>';
   if (preview) preview.style.display = 'none';
   if (!projetoId) return;
+
   const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-  const tarefasDoProjeto = tar.filter(t =>
+  // Mostrar TODAS as tarefas do projeto (abertas), com indentação para subtarefas
+  const todas = tar.filter(t =>
     String(t.projeto_id) === String(projetoId) &&
-    !(_stFech.includes((t.status||'').toLowerCase().trim()) || t.ok) &&
-    !t.tarefa_pai_id
+    !(_stFech.includes((t.status||'').toLowerCase().trim()) || t.ok)
   );
-  if (!tarefasDoProjeto.length) {
+
+  if (!todas.length) {
     sel.innerHTML = '<option value="">— Nenhuma tarefa disponível (será raiz)</option>';
     return;
   }
-  tarefasDoProjeto.forEach(t => {
+
+  // Raiz primeiro, depois subtarefas agrupadas
+  const raiz = todas.filter(t => !t.tarefa_pai_id);
+  const subs  = todas.filter(t => t.tarefa_pai_id);
+
+  raiz.forEach(t => {
     const opt = document.createElement('option');
     opt.value = t.id;
     opt.textContent = t.titulo || t.tit || 'Sem título';
     sel.appendChild(opt);
+    // Subtarefas desta tarefa
+    subs.filter(s => s.tarefa_pai_id === t.id).forEach(s => {
+      const subOpt = document.createElement('option');
+      subOpt.value = s.id;
+      subOpt.textContent = '  └ ' + (s.titulo || s.tit || 'Sem título');
+      sel.appendChild(subOpt);
+    });
   });
+  // Subtarefas cujo pai não está na lista (pai pode ser de outro projeto)
+  subs.filter(s => !raiz.find(r => r.id === s.tarefa_pai_id)).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = '  └ ' + (s.titulo || s.tit || 'Sem título');
+    sel.appendChild(opt);
+  });
+
   sel.onchange = () => {
     const pId = sel.value;
     if (!pId || !preview) { if (preview) preview.style.display = 'none'; return; }
