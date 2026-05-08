@@ -3886,6 +3886,12 @@ select.sel{
       <input class="inp" style="margin:0;flex:1" type="tel" placeholder="71999990000" id="mmW" oninput="this.value=this.value.replace(/\D/g,'')">
       <div id="mmWPreview" style="font-size:10px;color:var(--tx3);white-space:nowrap"></div>
     </div>
+    <label class="lbl" style="margin-top:10px;">📲 Telegram Chat ID <span style="color:var(--tx3);font-weight:400">— para receber notificações</span></label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input class="inp" style="margin:0;flex:1" type="text" placeholder="ex: 1222764161" id="mmTg" oninput="this.value=this.value.replace(/\D/g,'')">
+      <a href="https://t.me/Nutri_Vibot" target="_blank" style="font-size:10px;color:#2AABEE;white-space:nowrap;text-decoration:none;padding:6px 10px;background:rgba(42,171,238,.1);border-radius:8px;border:1px solid rgba(42,171,238,.3);">🤖 Abrir DAE NEXUS bot</a>
+    </div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:4px;">Abra o bot, mande /start, depois acesse: <span style="color:var(--brand);font-family:monospace;font-size:9px;">api.telegram.org/bot.../getUpdates</span></div>
   </div>
 
   <!-- ACESSO AO SISTEMA -->
@@ -5774,7 +5780,22 @@ async function addTask() {
   }
   await calcularProgressoAuto(nova.projeto_id);
   showToast('✅ Tarefa criada!');
-}
+
+  // 🔔 Notificar MA no Telegram
+  const maTg = memb.find(x => x.av === 'MA');
+  if (maTg?.telegram_id) {
+    const pNova = proj.find(x=>x.id===data.projeto_id);
+    const respNova = memb.find(x=>x.av===data.resp);
+    const prazoNova = data.prazo ? new Date(data.prazo+'T12:00').toLocaleDateString('pt-BR') : 'Sem prazo';
+    const msg = '📋 <b>Nova tarefa criada!</b>\n\n<b>' + (data.titulo||'') + '</b>\n'
+      + (pNova ? '📁 ' + pNova.nome + '\n' : '')
+      + '👤 Responsável: ' + (respNova?.nome||data.resp||'—') + '\n'
+      + '⚡ Prioridade: ' + (data.prior||'—') + '\n'
+      + '📅 Prazo: ' + prazoNova + '\n\n'
+      + '🕐 ' + new Date().toLocaleString('pt-BR') + '\n'
+      + '✍️ Por: ' + (curUser?.nome||curUser?.av||'—');
+    enviarTelegram(maTg.telegram_id, msg);
+  }
 
 async function delTask(id) {
   if (!db) { showToast('Sem banco conectado'); return; }
@@ -6785,6 +6806,43 @@ async function salvarDescricaoAgora(tarefaId, valor) {
 
 
 
+// ── TELEGRAM NOTIFICATIONS ───────────────────────────────────
+const TG_BOT_TOKEN = '8244048842:AAFx_qpJNH0OHc6CUT8Wvov4AsC1SEpgGmU';
+
+async function enviarTelegram(chatId, texto) {
+  if (!chatId || !texto) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: texto,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch(e) { console.warn('Telegram:', e.message); }
+}
+
+async function notificarTarefaTelegram(tarefa, evento, extra) {
+  const envolvidos = [tarefa.resp];
+  try {
+    const co = JSON.parse(tarefa.co_responsaveis||'[]');
+    envolvidos.push(...co);
+  } catch(e) {}
+
+  const p = proj.find(x=>x.id===tarefa.projeto_id);
+  const nomeProjeto = p?.nome || '';
+
+  for (const av of [...new Set(envolvidos.filter(Boolean))]) {
+    const mb = memb.find(x=>x.av===av);
+    if (!mb?.telegram_id) continue;
+    const texto = `🔔 <b>DAE Nexus</b>\n\n${evento}\n\n📋 <b>${tarefa.titulo||tarefa.tit||''}</b>\n${nomeProjeto?`📁 ${nomeProjeto}\n`:''}${extra||''}\n\n👤 Responsável: ${tarefa.resp||'—'}`;
+    await enviarTelegram(mb.telegram_id, texto);
+  }
+}
+// ────────────────────────────────────────────────────────────
+
 async function salvarStatus(tarefaId, status) {
   const statusFechado = ['concluído','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
   const ok = statusFechado.includes(status.toLowerCase().trim());
@@ -6792,6 +6850,15 @@ async function salvarStatus(tarefaId, status) {
   await safeDb.from('tarefas').update({ status, ok, updated_at: new Date().toISOString() }).eq('id', tarefaId);
   const t = tar.find(x => x.id === tarefaId);
   if (t) { t.status = status; t.ok = ok; }
+
+  // Notificação Telegram
+  if (t) {
+    const emoji = ok ? '✅' : '🔄';
+    notificarTarefaTelegram(t,
+      `${emoji} Status alterado para: <b>${status}</b>`,
+      `🕐 ${new Date().toLocaleString('pt-BR')}`
+    );
+  }
 
   // Recalcular progresso do projeto
   if (t?.projeto_id) {
@@ -9781,6 +9848,7 @@ async function addMember() {
     av,
     email: document.getElementById('mmE').value||'',
     whatsapp: document.getElementById('mmW').value||'',
+    telegram_id: document.getElementById('mmTg').value||'',
     online: false,
     status_acesso: document.getElementById('mmStatusAcesso')?.value || 'ativo',
     senha: document.getElementById('mmSenha')?.value?.trim() || null
@@ -9837,7 +9905,7 @@ async function addMember() {
   }
   closeM('mMember'); renderMembers(); popSels(); renderChatDMs(); salvarLocal();
   // Limpar
-  ['mmN','mmE','mmW','mmId','mmAv'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.dataset.manual=''; } });
+  ['mmN','mmE','mmW','mmTg','mmId','mmAv'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.dataset.manual=''; } });
   document.getElementById('mmD').value = 'DAE';
   document.getElementById('mMemberTitle').textContent = 'NOVO MEMBRO';
   document.getElementById('btnSaveMember').textContent = 'ADICIONAR MEMBRO';
@@ -9895,6 +9963,7 @@ function editarMembro(membId) {
     document.getElementById('mmN').value = m.nome||'';
     document.getElementById('mmE').value = m.email||'';
     document.getElementById('mmW').value = m.whatsapp||'';
+    document.getElementById('mmTg').value = m.telegram_id||'';
     document.getElementById('mmD').value = m.dept||'';
     // Cargo via select
     const selC = document.getElementById('mmC');
@@ -10848,6 +10917,21 @@ async function salvarAtivSetor() {
     if (error) { showToast('❌ Erro: ' + error.message); return; }
     ativs.unshift(data);
     showToast('⚡ Atividade criada!');
+
+    // 🔔 Notificar MA no Telegram
+    const maTgAtiv = memb.find(x => x.av === 'MA');
+    if (maTgAtiv?.telegram_id) {
+      const espAtiv = espacos.find(e=>e.id===dados.espaco_id);
+      const respAtiv = memb.find(x=>x.av===dados.autor);
+      const prazoAtiv = dados.prazo ? new Date(dados.prazo+'T12:00').toLocaleDateString('pt-BR') : 'Sem prazo';
+      const msgAtiv = '⚡ <b>Nova atividade criada!</b>\n\n<b>' + (dados.titulo||'') + '</b>\n'
+        + (espAtiv ? '🏢 ' + espAtiv.nome + '\n' : '')
+        + '👤 Responsável: ' + (respAtiv?.nome||dados.autor||'—') + '\n'
+        + '📅 Prazo: ' + prazoAtiv + '\n\n'
+        + '🕐 ' + new Date().toLocaleString('pt-BR') + '\n'
+        + '✍️ Por: ' + (curUser?.nome||curUser?.av||'—');
+      enviarTelegram(maTgAtiv.telegram_id, msgAtiv);
+    }
   }
   resetarModalAtiv();
   closeM('mAtivSetor');
@@ -11083,7 +11167,45 @@ _Enviado por ${curUser?.nome?.split(' ')[0] || 'Gestora'} via DAE Nexus_ ✨`);
   showToast('📱 WhatsApp aberto para alertar sobre a tarefa!');
 }
 
-// Monitor automático — verifica a cada 30 min tarefas paradas há 4h+
+async function _alertarTarefasAtrasadasMA() {
+  // Só envia 1x por dia — verifica última vez no localStorage
+  const hoje = new Date().toISOString().split('T')[0];
+  const ultimoAlerta = localStorage.getItem('dae_tg_atrasadas_data');
+  if (ultimoAlerta === hoje) return;
+
+  const ma = memb.find(x => x.av === 'MA');
+  if (!ma?.telegram_id) return;
+
+  const agora = new Date(); agora.setHours(0,0,0,0);
+  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+  const atrasadas = tar.filter(t =>
+    t.prazo &&
+    new Date(t.prazo) < agora &&
+    !(t.ok || _stFech.includes((t.status||'').toLowerCase().trim()))
+  );
+
+  if (!atrasadas.length) return;
+
+  localStorage.setItem('dae_tg_atrasadas_data', hoje);
+
+  const linhas = atrasadas.slice(0, 10).map(t => {
+    const p = proj.find(x=>x.id===t.projeto_id);
+    const diasAtraso = Math.floor((agora - new Date(t.prazo)) / 86400000);
+    return '• <b>' + (t.titulo||'') + '</b>\n  '
+      + (p ? '📁 ' + p.nome + ' · ' : '')
+      + '⏰ ' + diasAtraso + 'd de atraso · 👤 ' + (t.resp||'—');
+  }).join('\n\n');
+
+  const msgAtrasadas = '🚨 <b>DAE Nexus — Resumo Diário</b>\n\n'
+    + '📋 <b>' + atrasadas.length + ' tarefa(s) atrasada(s)</b>\n\n'
+    + linhas
+    + (atrasadas.length > 10 ? '\n\n...e mais ' + (atrasadas.length-10) + ' tarefas' : '')
+    + '\n\n🕐 ' + new Date().toLocaleString('pt-BR');
+
+  enviarTelegram(ma.telegram_id, msgAtrasadas);
+}
+
+// ── FIM NOTIFICAÇÕES GESTORA ──────────────────────────────────
 function iniciarMonitorTimeline() {
   if (_tlMonitorInterval) return;
   _tlMonitorInterval = setInterval(async () => {
@@ -11118,9 +11240,20 @@ function iniciarMonitorTimeline() {
     })));
 
     await loadNotifs();
-
-    // Alerta visual chamativo
     mostrarAlertaParadas(novas);
+
+    // 🔔 Notificar MA no Telegram
+    const ma = memb.find(x => x.av === 'MA');
+    if (ma?.telegram_id) {
+      const linhas = novas.map(t => {
+        const p = proj.find(x=>x.id===t.projeto_id);
+        return '• <b>' + (t.titulo||'') + '</b>' + (p ? '\n  📁 ' + p.nome : '');
+      }).join('\n\n');
+      const msg4h = '⚠️ <b>DAE Nexus — Tarefas Paradas!</b>\n\n'
+        + novas.length + ' tarefa(s) em andamento há mais de 4h sem atualização:\n\n'
+        + linhas + '\n\n🕐 ' + new Date().toLocaleString('pt-BR');
+      enviarTelegram(ma.telegram_id, msg4h);
+    }
 
   }, 30 * 60 * 1000); // 30 min
 }
@@ -11856,6 +11989,13 @@ function enableKanbanDragDrop() {
       draggedTaskId = null;
       showToast(`✅ "${task.titulo||task.tit||''}" → ${newStatus}`);
 
+      // Notificação Telegram
+      const emoji = ok ? '✅' : '🔄';
+      notificarTarefaTelegram(task,
+        `${emoji} Status alterado para: <b>${newStatus}</b>`,
+        `📌 Via Kanban · ${new Date().toLocaleString('pt-BR')}`
+      );
+
       // Salvar no banco em background
       safeDb.from('tarefas').update({ status: newStatus, ok, updated_at: new Date().toISOString() }).eq('id', task.id)
         .then(async () => {
@@ -12337,6 +12477,8 @@ async function entrarNoApp(usuario) {
     iniciarChatGlobal(); 
     pedirPermissaoNotif(); 
     iniciarMonitorTimeline();
+  // 🔔 Alerta diário de tarefas atrasadas para MA
+  _alertarTarefasAtrasadasMA();
     // Restaurar timer se estava ativo
     try {
       const timerSalvo = JSON.parse(localStorage.getItem('dae_timer') || 'null');
@@ -13335,6 +13477,8 @@ function abrirDetalheHorasDia(av, dataStr, entriesJson) {
   `;
 }
 
+}
+
 // ── FIM HORAS ────────────────────────────────────────────────
 
 
@@ -13344,21 +13488,32 @@ function abrirImagemChat(url) {
   const img = document.getElementById('imgLightboxImg');
   const btn = document.getElementById('imgLightboxDown');
   if (!lb) {
-    // Criar lightbox se não existir
     const div = document.createElement('div');
     div.id = 'imgLightbox';
     div.onclick = fecharLightbox;
-    div.innerHTML = `
-      <button class="lb-close" onclick="event.stopPropagation();fecharLightbox()">✕</button>
-      <img id="imgLightboxImg" src="${url}" onclick="event.stopPropagation()">
-      <a class="lb-down" href="${url}" download onclick="event.stopPropagation();">⬇ Baixar imagem</a>
-    `;
+    const btnClose = document.createElement('button');
+    btnClose.className = 'lb-close';
+    btnClose.textContent = '✕';
+    btnClose.onclick = function(e) { e.stopPropagation(); fecharLightbox(); };
+    const imgEl = document.createElement('img');
+    imgEl.id = 'imgLightboxImg';
+    imgEl.src = url;
+    imgEl.onclick = function(e) { e.stopPropagation(); };
+    const aEl = document.createElement('a');
+    aEl.className = 'lb-down';
+    aEl.href = url;
+    aEl.download = '';
+    aEl.textContent = '⬇ Baixar imagem';
+    aEl.onclick = function(e) { e.stopPropagation(); };
+    div.appendChild(btnClose);
+    div.appendChild(imgEl);
+    div.appendChild(aEl);
     document.body.appendChild(div);
     setTimeout(() => div.classList.add('show'), 10);
     document.addEventListener('keydown', _lbKeyClose);
     return;
   }
-  img.src = url;
+  if (img) img.src = url;
   if (btn) { btn.href = url; btn.download = ''; }
   lb.classList.add('show');
   document.addEventListener('keydown', _lbKeyClose);
