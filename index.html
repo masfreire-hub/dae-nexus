@@ -3617,8 +3617,9 @@ select.sel{
 <!-- MODAL MEMBROS DO ESPAÇO -->
 <div class="ov" id="mAtivSetor"><div class="modal">
   <div class="mhandle"></div>
-  <div class="mtitle">⚡ NOVA ATIVIDADE</div>
+  <div class="mtitle" id="mAtivModalTitle">⚡ NOVA ATIVIDADE</div>
   <input type="hidden" id="mAtivSetorId">
+  <input type="hidden" id="mAtivEditId">
   <div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.04));border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
     <div style="font-size:10px;font-weight:700;color:#059669;letter-spacing:.8px;margin-bottom:2px;">SETOR</div>
     <div id="mAtivSetorNome" style="font-size:13px;font-weight:800;color:#065F46;">—</div>
@@ -3646,6 +3647,21 @@ select.sel{
       <select class="sel" id="mAtivResp"></select>
     </div>
   </div>
+  <div class="fg">
+    <div>
+      <label class="lbl">📅 Prazo</label>
+      <input class="inp" type="date" id="mAtivPrazo">
+    </div>
+    <div>
+      <label class="lbl">Status</label>
+      <select class="sel" id="mAtivStatus">
+        <option value="em_andamento">Em Andamento</option>
+        <option value="concluida">Concluída</option>
+        <option value="pausada">Pausada</option>
+        <option value="cancelada">Cancelada</option>
+      </select>
+    </div>
+  </div>
   <label class="lbl">Cor</label>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="mAtivCorPicker">
     <div onclick="selCorAtiv(this,'#10B981')" style="width:28px;height:28px;border-radius:50%;background:#10B981;cursor:pointer;border:3px solid #10B981;box-shadow:0 0 0 2px #fff,0 0 0 4px #10B981;"></div>
@@ -3656,8 +3672,8 @@ select.sel{
     <div onclick="selCorAtiv(this,'#8B5CF6')" style="width:28px;height:28px;border-radius:50%;background:#8B5CF6;cursor:pointer;border:2px solid transparent;"></div>
     <div onclick="selCorAtiv(this,'#F97316')" style="width:28px;height:28px;border-radius:50%;background:#F97316;cursor:pointer;border:2px solid transparent;"></div>
   </div>
-  <button class="btnp" onclick="salvarAtivSetor()">⚡ CRIAR ATIVIDADE</button>
-  <button class="btncanc" onclick="closeM('mAtivSetor')">Cancelar</button>
+  <button class="btnp" id="btnSalvarAtiv" onclick="salvarAtivSetor()">⚡ CRIAR ATIVIDADE</button>
+  <button class="btncanc" onclick="resetarModalAtiv();closeM('mAtivSetor')">Cancelar</button>
 </div></div>
 
 <div class="ov" id="mDetalheAtiv"><div class="modal" style="max-height:90vh;">
@@ -4821,19 +4837,20 @@ function renderDashAtividades() {
     const st = a.status || 'em_andamento';
     const stCor = statusCor[st] || '#3B82F6';
     const updates = (a.updates || []).length;
-    return `<div onclick="abrirDetalheAtiv('${a.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-      <div style="width:4px;height:40px;border-radius:4px;background:${cor};flex-shrink:0;"></div>
-      <div style="flex:1;min-width:0;">
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <div onclick="abrirDetalheAtiv('${a.id}')" style="width:4px;height:40px;border-radius:4px;background:${cor};flex-shrink:0;"></div>
+      <div onclick="abrirDetalheAtiv('${a.id}')" style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:3px;">${a.titulo}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           ${setor ? `<span style="font-size:10px;color:var(--tx3);">📁 ${setor.nome}</span>` : ''}
-          ${updates ? `<span style="font-size:10px;color:var(--tx3);">💬 ${updates} atualização${updates>1?'ões':''}</span>` : ''}
-          ${a.descricao ? `<span style="font-size:10px;color:var(--tx3);">${a.descricao.slice(0,50)}${a.descricao.length>50?'…':''}</span>` : ''}
+          ${a.prazo ? `<span style="font-size:10px;font-weight:600;color:${new Date(a.prazo)<new Date()&&st!=='concluida'?'#EF4444':'var(--tx3)'};">📅 ${new Date(a.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>` : ''}
+          ${a.descricao ? `<span style="font-size:10px;color:var(--tx3);">${a.descricao.slice(0,40)}${a.descricao.length>40?'…':''}</span>` : ''}
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
         <span style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:${stCor}18;color:${stCor};border:1px solid ${stCor}33;white-space:nowrap;">${statusLabel[st]||st}</span>
         ${autor ? `<div style="width:28px;height:28px;border-radius:8px;background:${autor.cor||'#4F46E5'}22;color:${autor.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;" title="${autor.nome}">${autor.av}</div>` : ''}
+        <button onclick="event.stopPropagation();abrirEditAtiv('${a.id}')" style="width:26px;height:26px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;font-size:11px;flex-shrink:0;" title="Editar">✏️</button>
       </div>
     </div>`;
   }).join('');
@@ -6038,16 +6055,17 @@ function openEditTask(id) {
 
 async function saveEditTask(id) {
   const coRespsEdit = window._ntCoResps || [];
-  // Usar projeto_id do campo ou fallback do original (evita salvar null se select não carregou)
   const projIdVal = document.getElementById('ntPj')?.value || window._editTaskProjetoId || null;
+  const paiIdVal = document.getElementById('ntPai')?.value || null;
   const upd = {
-    titulo:    document.getElementById('ntT').value.trim(),
-    projeto_id: projIdVal,
-    resp:      document.getElementById('ntR').value || null,
-    prior:     document.getElementById('ntPr').value,
-    prazo:     document.getElementById('ntD').value || null,
-    status:    document.getElementById('ntSt').value,
+    titulo:         document.getElementById('ntT').value.trim(),
+    projeto_id:     projIdVal,
+    resp:           document.getElementById('ntR').value || null,
+    prior:          document.getElementById('ntPr').value,
+    prazo:          document.getElementById('ntD').value || null,
+    status:         document.getElementById('ntSt').value,
     co_responsaveis: JSON.stringify(coRespsEdit),
+    tarefa_pai_id:  paiIdVal || null,
     updated_at: new Date().toISOString()
   };
   window._ntCoResps = [];
@@ -10913,26 +10931,75 @@ function selCorAtiv(el, cor) {
   window._ativCorSel = cor;
 }
 
+function resetarModalAtiv() {
+  document.getElementById('mAtivEditId').value = '';
+  document.getElementById('mAtivModalTitle').textContent = '⚡ NOVA ATIVIDADE';
+  document.getElementById('btnSalvarAtiv').textContent = '⚡ CRIAR ATIVIDADE';
+  document.getElementById('mAtivTitulo').value = '';
+  document.getElementById('mAtivDesc').value = '';
+  document.getElementById('mAtivPrazo').value = '';
+  document.getElementById('mAtivStatus').value = 'em_andamento';
+}
+
+function abrirEditAtiv(ativId) {
+  const a = ativs.find(x => x.id === ativId);
+  if (!a) return;
+  document.getElementById('mAtivEditId').value = ativId;
+  document.getElementById('mAtivModalTitle').textContent = '✏️ EDITAR ATIVIDADE';
+  document.getElementById('btnSalvarAtiv').textContent = '💾 SALVAR ALTERAÇÕES';
+  document.getElementById('mAtivSetorId').value = a.espaco_id || '';
+  document.getElementById('mAtivTitulo').value = a.titulo || '';
+  document.getElementById('mAtivDesc').value = a.descricao || '';
+  document.getElementById('mAtivTipo').value = a.tipo || 'atividade';
+  document.getElementById('mAtivPrazo').value = a.prazo || '';
+  document.getElementById('mAtivStatus').value = a.status || 'em_andamento';
+  // Popular setor nome
+  const espaco = espacos.find(e => e.id === a.espaco_id);
+  const nomeEl = document.getElementById('mAtivSetorNome');
+  if (nomeEl) nomeEl.textContent = espaco?.nome || '—';
+  // Popular responsável
+  const respSel = document.getElementById('mAtivResp');
+  if (respSel) {
+    respSel.innerHTML = memb.map(m => `<option value="${m.av}"${m.av===a.autor?' selected':''}>${m.nome}</option>`).join('');
+  }
+  openM('mAtivSetor');
+}
+
 async function salvarAtivSetor() {
   const titulo = document.getElementById('mAtivTitulo').value.trim();
   if (!titulo) { showToast('⚠️ Digite o título da atividade'); return; }
   const setorId = document.getElementById('mAtivSetorId').value;
-  const nova = {
-    tipo: document.getElementById('mAtivTipo').value,
-    titulo: titulo,
+  const editId  = document.getElementById('mAtivEditId').value;
+  const dados = {
+    tipo:      document.getElementById('mAtivTipo').value,
+    titulo,
     descricao: document.getElementById('mAtivDesc').value.trim() || '',
-    autor: document.getElementById('mAtivResp').value || curUser?.av || '',
+    autor:     document.getElementById('mAtivResp').value || curUser?.av || '',
     espaco_id: setorId,
-    projeto_id: null,
-    tarefa_id: null,
-    cor: window._ativCorSel || '#10B981'
+    prazo:     document.getElementById('mAtivPrazo').value || null,
+    status:    document.getElementById('mAtivStatus').value || 'em_andamento',
+    cor:       window._ativCorSel || '#10B981'
   };
-  const { data, error } = await safeDb.from('atividades').insert([nova]).select().single();
-  if (error) { showToast('❌ Erro: ' + error.message); return; }
-  ativs.unshift(data);
+
+  if (editId) {
+    // Editar atividade existente
+    const { error } = await safeDb.from('atividades').update({ ...dados, updated_at: new Date().toISOString() }).eq('id', editId);
+    if (error) { showToast('❌ Erro: ' + error.message); return; }
+    const idx = ativs.findIndex(x => x.id === editId);
+    if (idx > -1) ativs[idx] = { ...ativs[idx], ...dados };
+    showToast('✅ Atividade atualizada!');
+  } else {
+    // Nova atividade
+    const nova = { ...dados, projeto_id: null, tarefa_id: null };
+    const { data, error } = await safeDb.from('atividades').insert([nova]).select().single();
+    if (error) { showToast('❌ Erro: ' + error.message); return; }
+    ativs.unshift(data);
+    showToast('⚡ Atividade criada!');
+  }
+  resetarModalAtiv();
   closeM('mAtivSetor');
   renderHierarquia();
-  showToast('⚡ Atividade criada!');
+  try { renderDashAtividades(); } catch(e) {}
 }
 
 function abrirNovaTaskModal(espacoId, estacao, projetoId) {
@@ -11913,14 +11980,37 @@ function enableKanbanDragDrop() {
       if (!draggedTaskId) return;
       const newStatus = col.dataset.status;
       const task = tar.find(t => t.id === draggedTaskId);
-      if (!task || task.status === newStatus) return;
-      const ok = newStatus === 'feito';
-      await safeDb.from('tarefas').update({ status: newStatus, ok, updated_at: new Date().toISOString() }).eq('id', draggedTaskId);
-      task.status = newStatus; task.ok = ok;
-      if (ok) await calcularProgressoAuto(task.projeto_id);
-      renderKanban(); renderDashInteligente();
-      showToast(`✅ Tarefa movida para "${newStatus}"`);
+      if (!task) return;
+      if (task.status === newStatus) { draggedTaskId = null; return; }
+
+      // Atualizar cache LOCAL imediatamente (sem recarregar a página)
+      const _stFech = ['concluído','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+      const ok = _stFech.includes(newStatus.toLowerCase().trim());
+      task.status = newStatus;
+      task.ok = ok;
+
+      // Mover card visualmente sem re-renderizar tudo
+      const cardEl = document.querySelector(`.kcard[data-id="${draggedTaskId}"]`);
+      if (cardEl) {
+        col.appendChild(cardEl);
+        // Atualizar badge de contagem das colunas
+        document.querySelectorAll('.kcol[data-status]').forEach(c => {
+          const cnt = c.querySelector('.khead span:last-child');
+          if (cnt) cnt.textContent = c.querySelectorAll('.kcard').length;
+        });
+      }
+
       draggedTaskId = null;
+      showToast(`✅ "${task.titulo||task.tit||''}" → ${newStatus}`);
+
+      // Salvar no banco em background
+      safeDb.from('tarefas').update({ status: newStatus, ok, updated_at: new Date().toISOString() }).eq('id', task.id)
+        .then(async () => {
+          if (ok) await calcularProgressoAuto(task.projeto_id);
+          await _verificarConclusaoProjeto(task.projeto_id);
+          renderDashInteligente();
+        })
+        .catch(() => showToast('⚠️ Erro ao salvar status'));
     });
   });
 }
