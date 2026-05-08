@@ -3892,6 +3892,7 @@ select.sel{
       <a href="https://t.me/Nutri_Vibot" target="_blank" style="font-size:10px;color:#2AABEE;white-space:nowrap;text-decoration:none;padding:6px 10px;background:rgba(42,171,238,.1);border-radius:8px;border:1px solid rgba(42,171,238,.3);">🤖 Abrir DAE NEXUS bot</a>
     </div>
     <div style="font-size:10px;color:var(--tx3);margin-top:4px;">Abra o bot, mande /start, depois acesse: <span style="color:var(--brand);font-family:monospace;font-size:9px;">api.telegram.org/bot.../getUpdates</span></div>
+    <button onclick="testarTelegram()" style="margin-top:8px;width:100%;padding:8px;border-radius:9px;border:1px solid #2AABEE;background:rgba(42,171,238,.1);color:#2AABEE;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📤 Testar notificação agora</button>
   </div>
 
   <!-- ACESSO AO SISTEMA -->
@@ -5796,6 +5797,7 @@ async function addTask() {
       + '✍️ Por: ' + (curUser?.nome||curUser?.av||'—');
     enviarTelegram(maTg.telegram_id, msg);
   }
+}
 
 async function delTask(id) {
   if (!db) { showToast('Sem banco conectado'); return; }
@@ -11167,42 +11169,104 @@ _Enviado por ${curUser?.nome?.split(' ')[0] || 'Gestora'} via DAE Nexus_ ✨`);
   showToast('📱 WhatsApp aberto para alertar sobre a tarefa!');
 }
 
-async function _alertarTarefasAtrasadasMA() {
-  // Só envia 1x por dia — verifica última vez no localStorage
-  const hoje = new Date().toISOString().split('T')[0];
-  const ultimoAlerta = localStorage.getItem('dae_tg_atrasadas_data');
-  if (ultimoAlerta === hoje) return;
+async function testarTelegram() {
+  const ma = memb.find(x => x.av === 'MA');
+  if (!ma?.telegram_id) {
+    showToast('⚠️ Cadastre seu Telegram Chat ID no perfil primeiro!');
+    return;
+  }
+  showToast('📤 Enviando mensagem de teste...');
+  try {
+    const resp = await fetch('https://api.telegram.org/bot' + TG_BOT_TOKEN + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: ma.telegram_id,
+        text: '✅ <b>DAE Nexus</b> — Teste de notificação!\n\nSeu Telegram está configurado corretamente. 🎉\n\nVocê receberá o resumo diário às 19:30.',
+        parse_mode: 'HTML'
+      })
+    });
+    const data = await resp.json();
+    if (data.ok) showToast('✅ Mensagem enviada! Verifique o Telegram.');
+    else showToast('❌ Erro: ' + (data.description||'Verifique o Chat ID'));
+  } catch(e) {
+    showToast('❌ Erro de conexão: ' + e.message);
+  }
+}
 
+function _agendarResumoDiario() {
+  // Calcula quantos ms faltam para as 19:30 de hoje
+  function msAte1930() {
+    const agora = new Date();
+    const alvo = new Date();
+    alvo.setHours(19, 36, 0, 0);
+    // Se já passou das 19:30, agenda para amanhã
+    if (agora >= alvo) alvo.setDate(alvo.getDate() + 1);
+    return alvo - agora;
+  }
+
+  setTimeout(async () => {
+    await _enviarResumoDiario();
+    // Repetir todo dia às 19:30 (a cada 24h)
+    setInterval(_enviarResumoDiario, 24 * 60 * 60 * 1000);
+  }, msAte1930());
+}
+
+async function _enviarResumoDiario() {
   const ma = memb.find(x => x.av === 'MA');
   if (!ma?.telegram_id) return;
 
   const agora = new Date(); agora.setHours(0,0,0,0);
   const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-  const atrasadas = tar.filter(t =>
-    t.prazo &&
-    new Date(t.prazo) < agora &&
-    !(t.ok || _stFech.includes((t.status||'').toLowerCase().trim()))
-  );
+  const isFechada = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
 
-  if (!atrasadas.length) return;
+  const atrasadas = tar.filter(t => t.prazo && new Date(t.prazo) < agora && !isFechada(t));
+  const prazoHoje = tar.filter(t => t.prazo && new Date(t.prazo+'T12:00').toDateString() === new Date().toDateString() && !isFechada(t));
+  const abertas = tar.filter(t => !isFechada(t));
+  const emAndamento = abertas.filter(t => (t.status||'').toLowerCase().includes('andamento'));
 
-  localStorage.setItem('dae_tg_atrasadas_data', hoje);
+  const data = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
 
-  const linhas = atrasadas.slice(0, 10).map(t => {
-    const p = proj.find(x=>x.id===t.projeto_id);
-    const diasAtraso = Math.floor((agora - new Date(t.prazo)) / 86400000);
-    return '• <b>' + (t.titulo||'') + '</b>\n  '
-      + (p ? '📁 ' + p.nome + ' · ' : '')
-      + '⏰ ' + diasAtraso + 'd de atraso · 👤 ' + (t.resp||'—');
-  }).join('\n\n');
+  let msg = '';
+  msg += '🗓 ' + data + '\n\n';
 
-  const msgAtrasadas = '🚨 <b>DAE Nexus — Resumo Diário</b>\n\n'
-    + '📋 <b>' + atrasadas.length + ' tarefa(s) atrasada(s)</b>\n\n'
-    + linhas
-    + (atrasadas.length > 10 ? '\n\n...e mais ' + (atrasadas.length-10) + ' tarefas' : '')
-    + '\n\n🕐 ' + new Date().toLocaleString('pt-BR');
+  // Atrasadas
+  msg += '━━━ 🚨 ATRASADAS: ' + atrasadas.length + ' ━━━\n';
+  if (atrasadas.length === 0) {
+    msg += '✅ Nenhuma\n';
+  } else {
+    atrasadas.slice(0, 10).forEach((t, i) => {
+      const p = proj.find(x => x.id === t.projeto_id);
+      const resp = memb.find(x => x.av === t.resp);
+      const dias = Math.floor((agora - new Date(t.prazo)) / 86400000);
+      msg += (i+1) + '. ' + (t.titulo || 'Sem título') + '\n';
+      msg += '   👤 ' + (resp?.nome?.split(' ')[0] || t.resp || '—') + ' | ';
+      msg += (p ? '📁 ' + p.nome : 'Sem projeto') + ' | ';
+      msg += '⏰ ' + dias + 'd\n';
+    });
+    if (atrasadas.length > 10) msg += '   + ' + (atrasadas.length - 10) + ' outras...\n';
+  }
 
-  enviarTelegram(ma.telegram_id, msgAtrasadas);
+  msg += '\n━━━ ⏰ VENCE HOJE: ' + prazoHoje.length + ' ━━━\n';
+  if (prazoHoje.length === 0) {
+    msg += '✅ Nenhuma\n';
+  } else {
+    prazoHoje.forEach((t, i) => {
+      const resp = memb.find(x => x.av === t.resp);
+      msg += (i+1) + '. ' + (t.titulo || 'Sem título') + '\n';
+      msg += '   👤 ' + (resp?.nome?.split(' ')[0] || t.resp || '—') + '\n';
+    });
+  }
+
+  msg += '\n━━━ 📊 GERAL ━━━\n';
+  msg += '📋 Abertas: ' + abertas.length + '\n';
+  msg += '⚡ Em andamento: ' + emAndamento.length + '\n';
+  msg += '✅ Concluídas hoje: ' + tar.filter(t => {
+    const up = t.updated_at ? new Date(t.updated_at) : null;
+    return isFechada(t) && up && up.toDateString() === new Date().toDateString();
+  }).length;
+
+  enviarTelegram(ma.telegram_id, msg);
 }
 
 // ── FIM NOTIFICAÇÕES GESTORA ──────────────────────────────────
@@ -12477,8 +12541,8 @@ async function entrarNoApp(usuario) {
     iniciarChatGlobal(); 
     pedirPermissaoNotif(); 
     iniciarMonitorTimeline();
-  // 🔔 Alerta diário de tarefas atrasadas para MA
-  _alertarTarefasAtrasadasMA();
+    // 🔔 Resumo diário às 19:30 — aguarda 3s para dados carregarem
+    setTimeout(_agendarResumoDiario, 3000);
     // Restaurar timer se estava ativo
     try {
       const timerSalvo = JSON.parse(localStorage.getItem('dae_timer') || 'null');
@@ -13475,8 +13539,6 @@ function abrirDetalheHorasDia(av, dataStr, entriesJson) {
       </div>
     </div>
   `;
-}
-
 }
 
 // ── FIM HORAS ────────────────────────────────────────────────
