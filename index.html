@@ -5337,103 +5337,91 @@ function renderArvoreConteudo() {
   const statusCor = {'to do':'#94A3B8','a fazer':'#94A3B8','especif. em análise (po)':'#6366F1','pronto para desenvolver':'#8B5CF6','em desenvolvimento':'#3B82F6','pronto p/ testar (qa/po)':'#0EA5E9','em teste':'#F59E0B','teste reprovado':'#EF4444','teste aprovado':'#92400E','publicado em produção':'#10B981','concluído':'#059669','feito':'#059669'};
   const getCorStatus = s => statusCor[(s||'').toLowerCase()] || '#94A3B8';
 
-  // Filtrar tarefas
-  let tarefasFiltradas = [...tar];
+  // Filtrar por setor/projeto
+  let tf = [...tar];
   if (_arvoreSetorFiltro !== 'todos') {
-    tarefasFiltradas = tarefasFiltradas.filter(t => {
+    tf = tf.filter(t => {
       const p = proj.find(x=>x.id===t.projeto_id);
-      if (_arvoreSetorFiltro === 'sem_setor') return !p?.espaco_id;
-      return p?.espaco_id === _arvoreSetorFiltro;
+      return _arvoreSetorFiltro === 'sem_setor' ? !p?.espaco_id : p?.espaco_id === _arvoreSetorFiltro;
     });
   }
   if (_arvoreProjFiltro !== 'todos') {
-    tarefasFiltradas = tarefasFiltradas.filter(t => String(t.projeto_id) === String(_arvoreProjFiltro));
+    tf = tf.filter(t => String(t.projeto_id) === String(_arvoreProjFiltro));
   }
 
-  if (!tarefasFiltradas.length) {
+  if (!tf.length) {
     board.innerHTML = `<div class="arvore-empty"><div style="font-size:32px;margin-bottom:8px;">🌳</div><div style="font-size:14px;font-weight:700;color:var(--tx3);">Nenhuma tarefa encontrada</div></div>`;
     return;
   }
 
+  // Função recursiva para renderizar nó + filhos
+  function renderNo(t, nivel, tarefasDoProjeto) {
+    const fechada = _isFech(t);
+    const m = memb.find(x=>x.av===t.resp);
+    const mCor = m?.cor||'#6366F1';
+    const corStatus = getCorStatus(t.status||'');
+    const coResp = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+    const todos = [t.resp, ...coResp].filter(Boolean);
+    const filhos = tarefasDoProjeto.filter(st => String(st.tarefa_pai_id) === String(t.id));
+    const indent = nivel * 20;
+
+    const avatares = todos.map(av => {
+      const mb = memb.find(x=>x.av===av);
+      return `<div style="width:18px;height:18px;border-radius:4px;background:${mb?.cor||'#6366F1'}22;color:${mb?.cor||'#6366F1'};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;" title="${mb?.nome||av}">${av}</div>`;
+    }).join('');
+
+    let html = `<div class="arvore-task${fechada?' done':''}" onclick="openDet('task','${t.id}')"
+      style="padding-left:${indent+8}px;position:relative;">
+      ${nivel>0?`<div style="position:absolute;left:${indent-4}px;top:50%;width:12px;height:1px;background:var(--border2);"></div>`:''}
+      <div class="arvore-task-check${fechada?' done':''}">${fechada?'✓':''}</div>
+      <div class="arvore-task-title" style="font-size:${13-nivel}px;">${t.titulo||t.tit||'Sem título'}</div>
+      ${filhos.length?`<span style="font-size:9px;color:var(--brand);background:var(--brand-light);padding:1px 6px;border-radius:10px;">${filhos.length} sub</span>`:''}
+      <span class="arvore-task-status" style="background:${corStatus}18;color:${corStatus};border:1px solid ${corStatus}33;">${t.status||'to do'}</span>
+      ${t.prazo?`<span style="font-size:9px;color:${new Date(t.prazo)<new Date()&&!fechada?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
+      <div style="display:flex;gap:2px;">${avatares}</div>
+    </div>`;
+
+    // Linha vertical conectando filhos
+    if (filhos.length) {
+      html += `<div style="position:relative;margin-left:${indent+16}px;border-left:1px solid var(--border2);padding-left:0;">`;
+      filhos.forEach(f => { html += renderNo(f, nivel+1, tarefasDoProjeto); });
+      html += `</div>`;
+    }
+    return html;
+  }
+
   // Agrupar por Setor → Projeto
-  const setoresEnv = [...new Set(tarefasFiltradas.map(t => { const p=proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; }))];
+  const setoresEnv = [...new Set(tf.map(t => { const p=proj.find(x=>x.id===t.projeto_id); return p?.espaco_id||'__sem__'; }))];
 
   board.innerHTML = setoresEnv.map(setorId => {
-    const setor = setorId !== '__sem__' ? espacos.find(e=>e.id===setorId) : null;
-    const nomeSetor = setor?.nome || '— Sem setor';
-    const projetosDoSetor = [...new Set(tarefasFiltradas.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId; }).map(t=>t.projeto_id))];
-    const totalTarefas = tarefasFiltradas.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId; }).length;
+    const setor = setorId!=='__sem__' ? espacos.find(e=>e.id===setorId) : null;
+    const nomeSetor = setor?.nome||'— Sem setor';
+    const projetosDoSetor = [...new Set(tf.filter(t => {
+      const p=proj.find(x=>x.id===t.projeto_id);
+      return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId;
+    }).map(t=>t.projeto_id).filter(Boolean))];
 
     const projetosHtml = projetosDoSetor.map(pid => {
       const p = proj.find(x=>x.id===pid);
-      const nomeProjeto = p?.nome || '— Sem projeto';
-      const tarefasDoProjeto = tarefasFiltradas.filter(t => String(t.projeto_id) === String(pid));
-      const concluidas = tarefasDoProjeto.filter(t => _isFech(t)).length;
+      const tarefasDoProjeto = tf.filter(t => String(t.projeto_id)===String(pid));
+      const concluidas = tarefasDoProjeto.filter(t=>_isFech(t)).length;
       const prog = tarefasDoProjeto.length ? Math.round((concluidas/tarefasDoProjeto.length)*100) : 0;
       const isProjFechado = ['concluido','concluída','cancelado','done'].includes((p?.status||'').toLowerCase());
+      const idsNoProjeto = new Set(tarefasDoProjeto.map(t=>t.id));
 
-      const tarefasHtml = tarefasDoProjeto.filter(t => !t.tarefa_pai_id).map((t, idx, arr) => {
-        const fechada = _isFech(t);
-        const m = memb.find(x=>x.av===t.resp);
-        const mCor = m?.cor || '#6366F1';
-        const corStatus = getCorStatus(t.status||'');
-        const isLast = idx === arr.length - 1;
-
-        // Co-responsáveis
-        const coResp = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
-        const todos = [t.resp, ...coResp].filter(Boolean);
-        const respAvatares = todos.map(av => {
-          const mb = memb.find(x=>x.av===av);
-          return `<div style="width:20px;height:20px;border-radius:5px;background:${mb?.cor||'#6366F1'}22;color:${mb?.cor||'#6366F1'};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1px solid ${mb?.cor||'#6366F1'}44;" title="${mb?.nome||av}">${av}</div>`;
-        }).join('');
-
-        // Subtarefas
-        const subtarefas = tarefasDoProjeto.filter(st => st.tarefa_pai_id === t.id);
-        const subtarefasHtml = subtarefas.length ? `
-          <div style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:3px;position:relative;">
-            <div style="position:absolute;left:1px;top:0;bottom:10px;width:1px;background:var(--border2);"></div>
-            ${subtarefas.map((st,si,sa) => {
-              const stFech = _isFech(st);
-              const sm = memb.find(x=>x.av===st.resp);
-              const stCoResp = (() => { try { return JSON.parse(st.co_responsaveis||'[]'); } catch(e){ return []; } })();
-              const stTodos = [st.resp, ...stCoResp].filter(Boolean);
-              return `<div class="arvore-task${stFech?' done':''}" onclick="openDet('task','${st.id}')" style="position:relative;">
-                <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
-                ${si<sa.length-1?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
-                <div class="arvore-task-check${stFech?' done':''}">${stFech?'✓':''}</div>
-                <div class="arvore-task-title" style="font-size:11px;">${st.titulo||st.tit||''}</div>
-                <span class="arvore-task-status" style="background:${getCorStatus(st.status||'')}18;color:${getCorStatus(st.status||'')};border:1px solid ${getCorStatus(st.status||'')}33;">${st.status||'to do'}</span>
-                <div style="display:flex;gap:2px;">${stTodos.map(av=>{ const mb=memb.find(x=>x.av===av); return `<div style="width:18px;height:18px;border-radius:4px;background:${mb?.cor||'#6366F1'}22;color:${mb?.cor||'#6366F1'};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;">${av}</div>`; }).join('')}</div>
-              </div>`;
-            }).join('')}
-          </div>` : '';
-
-        return `<div style="position:relative;">
-          ${!isLast?`<div style="position:absolute;left:-12px;top:0;height:100%;width:1px;background:var(--border2);"></div>`:''}
-          <div class="arvore-task${fechada?' done':''}" onclick="openDet('task','${t.id}')" style="position:relative;">
-            <div style="position:absolute;left:-12px;top:50%;width:12px;height:1px;background:var(--border2);"></div>
-            <div class="arvore-task-check${fechada?' done':''}">${fechada?'✓':''}</div>
-            <div class="arvore-task-title">${t.titulo||t.tit||'Sem título'}</div>
-            ${subtarefas.length?`<span style="font-size:9px;color:var(--brand);background:var(--brand-light);padding:1px 6px;border-radius:10px;">${subtarefas.length} sub</span>`:''}
-            <span class="arvore-task-status" style="background:${corStatus}18;color:${corStatus};border:1px solid ${corStatus}33;">${t.status||'to do'}</span>
-            ${t.prazo?`<span style="font-size:9px;color:${new Date(t.prazo)<new Date()&&!fechada?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
-            <div style="display:flex;gap:2px;">${respAvatares}</div>
-          </div>
-          ${subtarefasHtml}
-        </div>`;
-      }).join('');
+      // Raiz = sem pai OU pai fora do projeto
+      const raizes = tarefasDoProjeto.filter(t => !t.tarefa_pai_id || !idsNoProjeto.has(t.tarefa_pai_id));
 
       return `<div class="arvore-proj">
         <div class="arvore-proj-title" onclick="openDet('proj','${pid}')">
           <span style="font-size:14px;">${isProjFechado?'✅':'📁'}</span>
-          <span>${nomeProjeto}</span>
+          <span>${p?.nome||'Sem projeto'}</span>
           <div class="arvore-proj-bar"><div class="arvore-proj-bar-fill" style="width:${prog}%"></div></div>
           <span class="arvore-proj-prog">${prog}%</span>
           <span style="font-size:10px;color:var(--tx3);">${tarefasDoProjeto.length} tarefa${tarefasDoProjeto.length>1?'s':''}</span>
         </div>
-        <div class="arvore-tasks" style="position:relative;padding-left:24px;">
-          <div style="position:absolute;left:1px;top:0;bottom:0;width:1px;background:var(--border2);"></div>
-          ${tarefasHtml || '<div style="padding:8px 12px;font-size:11px;color:var(--tx3);">Nenhuma tarefa</div>'}
+        <div style="padding-left:8px;">
+          ${raizes.map(t => renderNo(t, 0, tarefasDoProjeto)).join('') || '<div style="padding:8px 12px;font-size:11px;color:var(--tx3);">Nenhuma tarefa</div>'}
         </div>
       </div>`;
     }).join('');
@@ -5442,169 +5430,12 @@ function renderArvoreConteudo() {
       <div class="arvore-setor-title">
         <span style="font-size:16px;">🏢</span>
         <span>${nomeSetor}</span>
-        <span class="arvore-setor-count">${projetosDoSetor.length} projeto${projetosDoSetor.length>1?'s':''} · ${totalTarefas} tarefa${totalTarefas>1?'s':''}</span>
+        <span class="arvore-setor-count">${projetosDoSetor.length} projeto${projetosDoSetor.length>1?'s':''} · ${tf.filter(t=>{const p=proj.find(x=>x.id===t.projeto_id);return setorId==='__sem__'?!p?.espaco_id:p?.espaco_id===setorId;}).length} tarefas</span>
       </div>
       ${projetosHtml}
     </div>`;
   }).join('');
 }
-function adicionarCoRespForm(av) {
-  if (!av) return;
-  if (!window._ntCoResps) window._ntCoResps = [];
-  // Não duplicar, não adicionar o responsável principal
-  const respPrincipal = document.getElementById('ntR')?.value;
-  if (window._ntCoResps.includes(av) || av === respPrincipal) {
-    document.getElementById('ntCoRespAdd').value = '';
-    showToast('Este membro já é responsável'); return;
-  }
-  window._ntCoResps.push(av);
-  const mb = memb.find(x=>x.av===av);
-  const wrap = document.getElementById('ntCoRespWrap');
-  if (wrap) {
-    const chip = document.createElement('div');
-    chip.style.cssText = `display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:${mb?.cor||'#6366F1'}18;color:${mb?.cor||'#6366F1'};border:1px solid ${mb?.cor||'#6366F1'}44;font-size:11px;font-weight:600;cursor:pointer;`;
-    chip.innerHTML = `${mb?.nome?.split(' ')[0]||av} <span style="opacity:.5;font-size:13px;" title="Remover">×</span>`;
-    chip.onclick = () => {
-      window._ntCoResps = window._ntCoResps.filter(x=>x!==av);
-      chip.remove();
-    };
-    wrap.appendChild(chip);
-  }
-  document.getElementById('ntCoRespAdd').value = '';
-}
-
-function abrirSeletorCoResp(tarefaId) {
-  const t = tar.find(x=>x.id===tarefaId);
-  if (!t) return;
-  const coAtual = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
-  const disponiveis = memb.filter(m => m.av !== t.resp && !coAtual.includes(m.av) && m.status_acesso !== 'inativo');
-  document.querySelectorAll('.co-resp-picker').forEach(e=>e.remove());
-  const picker = document.createElement('div');
-  picker.className = 'co-resp-picker';
-  picker.style.cssText = 'position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;width:280px;box-shadow:0 8px 30px rgba(0,0,0,.2);max-height:320px;overflow-y:auto;';
-  let html = '<div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">👥 Adicionar co-responsável</div>';
-  if (!disponiveis.length) {
-    html += '<div style="font-size:12px;color:var(--tx3);padding:8px;">Todos os membros já são responsáveis</div>';
-  } else {
-    disponiveis.forEach(function(mb) {
-      const av = mb.av, cor = mb.cor||'#6366F1';
-      html += '<div onclick="adicionarCoResp(\'' + tarefaId + '\',\'' + av + '\');document.querySelectorAll(\'.co-resp-picker\').forEach(function(e){e.remove()})" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;cursor:pointer;" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
-        + '<div style="width:28px;height:28px;border-radius:8px;background:' + cor + '22;color:' + cor + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">' + av + '</div>'
-        + '<div><div style="font-size:12px;font-weight:600;color:var(--tx);">' + mb.nome + '</div><div style="font-size:10px;color:var(--tx3);">' + (mb.cargo||'Membro') + '</div></div>'
-        + '</div>';
-    });
-  }
-  html += '<button onclick="document.querySelectorAll(\'.co-resp-picker\').forEach(function(e){e.remove()})" style="width:100%;margin-top:8px;padding:7px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);font-size:12px;cursor:pointer;font-family:inherit;">Cancelar</button>';
-  picker.innerHTML = html;
-  document.body.appendChild(picker);
-  setTimeout(function() {
-    document.addEventListener('click', function f(e) {
-      if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', f); }
-    });
-  }, 100);
-}
-
-
-async function adicionarCoResp(tarefaId, av) {
-  const t = tar.find(x=>x.id===tarefaId);
-  if (!t) return;
-  const coAtual = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
-  if (coAtual.includes(av)) return;
-  const novosCo = [...coAtual, av];
-  await safeDb.from('tarefas').update({ co_responsaveis: JSON.stringify(novosCo) }).eq('id', tarefaId);
-  t.co_responsaveis = JSON.stringify(novosCo);
-  showToast(`👥 ${memb.find(x=>x.av===av)?.nome||av} adicionado!`);
-  openDet('task', tarefaId);
-}
-
-async function removerCoResp(tarefaId, av) {
-  if (!confirm('Remover co-responsável?')) return;
-  const t = tar.find(x=>x.id===tarefaId);
-  if (!t) return;
-  const coAtual = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
-  const novosCo = coAtual.filter(x=>x!==av);
-  await safeDb.from('tarefas').update({ co_responsaveis: JSON.stringify(novosCo) }).eq('id', tarefaId);
-  t.co_responsaveis = JSON.stringify(novosCo);
-  showToast('✅ Co-responsável removido');
-  openDet('task', tarefaId);
-}
-
-function adicionarSubtarefa(paiId, projetoId, tituloMae) {
-  openM('mTask');
-  setTimeout(() => {
-    const ntPj = document.getElementById('ntPj');
-    if (ntPj && projetoId) {
-      ntPj.value = projetoId;
-      popularArvoreProjeto(projetoId);
-      setTimeout(() => {
-        const ntPai = document.getElementById('ntPai');
-        if (ntPai) { ntPai.value = paiId; ntPai.dispatchEvent(new Event('change')); }
-      }, 100);
-    }
-    const mtitle = document.getElementById('mTaskTitle');
-    if (mtitle) mtitle.textContent = `NOVA SUBTAREFA${tituloMae ? ' — ' + tituloMae.slice(0,30) : ''}`;
-  }, 150);
-}
-
-function popularArvoreProjeto(projetoId) {
-  const sel = document.getElementById('ntPai');
-  const preview = document.getElementById('ntPaiPreview');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— Tarefa raiz (nível principal)</option>';
-  if (preview) preview.style.display = 'none';
-  if (!projetoId) return;
-
-  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-  // Mostrar TODAS as tarefas do projeto (abertas), com indentação para subtarefas
-  const todas = tar.filter(t =>
-    String(t.projeto_id) === String(projetoId) &&
-    !(_stFech.includes((t.status||'').toLowerCase().trim()) || t.ok)
-  );
-
-  if (!todas.length) {
-    sel.innerHTML = '<option value="">— Nenhuma tarefa disponível (será raiz)</option>';
-    return;
-  }
-
-  // Raiz primeiro, depois subtarefas agrupadas
-  const raiz = todas.filter(t => !t.tarefa_pai_id);
-  const subs  = todas.filter(t => t.tarefa_pai_id);
-
-  raiz.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.titulo || t.tit || 'Sem título';
-    sel.appendChild(opt);
-    // Subtarefas desta tarefa
-    subs.filter(s => s.tarefa_pai_id === t.id).forEach(s => {
-      const subOpt = document.createElement('option');
-      subOpt.value = s.id;
-      subOpt.textContent = '  └ ' + (s.titulo || s.tit || 'Sem título');
-      sel.appendChild(subOpt);
-    });
-  });
-  // Subtarefas cujo pai não está na lista (pai pode ser de outro projeto)
-  subs.filter(s => !raiz.find(r => r.id === s.tarefa_pai_id)).forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = '  └ ' + (s.titulo || s.tit || 'Sem título');
-    sel.appendChild(opt);
-  });
-
-  sel.onchange = () => {
-    const pId = sel.value;
-    if (!pId || !preview) { if (preview) preview.style.display = 'none'; return; }
-    const pai = tar.find(x => x.id === pId);
-    if (pai) {
-      const p = proj.find(x => x.id === projetoId);
-      preview.innerHTML = `📁 ${p?.nome||''} → 📋 ${pai.titulo||pai.tit||''} → 📌 <strong>[nova tarefa]</strong>`;
-      preview.style.display = 'block';
-    }
-  };
-}
-
-// ── FIM ÁRVORE ────────────────────────────────────────────────
-
 function renderKanbanSetorChips() {
   const wrap = document.getElementById('kanbanSetorChips');
 
