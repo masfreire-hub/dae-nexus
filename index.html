@@ -2522,11 +2522,20 @@ select.sel{
         </div>
       </div>
 
-      <!-- FILTRO POR ESTAÇÃO -->
+      <!-- TABS ATIVOS / CONCLUÍDOS -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0;">
+        <button id="tabProjAtivos" onclick="switchProjTab('ativos')" style="padding:8px 20px;border:none;border-bottom:3px solid var(--brand);background:transparent;font-family:var(--fb);font-size:13px;font-weight:700;color:var(--brand);cursor:pointer;">🏗 Ativos</button>
+        <button id="tabProjConcluidos" onclick="switchProjTab('concluidos')" style="padding:8px 20px;border:none;border-bottom:3px solid transparent;background:transparent;font-family:var(--fb);font-size:13px;font-weight:600;color:var(--tx3);cursor:pointer;">✅ Concluídos</button>
+      </div>
+
+      <!-- FILTRO POR ESTAÇÃO (só na aba Ativos) -->
       <div id="estacaoChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
-      <!-- VISÃO HIERÁRQUICA -->
+      <!-- VISÃO HIERÁRQUICA (ativos) -->
       <div id="hierarquiaView"></div>
+
+      <!-- VISÃO CONCLUÍDOS -->
+      <div id="hierarquiaConcluidos" style="display:none;"></div>
     </div>
     <!-- TAREFAS / KANBAN -->
     <div class="tab" id="t-tasks">
@@ -3692,8 +3701,18 @@ select.sel{
 
 <div class="ov" id="mDetalheAtiv"><div class="modal" style="max-height:90vh;">
   <div class="mhandle"></div>
-  <div class="mtitle" id="mDetalheAtivTitulo">⚡ ATIVIDADE</div>
+  <div class="mtitle">⚡ ATIVIDADE</div>
   <input type="hidden" id="mDetalheAtivId">
+
+  <!-- Título editável -->
+  <label class="lbl">Título *</label>
+  <input class="inp" id="mDetalheAtivTitulo" placeholder="Título da atividade" style="margin-bottom:14px;font-weight:700;">
+
+  <!-- Responsável e Prazo -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div><label class="lbl">Responsável</label><select class="sel" id="mDetalheAtivResp"></select></div>
+    <div><label class="lbl">Prazo</label><input class="inp" type="date" id="mDetalheAtivPrazo"></div>
+  </div>
 
   <!-- Status -->
   <label class="lbl">Status</label>
@@ -5105,8 +5124,15 @@ function abrirDetalheAtiv(id) {
   const detPanel = document.getElementById('detPanel');
   if (detPanel?.classList.contains('on')) closeDet();
   document.getElementById('mDetalheAtivId').value = id;
-  document.getElementById('mDetalheAtivTitulo').textContent = '⚡ ' + a.titulo;
+  document.getElementById('mDetalheAtivTitulo').value = a.titulo || '';
   document.getElementById('mDetalheAtivDesc').value = a.descricao || '';
+  document.getElementById('mDetalheAtivPrazo').value = a.prazo || '';
+  // Popular responsável
+  const selResp = document.getElementById('mDetalheAtivResp');
+  if (selResp) {
+    selResp.innerHTML = '<option value="">— Sem responsável</option>'
+      + memb.map(m => '<option value="' + m.av + '"'+(a.autor===m.av?' selected':'')+'>' + m.nome + '</option>').join('');
+  }
   // Status
   const status = a.status || 'em_andamento';
   document.querySelectorAll('#mDetalheAtivStatus div').forEach(d => {
@@ -5182,12 +5208,19 @@ async function salvarDetalheAtiv() {
   if (!a) return;
   const status = _getStatusAtivSel();
   const descricao = document.getElementById('mDetalheAtivDesc').value.trim();
-  const { error } = await safeDb.from('atividades').update({ status, descricao }).eq('id', id);
+  const titulo = (document.getElementById('mDetalheAtivTitulo')?.value||'').trim();
+  const prazo = document.getElementById('mDetalheAtivPrazo')?.value || null;
+  const autor = document.getElementById('mDetalheAtivResp')?.value || a.autor;
+  const dados = { status, descricao, updated_at: new Date().toISOString() };
+  if (titulo) dados.titulo = titulo;
+  dados.prazo = prazo;
+  if (autor) dados.autor = autor;
+  const { error } = await safeDb.from('atividades').update(dados).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
-  a.status = status;
-  a.descricao = descricao;
+  Object.assign(a, dados);
   closeM('mDetalheAtiv');
-  renderHierarquia();
+  try { renderHierarquia(); } catch(e) {}
+  try { renderDashAtividades(); } catch(e) {}
   showToast('✅ Atividade atualizada!');
 }
 
@@ -6906,6 +6939,60 @@ async function salvarDescricaoAgora(tarefaId, valor) {
 
 
 
+
+let _projTab = 'ativos';
+function switchProjTab(tab) {
+  _projTab = tab;
+  const elAtivos = document.getElementById('hierarquiaView');
+  const elConc = document.getElementById('hierarquiaConcluidos');
+  const elChips = document.getElementById('estacaoChips');
+  const btnAt = document.getElementById('tabProjAtivos');
+  const btnCo = document.getElementById('tabProjConcluidos');
+  if (tab === 'ativos') {
+    if (elAtivos) elAtivos.style.display = '';
+    if (elConc) elConc.style.display = 'none';
+    if (elChips) elChips.style.display = 'flex';
+    if (btnAt) { btnAt.style.color='var(--brand)'; btnAt.style.borderBottom='3px solid var(--brand)'; }
+    if (btnCo) { btnCo.style.color='var(--tx3)'; btnCo.style.borderBottom='3px solid transparent'; }
+  } else {
+    if (elAtivos) elAtivos.style.display = 'none';
+    if (elConc) elConc.style.display = '';
+    if (elChips) elChips.style.display = 'none';
+    if (btnAt) { btnAt.style.color='var(--tx3)'; btnAt.style.borderBottom='3px solid transparent'; }
+    if (btnCo) { btnCo.style.color='#10B981'; btnCo.style.borderBottom='3px solid #10B981'; }
+    renderProjConcluidos();
+  }
+}
+
+function renderProjConcluidos() {
+  const el = document.getElementById('hierarquiaConcluidos');
+  if (!el) return;
+  const isProjFechado = p => ['concluido','concluída','cancelado','finalizado','done','concluído'].includes((p.status||'').toLowerCase().trim());
+  const lista = proj.filter(isProjFechado).sort((a,b) => new Date(b.updated_at||0) - new Date(a.updated_at||0));
+  if (!lista.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px;color:var(--tx3);"><div style="font-size:40px;margin-bottom:12px;">🎉</div><div style="font-size:14px;font-weight:700;">Nenhum projeto concluído ainda</div></div>';
+    return;
+  }
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;">'
+    + lista.map(function(p) {
+      const espaco = espacos.find(e => e.id === p.espaco_id);
+      const membsP = (p.membros||[]).map(av => memb.find(m => m.av===av)).filter(Boolean);
+      const prazo = p.fim ? new Date(p.fim+'T12:00').toLocaleDateString('pt-BR') : '—';
+      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;align-items:center;gap:16px;border-left:4px solid #10B981;">'
+        + '<div style="width:44px;height:44px;border-radius:12px;background:#10B98120;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">✅</div>'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:14px;font-weight:800;color:var(--tx);margin-bottom:4px;">' + p.nome + '</div>'
+        + '<div style="display:flex;gap:12px;flex-wrap:wrap;">'
+        + (espaco ? '<span style="font-size:11px;color:var(--tx3);">📁 '+espaco.nome+'</span>' : '')
+        + '<span style="font-size:11px;color:var(--tx3);">📅 Prazo: '+prazo+'</span>'
+        + '<span style="font-size:11px;font-weight:700;color:#10B981;">✅ '+( p.status||'concluído')+'</span>'
+        + '</div></div>'
+        + '<div style="display:flex;gap:4px;">'
+        + membsP.slice(0,4).map(function(m){ return '<div style="width:28px;height:28px;border-radius:8px;background:'+(m.cor||'#6366F1')+'22;color:'+(m.cor||'#6366F1')+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">'+m.av+'</div>'; }).join('')
+        + '</div></div>';
+    }).join('')
+    + '</div>';
+}
 
 function popularArvoreProjeto(projetoId) {
   const sel = document.getElementById('ntPai');
@@ -10806,7 +10893,8 @@ function renderHierarquia() {
 
     // Todos projetos desta estação
     const idsSetores = setores.map(function(e){ return e.id; });
-    const projEstacao = proj.filter(function(p){ return idsSetores.includes(p.espaco_id) || (!p.espaco_id && (p.dept||'').trim().toUpperCase() === estNorm); });
+    const _isProjFechado = function(p){ const s=(p.status||'').toLowerCase().trim(); return s.startsWith('conclu') || s==='cancelado' || s==='finalizado' || s==='done'; };
+    const projEstacao = proj.filter(function(p){ return !_isProjFechado(p) && (idsSetores.includes(p.espaco_id) || (!p.espaco_id && (p.dept||'').trim().toUpperCase() === estNorm)); });
 
     // Atividades desta estação (sem projeto_id = atividade de setor)
     const ativsEstacao = ativs.filter(function(a){
@@ -10870,7 +10958,7 @@ function renderHierarquia() {
     }
 
     setores.forEach(function(setor, si) {
-      const projSetor = proj.filter(function(p){ return p.espaco_id === setor.id; });
+      const projSetor = proj.filter(function(p){ const s=(p.status||'').toLowerCase().trim(); const _fechado=s.startsWith('conclu')||s==='cancelado'||s==='finalizado'||s==='done'; return !_fechado && p.espaco_id === setor.id; });
       // Atividades diretas deste setor (sem projeto_id)
       const ativsSetor = ativs.filter(function(a){ return !a.projeto_id && a.espaco_id === setor.id; });
 
