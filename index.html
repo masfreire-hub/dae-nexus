@@ -6808,6 +6808,79 @@ async function salvarDescricaoAgora(tarefaId, valor) {
 
 
 
+// ── CO-RESPONSÁVEL ───────────────────────────────────────────
+function adicionarCoRespForm(av) {
+  if (!av) return;
+  if (!window._ntCoResps) window._ntCoResps = [];
+  if (window._ntCoResps.includes(av)) {
+    document.getElementById('ntCoRespAdd').value = '';
+    return;
+  }
+  window._ntCoResps.push(av);
+  const wrap = document.getElementById('ntCoRespWrap');
+  if (!wrap) return;
+  const mb = memb.find(x => x.av === av);
+  const chip = document.createElement('div');
+  chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:20px;padding:3px 10px 3px 6px;font-size:12px;font-weight:700;color:var(--brand);cursor:pointer;';
+  chip.title = 'Clique para remover';
+  chip.innerHTML = '<span style="font-size:10px;background:rgba(99,102,241,0.2);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">' + av + '</span>' + (mb?.nome||av) + ' <span style="font-size:10px;opacity:.6;">✕</span>';
+  chip.onclick = function() {
+    window._ntCoResps = window._ntCoResps.filter(x => x !== av);
+    chip.remove();
+  };
+  wrap.appendChild(chip);
+  document.getElementById('ntCoRespAdd').value = '';
+}
+
+async function abrirSeletorCoResp(tarefaId) {
+  const t = tar.find(x => x.id === tarefaId);
+  if (!t) return;
+  const coAtual = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  const opts = memb.filter(m => m.av !== t.resp && !coAtual.includes(m.av))
+    .map(m => '<option value="' + m.av + '">' + (m.nome||m.av) + '</option>').join('');
+  if (!opts) { showToast('Todos os membros já são co-responsáveis'); return; }
+  let modal = document.getElementById('coRespSeletorModal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'coRespSeletorModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;';
+  modal.onclick = function(e) { if(e.target===modal) modal.remove(); };
+  modal.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:24px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,.3);">'
+    + '<div style="font-size:14px;font-weight:800;color:var(--tx);margin-bottom:16px;">➕ Adicionar Co-responsável</div>'
+    + '<select id="coRespSel" class="sel" style="width:100%;margin-bottom:16px;"><option value="">Selecione um membro...</option>' + opts + '</select>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button onclick="document.getElementById(\'coRespSeletorModal\').remove()" style="flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;font-size:13px;">Cancelar</button>'
+    + '<button onclick="confirmarCoResp(\'' + tarefaId + '\')" style="flex:1;padding:10px;border-radius:9px;border:none;background:var(--brand);color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Adicionar</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+}
+
+async function confirmarCoResp(tarefaId) {
+  const av = document.getElementById('coRespSel')?.value;
+  if (!av) { showToast('⚠️ Selecione um membro'); return; }
+  const t = tar.find(x => x.id === tarefaId);
+  if (!t) return;
+  let co = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  if (!co.includes(av)) co.push(av);
+  await safeDb.from('tarefas').update({ co_responsaveis: JSON.stringify(co) }).eq('id', tarefaId);
+  t.co_responsaveis = JSON.stringify(co);
+  document.getElementById('coRespSeletorModal')?.remove();
+  showToast('✅ Co-responsável adicionado!');
+  if (window._detTarefaId === tarefaId) { try { await openDet('task', tarefaId); } catch(e){} }
+}
+
+async function removerCoResp(tarefaId, av) {
+  const t = tar.find(x => x.id === tarefaId);
+  if (!t) return;
+  let co = (() => { try { return JSON.parse(t.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  co = co.filter(x => x !== av);
+  await safeDb.from('tarefas').update({ co_responsaveis: JSON.stringify(co) }).eq('id', tarefaId);
+  t.co_responsaveis = JSON.stringify(co);
+  showToast('🗑 Co-responsável removido');
+  if (window._detTarefaId === tarefaId) { try { await openDet('task', tarefaId); } catch(e){} }
+}
+// ─────────────────────────────────────────────────────────────
+
 // ── TELEGRAM NOTIFICATIONS ───────────────────────────────────
 const TG_BOT_TOKEN = '8244048842:AAFx_qpJNH0OHc6CUT8Wvov4AsC1SEpgGmU';
 
