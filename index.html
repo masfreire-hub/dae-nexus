@@ -5766,9 +5766,21 @@ async function addTask() {
   const newProg = pTasks.length ? Math.round((pOk/pTasks.length)*100) : 0;
   const p = proj.find(x => x.id===data.projeto_id);
   if (p) p.prog = newProg;
-  // Notificar responsável (interno)
+  // Notificar responsável (interno + Telegram)
   if (data.resp && data.resp !== curUser?.av) {
     await safeDb.from('notificacoes').insert([{ destinatario:data.resp, titulo:'Nova tarefa atribuída', texto:'"' + t + '" foi atribuída a você', tipo:'info', tarefa_id:data.id }]);
+    const mbResp = memb.find(x=>x.av===data.resp);
+    if (mbResp?.telegram_id) {
+      const pAtrib = proj.find(x=>x.id===data.projeto_id);
+      const prazoAtrib = data.prazo ? new Date(data.prazo+'T12:00').toLocaleDateString('pt-BR') : 'Sem prazo';
+      const msgAtrib = '\ud83d\udccb <b>Nova tarefa atribuída a você!</b>\n\n<b>' + (data.titulo||'') + '</b>\n'
+        + (pAtrib ? '\ud83d\udcc1 ' + pAtrib.nome + '\n' : '')
+        + '\u26a1 Prioridade: ' + (data.prior||'\u2014') + '\n'
+        + '\ud83d\udcc5 Prazo: ' + prazoAtrib + '\n'
+        + '\ud83d\udd30 Status: ' + (data.status||'\u2014') + '\n\n'
+        + '\u270d\ufe0f Por: ' + (curUser?.nome||curUser?.av||'\u2014');
+      enviarTelegram(mbResp.telegram_id, msgAtrib);
+    }
   }
   // Notificar co-responsáveis (interno + Telegram)
   const coRespsNovos = (() => { try { return JSON.parse(data.co_responsaveis||'[]'); } catch(e){ return []; } })();
@@ -6946,7 +6958,11 @@ async function notificarTarefaTelegram(tarefa, evento, extra) {
   for (const av of [...new Set(envolvidos.filter(Boolean))]) {
     const mb = memb.find(x=>x.av===av);
     if (!mb?.telegram_id) continue;
-    const texto = `🔔 <b>DAE Nexus</b>\n\n${evento}\n\n📋 <b>${tarefa.titulo||tarefa.tit||''}</b>\n${nomeProjeto?`📁 ${nomeProjeto}\n`:''}${extra||''}\n\n👤 Responsável: ${tarefa.resp||'—'}`;
+    const titulo = tarefa.titulo||tarefa.tit||'';
+    const texto = '\ud83d\udd14 <b>DAE Nexus</b>\n\n' + evento + '\n\n\ud83d\udccb <b>' + titulo + '</b>\n'
+      + (nomeProjeto ? '\ud83d\udcc1 ' + nomeProjeto + '\n' : '')
+      + (extra ? extra + '\n' : '')
+      + '\n\ud83d\udc64 Respons\u00e1vel: ' + (tarefa.resp||'\u2014');
     await enviarTelegram(mb.telegram_id, texto);
   }
 }
