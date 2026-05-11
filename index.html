@@ -2346,6 +2346,7 @@ select.sel{
       <span class="nilb" style="font-weight:700;color:#EC4899;">Meu Espaço</span>
     </div>
     <div class="sb-group" style="margin-top:8px">EQUIPE</div>
+    <div class="ni" id="navAtividades" onclick="sw('atividades',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></span><span class="nilb">Atividades</span></div>
     <div class="ni" onclick="sw('team',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nilb">Equipe</span></div>
     <div class="spc"></div>
     <div class="ni" onclick="sw('config',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41"/><path d="M2 12A10 10 0 0 0 12 22 10 10 0 0 0 22 12 10 10 0 0 0 12 2a10 10 0 0 0-10 10z" opacity="0"/></svg></span><span class="nilb">Cadastros</span></div>
@@ -2428,14 +2429,7 @@ select.sel{
         <div id="progSistemas"></div>
       </div>
 
-      <!-- ANDAMENTO DAS ATIVIDADES -->
-      <div class="section-card">
-        <div class="sec-header">
-          <span class="sec-title">⚡ Andamento das Atividades</span>
-          <span class="sec-badge" id="cntAtividades" style="background:var(--brand-light);color:var(--brand);">0</span>
-        </div>
-        <div id="dashAtividades"></div>
-      </div>
+
 
       <!-- GRID: URGENTES + RADAR -->
       <div class="dash-grid-2">
@@ -2490,6 +2484,25 @@ select.sel{
         <div id="feriasMini"></div>
       </div>
 
+    </div>
+
+    <!-- ATIVIDADES -->
+    <div class="tab" id="t-atividades">
+      <div class="page-header">
+        <div class="page-title">⚡ Atividades</div>
+        <div class="page-sub">Andamento das atividades da equipe</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="ativFiltroChips">
+          <button class="chip on" onclick="setAtivFiltro('todas',this)">Todas</button>
+          <button class="chip" onclick="setAtivFiltro('em_andamento',this)">▶ Em andamento</button>
+          <button class="chip" onclick="setAtivFiltro('pendente',this)">⏳ Pendente</button>
+          <button class="chip" onclick="setAtivFiltro('concluida',this)">✅ Concluída</button>
+          <button class="chip" onclick="setAtivFiltro('atrasada',this)">⚠️ Atrasadas</button>
+        </div>
+        <span class="sec-badge" id="cntAtividades" style="background:var(--brand-light);color:var(--brand);">0</span>
+      </div>
+      <div id="dashAtividades"></div>
     </div>
 
     <!-- ESTAÇÕES -->
@@ -3557,6 +3570,7 @@ select.sel{
     <div class="ni" onclick="sw('gantt',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nilb">Timeline</span></div>
     <div class="ni" onclick="sw('painel',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nilb">Estratégico</span></div>
     <div class="ni" onclick="sw('nova',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="nilb">Nova IA</span></div>
+    <div class="ni" id="navAtividadesMob" onclick="sw('atividades',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></span><span class="nilb">Atividades</span></div>
     <div class="ni" onclick="sw('team',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nilb">Equipe</span></div>
   </div>
 </div>
@@ -4083,12 +4097,13 @@ function sw(name, el) {
   if (!tabEl) return;
   tabEl.classList.add('on');
   if (el) el.classList.add('on');
-  const titles = {home:'Dashboard',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
+  const titles = {home:'Dashboard',atividades:'⚡ Atividades',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
   const ttEl = document.getElementById('topbar-page-title');
   if (ttEl) ttEl.textContent = titles[name] || '';
   // Renderizar aba ativa
   const renders = {
-    home:    () => { try{renderDashInteligente();}catch(e){} try{renderUrgent();}catch(e){} try{renderAct();}catch(e){} try{renderFeriasMini();}catch(e){} try{renderDashAtividades();}catch(e){} },
+    home:    () => { try{renderDashInteligente();}catch(e){} try{renderUrgent();}catch(e){} try{renderAct();}catch(e){} try{renderFeriasMini();}catch(e){} },
+    atividades: () => { },
     arquivos: () => { try{renderArquivos();}catch(e){console.error('renderArquivos',e)} },
     tasks:   () => { try{renderTasks();}catch(e){console.error('renderTasks',e)} },
     proj:    () => { try{renderHierarquia();}catch(e){} const _pt=document.getElementById('proj-page-title');if(_pt)_pt.textContent='Estações & Setores'; },
@@ -4825,43 +4840,91 @@ function renderAct() {
   }).join('');
 }
 
+function toggleAtivSetor(id) {
+  const el = document.getElementById(id);
+  const ico = document.getElementById(id + '_ico');
+  if (!el) return;
+  const aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : 'flex';
+  if (ico) ico.textContent = aberto ? '▼' : '▲';
+}
+
+let _ativFiltroAtual = 'todas';
+function setAtivFiltro(f, el) {
+  _ativFiltroAtual = f;
+  document.querySelectorAll('#ativFiltroChips .chip').forEach(c => c.classList.remove('on'));
+  if (el) el.classList.add('on');
+  renderDashAtividades();
+}
+
 function renderDashAtividades() {
   const el = document.getElementById('dashAtividades');
   const cnt = document.getElementById('cntAtividades');
   if (!el) return;
-  if (!ativs.length) {
-    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px;">Nenhuma atividade cadastrada ainda</div>';
+  // Somente atividades dos setores (com espaco_id) — não o log de ações
+  const isMa = curUser?.av === 'MA';
+  const ativsSetor = ativs.filter(a => a.espaco_id);
+  let lista = isMa ? [...ativsSetor] : ativsSetor.filter(a => a.autor === curUser?.av || a.resp === curUser?.av);
+  // Aplicar filtro de status
+  const hoje = new Date();
+  if (_ativFiltroAtual === 'em_andamento') lista = lista.filter(a => (a.status||'em_andamento') === 'em_andamento');
+  else if (_ativFiltroAtual === 'pendente') lista = lista.filter(a => a.status === 'pendente');
+  else if (_ativFiltroAtual === 'concluida') lista = lista.filter(a => a.status === 'concluida');
+  else if (_ativFiltroAtual === 'atrasada') lista = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < hoje);
+  if (!lista.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:12px;">Nenhuma atividade encontrada</div>';
     if (cnt) cnt.textContent = '0';
     return;
   }
-  if (cnt) cnt.textContent = ativs.length;
+  if (cnt) cnt.textContent = lista.length;
+
+  // Seções quando filtro = todas
+  if (_ativFiltroAtual === 'todas') {
+    const _hojeMeio = new Date(); _hojeMeio.setHours(0,0,0,0);
+    const _hojeF = new Date(); _hojeF.setHours(23,59,59,0);
+    const _em3d = new Date(); _em3d.setDate(_em3d.getDate()+3); _em3d.setHours(23,59,59,0);
+    const _atrasadas = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < _hojeMeio);
+    const _hj = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') >= _hojeMeio && new Date(a.prazo+'T23:59') <= _hojeF);
+    const _venc = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') > _hojeF && new Date(a.prazo+'T23:59') <= _em3d);
+    const _dem = lista.filter(a => !_atrasadas.find(x=>x.id===a.id) && !_hj.find(x=>x.id===a.id) && !_venc.find(x=>x.id===a.id));
+    const _sec = function(titulo, cor, lst) {
+      if (!lst.length) return '';
+      return '<div style="margin:12px 0 6px;padding:6px 10px;background:'+cor+'15;border-left:3px solid '+cor+';border-radius:6px;font-size:11px;font-weight:800;color:'+cor+';letter-spacing:.5px;">'+titulo+' ('+lst.length+')</div>'
+        + lst.map(renderAtivItem).join('');
+    };
+    el.innerHTML = _sec('⚠️ ATRASADAS', '#EF4444', _atrasadas)
+      + _sec('📅 HOJE', '#F59E0B', _hj)
+      + _sec('⏰ VENCENDO EM BREVE', '#3B82F6', _venc)
+      + _sec('📋 DEMAIS', '#6B7280', _dem);
+    return;
+  }
+  el.innerHTML = lista.map(renderAtivItem).join('');
+}
+
+function renderAtivItem(a) {
   const statusLabel = {em_andamento:'▶ Em andamento', concluida:'✅ Concluída', pausada:'⏸ Pausada', pendente:'⏳ Pendente', cancelada:'❌ Cancelada'};
   const statusCor = {em_andamento:'#3B82F6', concluida:'#10B981', pausada:'#F59E0B', pendente:'#8B5CF6', cancelada:'#EF4444'};
-  el.innerHTML = ativs.map(a => {
-    const autor = memb.find(m => m.av === a.autor);
-    const setor = espacos.find(e => e.id === a.espaco_id);
-    const cor = a.cor || '#4F46E5';
-    const st = a.status || 'em_andamento';
-    const stCor = statusCor[st] || '#3B82F6';
-    const updates = (a.updates || []).length;
-    const _ativAtrasada = a.prazo && st !== 'concluida' && new Date(a.prazo+'T23:59') < new Date();
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;${_ativAtrasada ? 'border-left:4px solid #EF4444;background:rgba(239,68,68,0.06);box-shadow:inset 0 0 0 1px rgba(239,68,68,0.12);' : ''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-      <div onclick="abrirDetalheAtiv('${a.id}')" style="width:4px;height:40px;border-radius:4px;background:${cor};flex-shrink:0;"></div>
-      <div onclick="abrirDetalheAtiv('${a.id}')" style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;color:${_ativAtrasada?'#DC2626':'var(--tx)'};margin-bottom:3px;">${_ativAtrasada?'<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:5px;vertical-align:middle;">⚠ ATRASADO</span>':''}${a.titulo}</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          ${setor ? `<span style="font-size:10px;color:var(--tx3);">📁 ${setor.nome}</span>` : ''}
-          ${a.prazo ? `<span style="font-size:10px;font-weight:600;color:${new Date(a.prazo)<new Date()&&st!=='concluida'?'#EF4444':'var(--tx3)'};">📅 ${new Date(a.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>` : ''}
-          ${a.descricao ? `<span style="font-size:10px;color:var(--tx3);">${a.descricao.slice(0,40)}${a.descricao.length>40?'…':''}</span>` : ''}
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        <span style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:${stCor}18;color:${stCor};border:1px solid ${stCor}33;white-space:nowrap;">${statusLabel[st]||st}</span>
-        ${autor ? `<div style="width:28px;height:28px;border-radius:8px;background:${autor.cor||'#4F46E5'}22;color:${autor.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;" title="${autor.nome}">${autor.av}</div>` : ''}
-        <button onclick="event.stopPropagation();abrirEditAtiv('${a.id}')" style="width:26px;height:26px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;font-size:11px;flex-shrink:0;" title="Editar">✏️</button>
-      </div>
-    </div>`;
-  }).join('');
+  const autor = memb.find(m => m.av === a.autor);
+  const setor = espacos.find(e => e.id === a.espaco_id);
+  const cor = a.cor || '#4F46E5';
+  const st = a.status || 'em_andamento';
+  const stCor = statusCor[st] || '#3B82F6';
+  const _atrasada = a.prazo && st !== 'concluida' && new Date(a.prazo+'T23:59') < new Date();
+  return '<div style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;'+(_atrasada?'border-left:4px solid #EF4444;background:rgba(239,68,68,0.06);':'')+'" onclick="abrirDetalheAtiv(\''+ a.id +'\')">'
+    + '<div style="width:4px;height:40px;border-radius:4px;background:'+cor+';flex-shrink:0;"></div>'
+    + '<div style="flex:1;min-width:0;">'
+    + '<div style="font-size:13px;font-weight:700;color:'+(_atrasada?'"#DC2626"':'"var(--tx)"')+';margin-bottom:3px;">'
+    + (_atrasada ? '<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:5px;">⚠ ATRASADO</span>' : '')
+    + a.titulo + '</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    + (setor ? '<span style="font-size:10px;color:var(--tx3);">📁 '+setor.nome+'</span>' : '')
+    + (a.prazo ? '<span style="font-size:10px;font-weight:600;color:'+(new Date(a.prazo)<new Date()&&st!=='concluida'?'#EF4444':'var(--tx3)')+'">📅 '+new Date(a.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</span>' : '')
+    + '</div></div>'
+    + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+    + '<span style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:'+stCor+'18;color:'+stCor+';border:1px solid '+stCor+'33;white-space:nowrap;">'+(statusLabel[st]||st)+'</span>'
+    + (autor ? '<div style="width:28px;height:28px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;" title="'+autor.nome+'">'+autor.av+'</div>' : '')
+    + '<button onclick="event.stopPropagation();abrirEditAtiv(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;font-size:11px;">✏️</button>'
+    + '</div></div>';
 }
 
 function fmtDate(iso) {
@@ -6860,6 +6923,39 @@ async function salvarDescricaoAgora(tarefaId, valor) {
 
 
 
+
+function popularArvoreProjeto(projetoId) {
+  const sel = document.getElementById('ntPai');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Tarefa raiz (nível principal)</option>';
+  if (!projetoId) return;
+  // Edição atual — para não listar a própria tarefa como pai
+  const editId = window._modoEdicaoTarefa || null;
+  const tarefasDoProjeto = tar.filter(t => String(t.projeto_id) === String(projetoId) && String(t.id) !== String(editId));
+  if (!tarefasDoProjeto.length) return;
+  // Separar raízes e filhos
+  const ids = new Set(tarefasDoProjeto.map(t => t.id));
+  function addOpts(paiId, nivel) {
+    const filhos = tarefasDoProjeto.filter(t => String(t.tarefa_pai_id) === String(paiId));
+    filhos.forEach(function(t) {
+      const prefix = '    '.repeat(nivel) + (nivel > 0 ? '└ ' : '');
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = prefix + (t.titulo || t.tit || 'Sem título');
+      sel.appendChild(opt);
+      addOpts(t.id, nivel + 1);
+    });
+  }
+  // Raízes = sem pai ou pai fora do projeto
+  const raizes = tarefasDoProjeto.filter(t => !t.tarefa_pai_id || !ids.has(t.tarefa_pai_id));
+  raizes.forEach(function(t) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.titulo || t.tit || 'Sem título';
+    sel.appendChild(opt);
+    addOpts(t.id, 1);
+  });
+}
 
 // ── CO-RESPONSÁVEL ───────────────────────────────────────────
 function adicionarCoRespForm(av) {
@@ -10823,23 +10919,34 @@ function renderHierarquia() {
         h += '</div></div>';
       }
 
-      // Atividades do setor
+      // Atividades do setor — bloco colapsável
       if (ativsSetor.length > 0) {
-        h += '<div>';
-        h += '<div style="font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">⚡ ATIVIDADES</div>';
-        h += '<div style="display:flex;flex-direction:column;gap:6px;">';
+        var _ativSetorId = 'ativSetor_' + setor.id.replace(/-/g,'');
+        var _ativAtrasadasCount = ativsSetor.filter(function(a){ return a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < hoje; }).length;
+        h += '<div style="margin-top:8px;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">';
+        h += '<div onclick="toggleAtivSetor(\''+_ativSetorId+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#F8FAFC;cursor:pointer;user-select:none;" onmouseover="this.style.background=\'#F1F5F9\'" onmouseout="this.style.background=\'#F8FAFC\'">';
+        h += '<div style="display:flex;align-items:center;gap:8px;">';
+        h += '<span style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.8px;">⚡ Atividades</span>';
+        h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E0E7FF;color:#4F46E5;">'+ativsSetor.length+'</span>';
+        if (_ativAtrasadasCount > 0) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#FEE2E2;color:#EF4444;">'+_ativAtrasadasCount+' atrasada'+(  _ativAtrasadasCount>1?'s':'')+'</span>';
+        h += '</div>';
+        h += '<span id="'+_ativSetorId+'_ico" style="font-size:12px;color:#94A3B8;">▼</span>';
+        h += '</div>';
+        h += '<div id="'+_ativSetorId+'" style="display:none;padding:10px 14px;display:flex;flex-direction:column;gap:6px;">';
         ativsSetor.forEach(function(a){
           const cor = a.cor || '#4F46E5';
           const autor = memb.find(function(m){ return m.av===a.autor; });
-          h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#F8FAFC;border-radius:10px;border:1px solid #EAEFF6;transition:all .15s;cursor:default" onmouseover="this.style.borderColor=\'#4F46E5\'" onmouseout="this.style.borderColor=\'#EAEFF6\'">';
-          h += '<div style="width:4px;height:36px;border-radius:4px;background:'+cor+';flex-shrink:0"></div>';
-          h += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:#1E293B;">'+a.titulo+'</div>';
+          const _atrasada = a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < hoje;
+          h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(_atrasada?'rgba(239,68,68,0.04)':'#fff')+';border-radius:10px;border:1px solid '+(_atrasada?'#FECACA':'#EAEFF6')+';transition:all .15s;cursor:pointer;" onclick="abrirDetalheAtiv(\''+a.id+'\')">';
+          h += '<div style="width:4px;height:36px;border-radius:4px;background:'+(_atrasada?'#EF4444':cor)+';flex-shrink:0"></div>';
+          h += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:'+(_atrasada?'#DC2626':'#1E293B')+';">';
+          if (_atrasada) h += '<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:4px;">⚠ ATRASADO</span>';
+          h += a.titulo+'</div>';
           if (a.descricao) h += '<div style="font-size:10px;color:#64748B;margin-top:2px;">'+a.descricao.slice(0,60)+(a.descricao.length>60?'…':'')+'</div>';
           h += '</div>';
           if (autor) h += '<div style="width:26px;height:26px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="'+autor.nome+'">'+autor.av+'</div>';
           h += '<div style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+cor+'14;color:'+cor+';">'+( a.tipo||'atividade')+'</div>';
-          h += '<button onclick="excluirAtividade(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#FEF2F2;border:none;cursor:pointer;font-size:11px;flex-shrink:0;" title="Excluir">🗑</button>';
-          h += '<button onclick="abrirDetalheAtiv(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#EFF6FF;border:none;cursor:pointer;font-size:11px;flex-shrink:0;" title="Ver/Editar">✏️</button>';
+          h += '<button onclick="event.stopPropagation();excluirAtividade(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#FEF2F2;border:none;cursor:pointer;font-size:11px;flex-shrink:0;">🗑</button>';
           h += '</div>';
         });
         h += '</div></div>';
@@ -12662,7 +12769,7 @@ async function entrarNoApp(usuario) {
     wname.textContent = saud + ', ' + (usuario.nome?.split(' ')[0]||usuario.av||'Você').toUpperCase();
   }
   renderAll();
-  // Controle de visibilidade do Radar — só MA
+  // Controle de visibilidade — Radar só MA, Atividades para todos
   const _isMa = usuario.av === 'MA';
   const _rD = document.getElementById('navRadarDesktop');
   const _rM = document.getElementById('navRadarMobile');
