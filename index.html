@@ -11199,7 +11199,7 @@ function _agendarResumoDiario() {
   function msAte1930() {
     const agora = new Date();
     const alvo = new Date();
-    alvo.setHours(19, 36, 0, 0);
+    alvo.setHours(10, 0, 0, 0);
     // Se já passou das 19:30, agenda para amanhã
     if (agora >= alvo) alvo.setDate(alvo.getDate() + 1);
     return alvo - agora;
