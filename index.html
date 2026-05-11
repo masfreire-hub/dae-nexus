@@ -4861,45 +4861,28 @@ function renderDashAtividades() {
   const el = document.getElementById('dashAtividades');
   const cnt = document.getElementById('cntAtividades');
   if (!el) return;
-  // Somente atividades dos setores (com espaco_id) — não o log de ações
+  // MA vê todo o histórico, demais veem só as suas ações
   const isMa = curUser?.av === 'MA';
-  const ativsSetor = ativs.filter(a => a.espaco_id);
-  let lista = isMa ? [...ativsSetor] : ativsSetor.filter(a => a.autor === curUser?.av || a.resp === curUser?.av);
-  // Aplicar filtro de status
-  const hoje = new Date();
-  if (_ativFiltroAtual === 'em_andamento') lista = lista.filter(a => (a.status||'em_andamento') === 'em_andamento');
-  else if (_ativFiltroAtual === 'pendente') lista = lista.filter(a => a.status === 'pendente');
-  else if (_ativFiltroAtual === 'concluida') lista = lista.filter(a => a.status === 'concluida');
-  else if (_ativFiltroAtual === 'atrasada') lista = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < hoje);
+  let lista = isMa ? [...ativs] : ativs.filter(a => a.autor === curUser?.av || a.resp === curUser?.av);
   if (!lista.length) {
     el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:12px;">Nenhuma atividade encontrada</div>';
     if (cnt) cnt.textContent = '0';
     return;
   }
-  if (cnt) cnt.textContent = lista.length;
-
-  // Seções quando filtro = todas
-  if (_ativFiltroAtual === 'todas') {
-    const _hojeMeio = new Date(); _hojeMeio.setHours(0,0,0,0);
-    const _hojeF = new Date(); _hojeF.setHours(23,59,59,0);
-    const _em3d = new Date(); _em3d.setDate(_em3d.getDate()+3); _em3d.setHours(23,59,59,0);
-    const _atrasadas = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < _hojeMeio);
-    const _hj = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') >= _hojeMeio && new Date(a.prazo+'T23:59') <= _hojeF);
-    const _venc = lista.filter(a => a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') > _hojeF && new Date(a.prazo+'T23:59') <= _em3d);
-    const _dem = lista.filter(a => !_atrasadas.find(x=>x.id===a.id) && !_hj.find(x=>x.id===a.id) && !_venc.find(x=>x.id===a.id));
-    const _sec = function(titulo, cor, lst) {
-      if (!lst.length) return '';
-      return '<div style="margin:12px 0 6px;padding:6px 10px;background:'+cor+'15;border-left:3px solid '+cor+';border-radius:6px;font-size:11px;font-weight:800;color:'+cor+';letter-spacing:.5px;">'+titulo+' ('+lst.length+')</div>'
-        + lst.map(renderAtivItem).join('');
-    };
-    el.innerHTML = _sec('⚠️ ATRASADAS', '#EF4444', _atrasadas)
-      + _sec('📅 HOJE', '#F59E0B', _hj)
-      + _sec('⏰ VENCENDO EM BREVE', '#3B82F6', _venc)
-      + _sec('📋 DEMAIS', '#6B7280', _dem);
+  if (!lista.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx3);font-size:12px;">Nenhuma atividade ainda</div>';
+    if (cnt) cnt.textContent = '0';
     return;
   }
-  el.innerHTML = lista.map(renderAtivItem).join('');
+  if (cnt) cnt.textContent = lista.length;
+  el.innerHTML = lista.map(function(a) {
+    const m = memb.find(x => x.av === a.autor);
+    return '<div class="ai"><div class="adot" style="background:'+(a.cor||'#C9920A')+'"></div>'
+      + '<div><div class="at"><strong>'+(m?.nome||a.autor||'Sistema')+'</strong> — '+(a.descricao||a.titulo)+'</div>'
+      + '<div class="atm">'+fmtDate(a.created_at)+'</div></div></div>';
+  }).join('');
 }
+
 
 function renderAtivItem(a) {
   const statusLabel = {em_andamento:'▶ Em andamento', concluida:'✅ Concluída', pausada:'⏸ Pausada', pendente:'⏳ Pendente', cancelada:'❌ Cancelada'};
