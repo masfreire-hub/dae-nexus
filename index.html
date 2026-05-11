@@ -5766,9 +5766,33 @@ async function addTask() {
   const newProg = pTasks.length ? Math.round((pOk/pTasks.length)*100) : 0;
   const p = proj.find(x => x.id===data.projeto_id);
   if (p) p.prog = newProg;
-  // Notificar responsável
+  // Notificar responsável (interno)
   if (data.resp && data.resp !== curUser?.av) {
-    await safeDb.from('notificacoes').insert([{ destinatario:data.resp, titulo:'Nova tarefa atribuída', texto:`"${t}" foi atribuída a você`, tipo:'info', tarefa_id:data.id }]);
+    await safeDb.from('notificacoes').insert([{ destinatario:data.resp, titulo:'Nova tarefa atribuída', texto:'"' + t + '" foi atribuída a você', tipo:'info', tarefa_id:data.id }]);
+  }
+  // Notificar co-responsáveis (interno + Telegram)
+  const coRespsNovos = (() => { try { return JSON.parse(data.co_responsaveis||'[]'); } catch(e){ return []; } })();
+  if (coRespsNovos.length) {
+    const notifsCo = coRespsNovos
+      .filter(av => av !== curUser?.av && av !== data.resp)
+      .map(av => ({ destinatario:av, titulo:'Você é co-responsável', texto:'"' + t + '" — você foi adicionado como co-responsável', tipo:'info', tarefa_id:data.id }));
+    if (notifsCo.length) await safeDb.from('notificacoes').insert(notifsCo);
+    const pNovaCo = proj.find(x=>x.id===data.projeto_id);
+    const respNovaCo = memb.find(x=>x.av===data.resp);
+    const prazoNovaCo = data.prazo ? new Date(data.prazo+'T12:00').toLocaleDateString('pt-BR') : 'Sem prazo';
+    for (const av of coRespsNovos) {
+      if (av === curUser?.av) continue;
+      const mb = memb.find(x=>x.av===av);
+      if (!mb?.telegram_id) continue;
+      const msgCo = '👥 <b>Você é co-responsável!</b>\n\n<b>' + (data.titulo||'') + '</b>\n'
+        + (pNovaCo ? '📁 ' + pNovaCo.nome + '\n' : '')
+        + '👤 Responsável principal: ' + (respNovaCo?.nome||data.resp||'—') + '\n'
+        + '⚡ Prioridade: ' + (data.prior||'—') + '\n'
+        + '📅 Prazo: ' + prazoNovaCo + '\n\n'
+        + '🕐 ' + new Date().toLocaleString('pt-BR') + '\n'
+        + '✍️ Por: ' + (curUser?.nome||curUser?.av||'—');
+      enviarTelegram(mb.telegram_id, msgCo);
+    }
   }
   closeM('mTask'); renderTasks(); renderUrgent(); renderChart(); popSels();
   document.getElementById('ntT').value = '';
@@ -5985,7 +6009,17 @@ async function openDet(type, id) {
     if (detMetaRow) detMetaRow.style.display='none';
   }
   if (type==='task') {
-    const t = tar.find(x => x.id===id); if (!t) return;
+    // Buscar tarefa fresca do banco para garantir co_responsaveis atualizado
+    let t = tar.find(x => x.id===id);
+    if (!t) return;
+    try {
+      const { data: tFresh } = await safeDb.from('tarefas').select('*').eq('id', id).single();
+      if (tFresh) {
+        Object.assign(t, tFresh);
+        const idx = tar.findIndex(x => x.id===id);
+        if (idx > -1) tar[idx] = t;
+      }
+    } catch(e) {}
     // Busca robusta do projeto (compara como string para evitar tipo mismatch)
     let p = proj.find(x => String(x.id) === String(t.projeto_id));
     // Fallback: buscar no Supabase se não achou localmente
