@@ -2336,7 +2336,7 @@ select.sel{
     <div class="ni" onclick="sw('chat',this);limparBadgeChat()"><span class="niic" style="position:relative"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div id="chatNavBadge"></div></span><span class="nilb">Chat</span></div>
     <div class="ni" onclick="sw('meet',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nilb">Agenda</span></div>
     <div class="sb-group" style="margin-top:8px">FISCALIZAÇÃO</div>
-    <div class="ni" onclick="sw('risk',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nilb">Radar</span></div>
+    <div class="ni" id="navRadarDesktop" onclick="sw('risk',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nilb">Radar</span></div>
     <div class="ni" onclick="sw('gantt',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nilb">Timeline</span></div>
     <div class="ni" onclick="sw('painel',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nilb">Estratégico</span></div>
     <div class="ni" onclick="sw('nova',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="nilb">Nova IA</span></div>
@@ -2398,7 +2398,7 @@ select.sel{
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
           <div class="kpi-num" id="statAtrasados">0</div>
-          <div class="kpi-label">Atrasados</div>
+          <div class="kpi-label">Proj. Atrasados</div>
           <div class="kpi-sub" id="statAtrasadosNomes">—</div>
         </div>
         <div class="kpi-card kpi-amber" onclick="sw('tasks',document.querySelectorAll('#sidebar .ni')[2])">
@@ -2406,15 +2406,15 @@ select.sel{
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           </div>
           <div class="kpi-num" id="statUrgentes">0</div>
-          <div class="kpi-label">Urgentes</div>
+          <div class="kpi-label">Tarefas Urgentes</div>
           <div class="kpi-sub" id="statUrgentesNomes">—</div>
         </div>
-        <div class="kpi-card kpi-violet" onclick="sw('risk',document.querySelectorAll('#sidebar .ni')[5])">
+        <div class="kpi-card kpi-violet" id="kpiRiscos" onclick="sw('risk',document.querySelectorAll('#sidebar .ni')[5])">
           <div class="kpi-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <div class="kpi-num" id="statRiscos">0</div>
-          <div class="kpi-label">Riscos</div>
+          <div class="kpi-label">Riscos Ativos</div>
           <div class="kpi-sub" id="statRiscosStr">—</div>
         </div>
       </div>
@@ -2446,7 +2446,7 @@ select.sel{
           </div>
           <div id="urgentList"></div>
         </div>
-        <div class="section-card">
+        <div class="section-card" id="dashRadarRiscoCard">
           <div class="sec-header">
             <span class="sec-title">Radar de Risco</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -3553,7 +3553,7 @@ select.sel{
     <div class="ni" onclick="sw('tasks',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="nilb">Tarefas</span></div>
     <div class="ni" onclick="sw('chat',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="nilb">Chat</span></div>
     <div class="ni" onclick="sw('meet',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nilb">Agenda</span></div>
-    <div class="ni" onclick="sw('risk',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nilb">Radar</span></div>
+    <div class="ni" id="navRadarMobile" onclick="sw('risk',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nilb">Radar</span></div>
     <div class="ni" onclick="sw('gantt',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nilb">Timeline</span></div>
     <div class="ni" onclick="sw('painel',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nilb">Estratégico</span></div>
     <div class="ni" onclick="sw('nova',this)"><span class="niic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="nilb">Nova IA</span></div>
@@ -4101,7 +4101,7 @@ function sw(name, el) {
         if(data?.length) { memb = data; renderMembers(); renderChatDMs(); }
       });
     },
-    risk:    () => { try{renderRiscos();}catch(e){} },
+    risk:    () => { if(curUser?.av !== 'MA'){ showToast('⛔ Acesso restrito à gestora'); sw('home'); return; } try{renderRiscos();}catch(e){} },
     gantt:   () => { try{renderGantt();}catch(e){} },
     painel:  () => { try{renderPainel();}catch(e){} },
     meuespaco: () => { 
@@ -4638,13 +4638,13 @@ function renderDashInteligente() {
 
   // KPIs
   el('statProjAtivos',      projAtivos.length);
-  el('statProjNomes',       projAtivos.slice(0,3).map(p=>p.nome.split(' ')[0]).join('·')||'—');
+  el('statProjNomes',       tarAbertas.length + ' tarefas abertas');
   el('statAtrasados',       projAtrasados.length);
-  el('statAtrasadosNomes',  projAtrasados.length ? projAtrasados.slice(0,2).map(p=>p.nome.split(' ')[0]).join(', ') : 'Nenhum');
+  el('statAtrasadosNomes',  projAtrasados.length ? projAtrasados.slice(0,2).map(p=>p.nome.split(' ')[0]).join(', ') : 'Todos no prazo ✅');
   el('statUrgentes',        tarUrgentes.length);
-  el('statUrgentesNomes',   tarUrgentes.length ? tarUrgentes.slice(0,2).map(t=>t.titulo||t.tit||'').join(', ') : 'Tudo ok');
+  el('statUrgentesNomes',   tarUrgentes.length ? tarAtrasadas.length + ' atrasada(s) · ' + tarUrgentes.length + ' urgente(s)' : 'Nenhuma urgente ✅');
   el('statRiscos',          riscosAtivos.length);
-  el('statRiscosStr',       riscosAltos.length ? riscosAltos.length + ' de alta severidade' : 'Sem riscos altos');
+  el('statRiscosStr',       riscosAltos.length ? riscosAltos.length + ' de alta severidade' : 'Sem riscos altos ✅');
 
   // SVGs
   const SVG_RED  = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
@@ -4844,10 +4844,11 @@ function renderDashAtividades() {
     const st = a.status || 'em_andamento';
     const stCor = statusCor[st] || '#3B82F6';
     const updates = (a.updates || []).length;
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+    const _ativAtrasada = a.prazo && st !== 'concluida' && new Date(a.prazo+'T23:59') < new Date();
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;${_ativAtrasada ? 'border-left:4px solid #EF4444;background:rgba(239,68,68,0.06);box-shadow:inset 0 0 0 1px rgba(239,68,68,0.12);' : ''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <div onclick="abrirDetalheAtiv('${a.id}')" style="width:4px;height:40px;border-radius:4px;background:${cor};flex-shrink:0;"></div>
       <div onclick="abrirDetalheAtiv('${a.id}')" style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:3px;">${a.titulo}</div>
+        <div style="font-size:13px;font-weight:700;color:${_ativAtrasada?'#DC2626':'var(--tx)'};margin-bottom:3px;">${_ativAtrasada?'<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:5px;vertical-align:middle;">⚠ ATRASADO</span>':''}${a.titulo}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           ${setor ? `<span style="font-size:10px;color:var(--tx3);">📁 ${setor.nome}</span>` : ''}
           ${a.prazo ? `<span style="font-size:10px;font-weight:600;color:${new Date(a.prazo)<new Date()&&st!=='concluida'?'#EF4444':'var(--tx3)'};">📅 ${new Date(a.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>` : ''}
@@ -5186,6 +5187,7 @@ function trow(t) {
   const pc = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#22C55E'}[t.prior]||'#C9920A';
   const p = proj.find(x => x.id === t.projeto_id);
   const m = memb.find(x => x.av === t.resp);
+  const _tarefaAtrasada = !t.ok && t.prazo && new Date(t.prazo+'T23:59') < new Date();
   // Buscar setor
   const espaco = p ? espacos.find(e => e.id === p.espaco_id) : null;
   const nomeSetor = espaco?.nome || '';
@@ -5195,10 +5197,10 @@ function trow(t) {
     const mb = memb.find(x=>x.av===av);
     return `<div style="width:22px;height:22px;border-radius:6px;background:${mb?.cor||'#6366F1'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;flex-shrink:0;" title="${mb?.nome||av}">${av}</div>`;
   }).join('');
-  return `<div class="ti" onclick="openDet('task','${t.id}')">
+  return `<div class="ti" onclick="openDet('task','${t.id}')" style="${_tarefaAtrasada?'border-left:4px solid #EF4444;background:rgba(239,68,68,0.06);box-shadow:inset 0 0 0 1px rgba(239,68,68,0.12);':''}">
     <div class="tc ${t.ok?'ok':''}" onclick="event.stopPropagation();togTask('${t.id}')">${t.ok?'✓':''}</div>
     <div style="flex:1;min-width:0;">
-      <div class="tt ${t.ok?'done':''}">${t.titulo||t.tit}</div>
+      <div class="tt ${t.ok?'done':''}" style="${_tarefaAtrasada?'color:#DC2626;':''}">${_tarefaAtrasada?'<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:5px;vertical-align:middle;">⚠ ATRASADO</span>':''}${t.titulo||t.tit}</div>
       <div style="font-size:10px;color:var(--tx3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         ${nomeSetor ? `<span style="font-weight:600;color:var(--brand);">${nomeSetor}</span><span>›</span>` : ''}
         <span>${p?p.nome:''}</span>
@@ -5377,11 +5379,12 @@ function renderArvoreConteudo() {
       return `<div style="width:18px;height:18px;border-radius:4px;background:${mb?.cor||'#6366F1'}22;color:${mb?.cor||'#6366F1'};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;" title="${mb?.nome||av}">${av}</div>`;
     }).join('');
 
+    const _arvAtrasada = !fechada && t.prazo && new Date(t.prazo+'T23:59') < new Date();
     let html = `<div class="arvore-task${fechada?' done':''}" onclick="openDet('task','${t.id}')"
-      style="padding-left:${indent+8}px;position:relative;">
+      style="padding-left:${indent+8}px;position:relative;${_arvAtrasada?'border-left:3px solid #EF4444;background:rgba(239,68,68,0.05);border-radius:6px;margin-bottom:2px;':''}">
       ${nivel>0?`<div style="position:absolute;left:${indent-4}px;top:50%;width:12px;height:1px;background:var(--border2);"></div>`:''}
       <div class="arvore-task-check${fechada?' done':''}">${fechada?'✓':''}</div>
-      <div class="arvore-task-title" style="font-size:${13-nivel}px;">${t.titulo||t.tit||'Sem título'}</div>
+      ${_arvAtrasada?'<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:4px;">⚠ ATRAS.</span>':''}<div class="arvore-task-title" style="font-size:${13-nivel}px;color:${_arvAtrasada?'#DC2626':''}">${t.titulo||t.tit||'Sem título'}</div>
       ${filhos.length?`<span style="font-size:9px;color:var(--brand);background:var(--brand-light);padding:1px 6px;border-radius:10px;">${filhos.length} sub</span>`:''}
       <span class="arvore-task-status" style="background:${corStatus}18;color:${corStatus};border:1px solid ${corStatus}33;">${t.status||'to do'}</span>
       ${t.prazo?`<span style="font-size:9px;color:${new Date(t.prazo)<new Date()&&!fechada?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
@@ -5621,12 +5624,16 @@ function renderKanban(l) {
                 const priorBg  = {urgente:'#FEF2F2',alta:'#FFF7ED',media:'#EFF6FF',baixa:'#F0FDF4'}[pr]||'#F8FAFC';
                 const m = memb.find(x=>x.av===t.resp);
                 const mCor = m?.cor||priorCor;
+                const _kAtrasado = !t.ok && t.prazo && new Date(t.prazo+'T23:59') < new Date();
+                const _kBg = _kAtrasado ? '#FFF5F5' : '#fff';
+                const _kBorder = _kAtrasado ? '#EF4444' : priorCor;
                 return `<div class="kcard" data-id="${t.id}" onclick="openDet('task','${t.id}')"
-                  style="background:#fff;border:1.5px solid ${priorCor}33;border-left:4px solid ${priorCor};border-radius:10px;box-shadow:0 2px 8px ${priorCor}15;margin-bottom:8px;cursor:pointer;transition:all .15s;"
-                  onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px ${priorCor}25'"
-                  onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px ${priorCor}15'">
+                  style="background:${_kBg};border:1.5px solid ${_kBorder}33;border-left:4px solid ${_kBorder};border-radius:10px;box-shadow:0 2px 8px ${_kBorder}15;margin-bottom:8px;cursor:pointer;transition:all .15s;${_kAtrasado?'box-shadow:0 0 0 1px #EF444433;':''}"
+                  onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px ${_kBorder}25'"
+                  onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px ${_kBorder}15'">
                   <div style="padding:10px 12px;">
-                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px;line-height:1.4;">${t.titulo||t.tit||'Sem título'}</div>
+                    <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:${_kAtrasado?'4px':'8px'};line-height:1.4;">${t.titulo||t.tit||'Sem título'}</div>
+                    ${_kAtrasado ? '<div style="font-size:9px;font-weight:800;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;padding:2px 8px;margin-bottom:6px;display:inline-block;">⚠️ ATRASADO</div>' : ''}
                     <div style="display:flex;align-items:center;justify-content:space-between;">
                       <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:${priorBg};color:${priorCor};border:1px solid ${priorCor}33;">${(t.prior||'normal').toUpperCase()}</span>
                       <div style="width:24px;height:24px;border-radius:8px;background:${mCor}22;color:${mCor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;border:1.5px solid ${mCor}44;" title="${m?.nome||t.resp||'?'}">${t.resp||'?'}</div>
@@ -10653,19 +10660,21 @@ function selIcone(el, icone) {
 }
 
 function renderEstacaoChips() {
-  const todas = [...new Set([
+  const rawAll = [
     ...(cadastros?.estacao||[]),
     ...proj.map(p => p.dept).filter(Boolean),
     ...espacos.map(e => e.estacao).filter(Boolean)
-  ].map(e => e.trim()))].sort();
+  ].map(e => e.trim().toUpperCase());
+  const seen = new Set();
+  const todas = rawAll.filter(e => { if(seen.has(e)) return false; seen.add(e); return true; }).sort();
   const el = document.getElementById('estacaoChips');
   if (!el) return;
-  el.innerHTML = `<div class="chip ${estacaoFiltroAtual==='todas'?'on':''}" onclick="filtrarEstacao('todas',this)">Todas</div>` +
-    todas.map(e => `<div class="chip ${estacaoFiltroAtual===e?'on':''}" onclick="filtrarEstacao('${e.replace(/'/g,"\\'")}',this)">${e}</div>`).join('');
+  el.innerHTML = '<div class="chip ' + (estacaoFiltroAtual==='todas'?'on':'') + '" onclick="filtrarEstacao(\'todas\',this)">Todas</div>' +
+    todas.map(function(e){ return '<div class="chip ' + (estacaoFiltroAtual===e?'on':'') + '" onclick="filtrarEstacao(\''+ e.replace(/\\/g,'\\\\')+'\',this)">' + e + '</div>'; }).join('');
 }
 
 function filtrarEstacao(nome, el) {
-  estacaoFiltroAtual = nome;
+  estacaoFiltroAtual = nome === 'todas' ? 'todas' : nome.trim().toUpperCase();
   document.querySelectorAll('#estacaoChips .chip').forEach(c => c.classList.remove('on'));
   if(el) el.classList.add('on');
   renderHierarquia();
@@ -10889,7 +10898,8 @@ function cardProjNovo(p, hoje, grad) {
     return m ? '<div style="width:22px;height:22px;border-radius:6px;background:'+(m.cor||'#4F46E5')+'22;color:'+(m.cor||'#4F46E5')+';display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1.5px solid #fff;margin-right:-4px" title="'+m.nome+'">'+m.av+'</div>' : '';
   }).join('');
 
-  var h = '<div class="proj-card" style="--proj-cor:'+barCor+'" onclick="openDet(\'proj\',\''+p.id+'\')">';
+  var _projBorder = atrasado ? 'border:2px solid #EF4444;background:rgba(239,68,68,0.06);box-shadow:0 0 0 3px rgba(239,68,68,0.08);' : '';
+  var h = '<div class="proj-card" style="--proj-cor:'+barCor+';'+_projBorder+'" onclick="openDet(\'proj\',\''+p.id+'\')">';
   h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding-top:6px;">';
   h += '<div class="proj-card-nome">'+p.nome+'</div>';
   h += '<div class="proj-card-acoes">';
@@ -12652,6 +12662,16 @@ async function entrarNoApp(usuario) {
     wname.textContent = saud + ', ' + (usuario.nome?.split(' ')[0]||usuario.av||'Você').toUpperCase();
   }
   renderAll();
+  // Controle de visibilidade do Radar — só MA
+  const _isMa = usuario.av === 'MA';
+  const _rD = document.getElementById('navRadarDesktop');
+  const _rM = document.getElementById('navRadarMobile');
+  const _rK = document.getElementById('kpiRiscos');
+  const _rCard = document.getElementById('dashRadarRiscoCard');
+  if (_rD) _rD.style.display = _isMa ? '' : 'none';
+  if (_rM) _rM.style.display = _isMa ? '' : 'none';
+  if (_rK) _rK.style.display = _isMa ? '' : 'none';
+  if (_rCard) _rCard.style.display = _isMa ? '' : 'none';
   sw('home', document.querySelector('.ni.on'));
   try { renderNova(); } catch(e) {}
   // Forçar scroll no topo
