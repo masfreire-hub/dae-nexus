@@ -3125,6 +3125,29 @@ select.sel{
 
 <div class="tab" id="t-migracao">
 <div class="ph"><div><div class="pt">MIGRAÇÃO CLICKUP</div><div class="ps">Importe tarefas do ClickUp para o Nexus</div></div></div>
+<div class="card" style="cursor:default;border:2px solid #10B981;margin-bottom:16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <b style="font-size:15px;display:block;margin-bottom:4px;">📄 Migração de Documentos</b>
+      <span style="font-size:12px;color:#6B7280;" id="migDocStatusTxt">Importa todos os documentos do ClickUp para o Nexus.</span>
+    </div>
+    <button id="migDocBtn" onclick="iniciarMigracaoDocumentos()" class="btnadd" style="padding:12px 28px;font-size:14px;background:#10B981;">📄 Importar Documentos</button>
+  </div>
+  <div id="migDocProgressWrap" style="display:none;margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:4px;">
+      <span id="migDocProgressLabel">Importando documentos...</span><span id="migDocProgressPct">0%</span>
+    </div>
+    <div style="background:#E5E7EB;border-radius:8px;height:8px;overflow:hidden;">
+      <div id="migDocProgressBar" style="height:100%;background:#10B981;width:0%;transition:width .3s;"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;">
+      <span style="color:#10B981;">✅ <b id="migDocCtOk">0</b> importados</span>
+      <span style="color:#F59E0B;">⚠️ <b id="migDocCtSkip">0</b> pulados</span>
+      <span style="color:#EF4444;">❌ <b id="migDocCtErr">0</b> erros</span>
+    </div>
+  </div>
+</div>
+
 <div class="card" style="cursor:default;border:2px solid #4F46E5;margin-bottom:16px;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
     <div>
@@ -7037,6 +7060,140 @@ function renderProjConcluidos() {
     }).join('')
     + '</div>';
 }
+
+// ── MIGRAÇÃO DOCUMENTOS CLICKUP ──────────────────────────────
+const _CU_TOKEN = 'pk_200491094_BZ5WFWGKMHEH1NUHSWZAVBRX1B5CUBG6';
+const _CU_WS = '90131535330';
+
+async function _cuFetch(path) {
+  const r = await fetch('https://api.clickup.com/api/v2/' + path, {
+    headers: { 'Authorization': _CU_TOKEN, 'Content-Type': 'application/json' }
+  });
+  if (!r.ok) throw new Error('ClickUp API: ' + r.status);
+  return r.json();
+}
+
+function _migDocLog(msg, tipo) {
+  const el = document.getElementById('migLog');
+  if (!el) return;
+  if (el.querySelector('[style*="Nenhuma"]')) el.innerHTML = '';
+  const cor = tipo==='ok'?'#10B981':tipo==='err'?'#EF4444':tipo==='skip'?'#F59E0B':'#94A3B8';
+  const icon = tipo==='ok'?'✅':tipo==='err'?'❌':tipo==='skip'?'⚠️':'📄';
+  const div = document.createElement('div');
+  div.style.cssText = 'color:'+cor+';padding:2px 0;border-bottom:1px solid rgba(0,0,0,.05);';
+  div.textContent = new Date().toLocaleTimeString('pt-BR') + ' ' + icon + ' ' + msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function iniciarMigracaoDocumentos() {
+  const btn = document.getElementById('migDocBtn');
+  const wrap = document.getElementById('migDocProgressWrap');
+  const statusTxt = document.getElementById('migDocStatusTxt');
+  if (btn) { btn.disabled=true; btn.style.opacity='.5'; btn.textContent='⏳ Importando...'; }
+  if (wrap) wrap.style.display = 'block';
+
+  let ctOk=0, ctSkip=0, ctErr=0;
+  const upd = () => {
+    document.getElementById('migDocCtOk').textContent = ctOk;
+    document.getElementById('migDocCtSkip').textContent = ctSkip;
+    document.getElementById('migDocCtErr').textContent = ctErr;
+  };
+
+  const setP = (pct, lbl) => {
+    const bar = document.getElementById('migDocProgressBar');
+    const pctEl = document.getElementById('migDocProgressPct');
+    const lblEl = document.getElementById('migDocProgressLabel');
+    if(bar) bar.style.width = pct+'%';
+    if(pctEl) pctEl.textContent = pct+'%';
+    if(lblEl && lbl) lblEl.textContent = lbl;
+  };
+
+  _migDocLog('Iniciando migração de documentos...', 'info');
+
+  try {
+    // 1. Buscar todos os documentos do workspace
+    setP(10, 'Buscando documentos...');
+    const docsData = await _cuFetch('team/'+_CU_WS+'/doc?max_pages=50');
+    const docs = docsData.docs || [];
+    _migDocLog('Total de documentos encontrados: ' + docs.length, 'info');
+
+    // 2. Verificar docs já migrados
+    const { data: jaImportados } = await safeDb.from('documentos').select('titulo,pasta');
+    const jaImportadosSet = new Set((jaImportados||[]).map(d => d.titulo + '|' + d.pasta));
+
+    const total = docs.length;
+    let idx = 0;
+
+    for (const doc of docs) {
+      idx++;
+      setP(Math.round(10 + (idx/total)*80), 'Importando ' + idx + '/' + total + ': ' + (doc.name||'Sem título'));
+
+      const titulo = doc.name || 'Sem título';
+      // Pasta baseada na localização do doc
+      const pasta = doc.parent?.name || doc.parent?.title || 'ClickUp';
+
+      // Verificar duplicata
+      const key = titulo + '|' + pasta;
+      if (jaImportadosSet.has(key)) {
+        ctSkip++;
+        _migDocLog('Pulado (já existe): ' + titulo, 'skip');
+        upd();
+        continue;
+      }
+
+      // Buscar páginas do documento
+      let conteudo = '';
+      try {
+        const pagesData = await _cuFetch('doc/'+doc.id+'/page?max_page_depth=-1');
+        const pages = pagesData.pages || [];
+        for (const page of pages) {
+          try {
+            const pageDetail = await _cuFetch('doc/'+doc.id+'/page/'+page.id+'?content_format=text%2Fmd');
+            if (pageDetail.content) {
+              conteudo += (page.name ? '# ' + page.name + '\n\n' : '') + pageDetail.content + '\n\n---\n\n';
+            }
+          } catch(pe) { conteudo += '# ' + (page.name||'P\u00e1gina') + '\n\n*(Conte\u00fado n\u00e3o dispon\u00edvel)*\n\n'; }
+        }
+      } catch(e) { conteudo = '*(Documento migrado do ClickUp - conteúdo não disponível)*'; }
+
+      if (!conteudo.trim()) conteudo = '*(Documento migrado do ClickUp)*';
+
+      // Inserir no Supabase
+      const { error } = await safeDb.from('documentos').insert([{
+        titulo,
+        conteudo,
+        pasta,
+        autor: curUser?.av || 'MA',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }]);
+
+      if (error) {
+        ctErr++;
+        _migDocLog('ERRO: ' + titulo + ' — ' + error.message, 'err');
+      } else {
+        ctOk++;
+        jaImportadosSet.add(key);
+        _migDocLog('Importado: ' + titulo + ' → ' + pasta, 'ok');
+      }
+      upd();
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    setP(100, 'Concluído!');
+    if (statusTxt) statusTxt.textContent = '✅ ' + ctOk + ' documentos importados, ' + ctSkip + ' pulados, ' + ctErr + ' erros.';
+    _migDocLog('--- FIM: '+ctOk+' ok | '+ctSkip+' pulados | '+ctErr+' erros ---', 'info');
+    showToast('✅ ' + ctOk + ' documentos importados!');
+
+  } catch(e) {
+    _migDocLog('ERRO GERAL: ' + e.message, 'err');
+    if (statusTxt) statusTxt.textContent = '❌ Erro: ' + e.message;
+  }
+
+  if (btn) { btn.disabled=false; btn.style.opacity='1'; btn.textContent='📄 Importar novamente'; }
+}
+// ─────────────────────────────────────────────────────────────
 
 // ── MIGRAÇÃO CLICKUP ──────────────────────────────────────────
 const _MIGMEMBROS = {
