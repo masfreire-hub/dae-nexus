@@ -335,6 +335,7 @@ body{
 .tab{display:none;animation:fadeUp .25s var(--ease) both;}
 .tab.on{display:block;}
 .tab:not(.on){height:0;overflow:hidden;margin:0;padding:0;}
+#t-migracao.on{display:block!important;height:auto!important;overflow:visible!important;}
 
 /* ═══════════════════════════════════════════════════════════════
    CARDS BASE
@@ -2349,6 +2350,7 @@ select.sel{
     <div class="ni" id="navAtividades" onclick="sw('atividades',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></span><span class="nilb">Atividades</span></div>
     <div class="ni" onclick="sw('team',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nilb">Equipe</span></div>
     <div class="spc"></div>
+    <div class="ni" id="navMigracao" onclick="sw('migracao',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nilb">Migração</span></div>
     <div class="ni" onclick="sw('config',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41"/><path d="M2 12A10 10 0 0 0 12 22 10 10 0 0 0 22 12 10 10 0 0 0 12 2a10 10 0 0 0-10 10z" opacity="0"/></svg></span><span class="nilb">Cadastros</span></div>
     <div class="ni" onclick="sw('arquivos',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span><span class="nilb">Arquivos</span></div>
   </div>
@@ -3116,6 +3118,41 @@ select.sel{
     </div>
   </div>
   <div id="horasTabela" style="overflow-x:auto;"></div>
+</div>
+
+<div class="tab" id="t-migracao"><script>console.log("TAB MIGRACAO CARREGADA NO DOM");</script>
+<div class="ph"><div><div class="pt">MIGRAÇÃO CLICKUP</div><div class="ps">Importe tarefas do ClickUp para o Nexus</div></div></div>
+<div class="card" style="cursor:default;border:2px solid #4F46E5;margin-bottom:16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <b style="font-size:15px;display:block;margin-bottom:4px;">🔄 Importação do ClickUp</b>
+      <span style="font-size:12px;color:#6B7280;" id="migStatusTxt">Pronto para importar. Clique no botão para iniciar.</span>
+    </div>
+    <button id="migBtnImportar" onclick="iniciarMigracao()" class="btnadd" style="padding:12px 28px;font-size:14px;">🔄 Importar do ClickUp</button>
+  </div>
+  <div id="migProgressWrap" style="display:none;margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:4px;">
+      <span id="migProgressLabel">Importando...</span><span id="migProgressPct">0%</span>
+    </div>
+    <div style="background:#E5E7EB;border-radius:8px;height:8px;overflow:hidden;">
+      <div id="migProgressBar" style="height:100%;background:#4F46E5;width:0%;transition:width .3s;"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;">
+      <span style="color:#10B981;">✅ <b id="migCtOk">0</b> importadas</span>
+      <span style="color:#F59E0B;">⚠️ <b id="migCtSkip">0</b> puladas</span>
+      <span style="color:#EF4444;">❌ <b id="migCtErr">0</b> erros</span>
+    </div>
+  </div>
+</div>
+<div class="card" style="cursor:default;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <b>📋 Histórico da Importação</b>
+    <button onclick="document.getElementById('migLog').innerHTML=''" style="padding:4px 12px;border-radius:8px;border:1px solid #E5E7EB;background:#F9FAFB;cursor:pointer;font-size:11px;">Limpar</button>
+  </div>
+  <div id="migLog" style="font-family:monospace;font-size:11px;max-height:450px;overflow-y:auto;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:12px;color:#374151;">
+    <div style="text-align:center;color:#9CA3AF;padding:20px;">Nenhuma importação realizada ainda</div>
+  </div>
+</div>
 </div>
 
 <div class="tab" id="t-config">
@@ -4116,7 +4153,7 @@ function sw(name, el) {
   if (!tabEl) return;
   tabEl.classList.add('on');
   if (el) el.classList.add('on');
-  const titles = {home:'Dashboard',atividades:'⚡ Atividades',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
+  const titles = {home:'Dashboard',atividades:'⚡ Atividades',migracao:'🔄 Migração ClickUp',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos'};
   const ttEl = document.getElementById('topbar-page-title');
   if (ttEl) ttEl.textContent = titles[name] || '';
   // Renderizar aba ativa
@@ -4142,6 +4179,7 @@ function sw(name, el) {
       try { swME('tarefas'); } catch(e) {}
       try { renderMeTarefas(); } catch(e) {}
     },
+    migracao: () => { console.log("RENDER MIGRACAO CHAMADO"); const el=document.getElementById("t-migracao"); console.log("TAB EL:", el, "CLASSES:", el?.className); },
     config:  () => { try{renderCadastros();}catch(e){} try{updateSelects();}catch(e){} },
     chat:    () => { const cw=document.getElementById('chatWin'); const ce=document.getElementById('chatEmpty'); if(!curChId){if(cw)cw.style.display='none';if(ce)ce.style.display='flex';} }
   };
@@ -4153,6 +4191,9 @@ function sw(name, el) {
     // Garantir scroll no topo após render
     const _c2 = document.querySelector('.content');
     if (_c2) _c2.scrollTop = 0;
+    // Debug: garantir que a tab correta está visível
+    const _tab = document.getElementById('t-' + name);
+    if (_tab && !_tab.classList.contains('on')) { _tab.classList.add('on'); }
   }, 30);
 }
 
@@ -6993,6 +7034,243 @@ function renderProjConcluidos() {
     }).join('')
     + '</div>';
 }
+
+// ── MIGRAÇÃO CLICKUP ──────────────────────────────────────────
+const _MIGMEMBROS = {
+  'Luciano Santana': 'LS',
+  'Igor Santos Silva': 'IS',
+  'Alexandre Oliveira Freitas': 'AF',
+  'Ana Claudia Moura Barreto Barreto': 'ACB',
+  'Ana Carolina Almeida': 'AC',
+  'Anderson Luis': 'AL',
+  'Eduarda Ramalho': 'ED',
+  'Mabiane Andrade de Souza': 'MA',
+  'Mariana Figueiredo': 'MF',
+};
+
+const _MIGPROJETOS = {
+  '901322447067': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901323301228': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901323904770': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901325088777': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901325088789': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901325088857': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901325088873': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901325088891': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901325088901': '982a1009-1561-4e52-b681-cf4916c1f52f',
+  '901322514578': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901323301164': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901323904815': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901324968521': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901324968559': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901324968567': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901324968585': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901324968605': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901324968625': 'bc165d5a-e829-4db7-8417-34d79d4851c2',
+  '901322262788': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901323301448': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901323904730': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901324516691': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901324516717': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901324516732': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901324516750': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901324516777': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901324516793': '5c279eab-9384-4b94-90d4-c0c264b5964c',
+  '901323262425': '379525d7-385b-4e89-977f-6f1fa0d5ec8f',
+  '901314602279': '379525d7-385b-4e89-977f-6f1fa0d5ec8f',
+  '901317169013': '379525d7-385b-4e89-977f-6f1fa0d5ec8f',
+  '901321118199': '379525d7-385b-4e89-977f-6f1fa0d5ec8f',
+  '901320398838': '379525d7-385b-4e89-977f-6f1fa0d5ec8f',
+  '901319584870': '5d2d00f1-60db-4fc0-b60d-dded70e7ca40',
+  '901319584808': '5d2d00f1-60db-4fc0-b60d-dded70e7ca40',
+};
+
+function _migMapStatus(s) {
+  s = (s||'').toLowerCase().trim();
+  if (['concluído','concluido','completed','complete','feito'].includes(s)) return {status:'concluído', ok:true};
+  if (s === 'teste aprovado') return {status:'teste aprovado', ok:false};
+  if (s === 'teste reprovado') return {status:'teste reprovado', ok:false};
+  if (s === 'em desenvolvimento') return {status:'em desenvolvimento', ok:false};
+  if (s === 'em andamento') return {status:'em andamento', ok:false};
+  if (['backlog','não iniciada','unstarted'].includes(s)) return {status:'a fazer', ok:false};
+  if (s === 'pronto para desenvolver') return {status:'pronto p/ desenvolver', ok:false};
+  if (s.includes('análise')) return {status:'especif. em análise', ok:false};
+  if (s === 'pendente') return {status:'pendente', ok:false};
+  return {status:s, ok:false};
+}
+
+function _migMapPrior(p) {
+  if (!p) return 'media';
+  const m = {urgent:'urgente', high:'alta', normal:'media', low:'baixa'};
+  return m[p.toLowerCase()] || 'media';
+}
+
+function _migLog(msg, tipo) {
+  const el = document.getElementById('migLog');
+  if (!el) return;
+  if (el.querySelector('[style*="Nenhuma"]')) el.innerHTML = '';
+  const cor = tipo === 'ok' ? '#10B981' : tipo === 'err' ? '#EF4444' : tipo === 'skip' ? '#F59E0B' : '#94A3B8';
+  const icon = tipo === 'ok' ? '✅' : tipo === 'err' ? '❌' : tipo === 'skip' ? '⚠️' : 'ℹ️';
+  const div = document.createElement('div');
+  div.style.cssText = 'color:' + cor + ';padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);';
+  div.textContent = new Date().toLocaleTimeString('pt-BR') + ' ' + icon + ' ' + msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function _migSetProgress(pct, label) {
+  const bar = document.getElementById('migProgressBar');
+  const pctEl = document.getElementById('migProgressPct');
+  const lblEl = document.getElementById('migProgressLabel');
+  if (bar) bar.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (lblEl && label) lblEl.textContent = label;
+}
+
+async function iniciarMigracao() {
+  const btn = document.getElementById('migBtnImportar');
+  const wrap = document.getElementById('migProgressWrap');
+  const statusTxt = document.getElementById('migStatusTxt');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.textContent = '⏳ Importando...'; }
+  if (wrap) wrap.style.display = 'block';
+  if (statusTxt) statusTxt.textContent = 'Importação em andamento...';
+
+  let ctOk = 0, ctSkip = 0, ctErr = 0;
+  const updateCounts = () => {
+    document.getElementById('migCtOk').textContent = ctOk;
+    document.getElementById('migCtSkip').textContent = ctSkip;
+    document.getElementById('migCtErr').textContent = ctErr;
+  };
+
+  _migLog('Iniciando migração do ClickUp...', 'info');
+
+  // Verificar/criar membro Mariana
+  try {
+    const { data: mf } = await safeDb.from('membros').select('av').eq('av','MF').single();
+    if (!mf) {
+      await safeDb.from('membros').insert([{nome:'Mariana Figueiredo', av:'MF', cor:'#8B5CF6'}]);
+      _migLog('Membro criado: Mariana Figueiredo (MF)', 'ok');
+    } else {
+      _migLog('Membro Mariana já existe', 'info');
+    }
+  } catch(e) {
+    await safeDb.from('membros').insert([{nome:'Mariana Figueiredo', av:'MF', cor:'#8B5CF6'}]).then(()=>{});
+  }
+
+  // Buscar todas as tarefas via API Supabase Edge Function proxy
+  // Como não temos proxy, vamos usar fetch direto para a API do ClickUp via CORS
+  // Estratégia: buscar página por página
+  const SPACES = ['90136427878','901311525289','901310549121','90137270129','901310552894','901311756430','901312268837','90137270048','901311207415','90137270325'];
+  
+  _migLog('Buscando tarefas do ClickUp (pode demorar alguns minutos)...', 'info');
+  _migSetProgress(5, 'Conectando ao ClickUp...');
+
+  // Verificar tarefas já migradas para não duplicar
+  const { data: jaImportadas } = await safeDb.from('tarefas').select('descricao').like('descricao', '%ClickUp%');
+  const titImportados = new Set((jaImportadas||[]).map(t => t.descricao));
+  
+  // Processar tarefas coletadas previamente (dados já capturados via API)
+  const tarefasClickUp = window._migTarefasCache || [];
+  
+  if (!tarefasClickUp.length) {
+    _migLog('Carregando dados do ClickUp via API...', 'info');
+    _migSetProgress(10, 'Buscando tarefas...');
+    
+    // Tentar carregar via fetch (pode falhar por CORS — dados já foram capturados)
+    try {
+      const pages = [0,1,2,3,4];
+      for (const page of pages) {
+        _migSetProgress(10 + page*8, 'Página ' + (page+1) + ' de 5...');
+        const r = await fetch('https://api.clickup.com/api/v2/team/90131535330/task?page=' + page + '&include_closed=true&subtasks=true', {
+          headers: { 'Authorization': 'Bearer ' + (window._clickupToken || '') }
+        });
+        if (r.ok) {
+          const d = await r.json();
+          tarefasClickUp.push(...(d.tasks||[]));
+        }
+      }
+    } catch(e) {
+      _migLog('CORS bloqueado — usando dados pré-carregados', 'skip');
+    }
+    window._migTarefasCache = tarefasClickUp;
+  }
+
+  // Se não conseguiu via API, usar dados que já foram coletados
+  const dadosPreCarregados = _getMigDadosPreCarregados();
+  const todasTarefas = tarefasClickUp.length ? tarefasClickUp : dadosPreCarregados;
+  
+  _migLog('Total de tarefas encontradas: ' + todasTarefas.length, 'info');
+  _migSetProgress(40, 'Processando ' + todasTarefas.length + ' tarefas...');
+
+  let processadas = 0;
+  const total = todasTarefas.length;
+
+  for (const t of todasTarefas) {
+    processadas++;
+    const pct = Math.round(40 + (processadas/total)*50);
+    _migSetProgress(pct, 'Processando ' + processadas + '/' + total);
+
+    const listId = t.list?.id;
+    const projetoId = _MIGPROJETOS[listId];
+    if (!projetoId) { ctSkip++; _migLog('Pulada (sem projeto): ' + t.name, 'skip'); updateCounts(); continue; }
+
+    // Montar responsável e co-responsáveis
+    let resp = null;
+    const coResps = [];
+    for (const a of (t.assignees||[])) {
+      const av = _MIGMEMBROS[a.username];
+      if (!av) continue;
+      if (!resp) resp = av;
+      else coResps.push(av);
+    }
+
+    const {status, ok} = _migMapStatus(t.status);
+    const prior = _migMapPrior(t.priority);
+    const prazo = t.due_date ? new Date(parseInt(t.due_date)).toISOString().split('T')[0] : null;
+    const listName = t.list?.name || '';
+    const descricao = '[' + listName + '] Migrado do ClickUp | ID: ' + t.id;
+
+    // Evitar duplicatas
+    if ([...titImportados].some(d => d && d.includes(t.id))) {
+      ctSkip++; _migLog('Já importada: ' + t.name, 'skip'); updateCounts(); continue;
+    }
+
+    try {
+      const { error } = await safeDb.from('tarefas').insert([{
+        titulo: t.name,
+        status, ok, prior,
+        resp: resp || null,
+        co_responsaveis: coResps.length ? JSON.stringify(coResps) : null,
+        prazo,
+        projeto_id: projetoId,
+        descricao,
+        created_at: new Date().toISOString()
+      }]);
+      if (error) {
+        ctErr++; _migLog('ERRO em "' + t.name + '": ' + error.message, 'err');
+      } else {
+        ctOk++; _migLog('Importada: ' + t.name + ' → ' + listName, 'ok');
+      }
+    } catch(e) {
+      ctErr++; _migLog('ERRO em "' + t.name + '": ' + e.message, 'err');
+    }
+    updateCounts();
+    await new Promise(r => setTimeout(r, 50)); // evitar rate limit
+  }
+
+  _migSetProgress(100, 'Concluído!');
+  if (statusTxt) statusTxt.textContent = '✅ Importação concluída! ' + ctOk + ' tarefas importadas, ' + ctSkip + ' puladas, ' + ctErr + ' erros.';
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = '🔄 Importar novamente'; }
+  _migLog('--- FIM DA MIGRAÇÃO: ' + ctOk + ' ok | ' + ctSkip + ' puladas | ' + ctErr + ' erros ---', 'info');
+  showToast('✅ Migração concluída! ' + ctOk + ' tarefas importadas.');
+  try { await loadAll(); } catch(e) {}
+}
+
+function _getMigDadosPreCarregados() {
+  // Dados coletados da API do ClickUp
+  return [{"id":"86agy52uv","name":"JSON - Saída V1 (Folha de Pagamento - Normal)","status":"pronto para desenvolver","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"},{"username":"Alexandre Oliveira Freitas"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86agy3xaz","name":"JSON - Entrada V1 (Folha de Pagamento - Normal)","status":"pronto para desenvolver","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"},{"username":"Alexandre Oliveira Freitas"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86agwftr5","name":"Tabela de ATS","status":"completed","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86agtv772","name":"Criar Ata de reunião do dia 07/04/2026","status":"concluído","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1775804400000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86agmdgr3","name":"Histórico de Protocolo-Incluir na tela de Imóvel","status":"backlog","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":null,"list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86agkk3t5","name":"Reunião Apresentação Sistema","status":"concluído","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":null,"list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86agf5phe","name":"Melhoria - Regime Jurídico 2","status":"completed","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86agf5jcp","name":"Lista de Serviço NBS","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1774508400000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86agf540w","name":"Tipo de concessão","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1774508400000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86agf5089","name":"Melhoria - Cadastro de Servidor 2","status":"completed","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86agee0te","name":"Detalhamento da Folha Individual","status":"pronto para desenvolver","priority":null,"assignees":[{"username":"Alexandre Oliveira Freitas"},{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86ag4dm47","name":"Classificação Condominio","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1776841200000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86ag4dhz3","name":"Grupo","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1775631600000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86ag4d5v4","name":"Grupo de Documentos","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1773385200000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86ag49pfj","name":"Local de Abastecimento/Estabelecimento","status":"teste reprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1774854000000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86ag49mm0","name":"Box de Estabelecimento","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1774422000000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86ag3epp8","name":"Melhoria - Cadastro de Servidor 1","status":"completed","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86afz48yu","name":"Criando tela de importação de relatório","status":"em desenvolvimento","priority":null,"assignees":[{"username":"Alexandre Oliveira Freitas"}],"due_date":null,"list":{"id":"901322262788","name":"DIVERSOS"}},{"id":"86afyawpz","name":"Incidência Tributária da Rubrica PISPASEP","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afyaj7y","name":"Incidência Tributária da Rubrica RPPS","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afy9z98","name":"Incidência da Rubrica FGTS","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afy7008","name":"Incidência Tributária da Rubrica INSS","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afxagz7","name":"Cadastro de Cartório","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1773903600000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86afrhtft","name":"Tela: Centro de Custo - Campo: Aplicação de Recursos","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afqjajt","name":"Melhoria - Cadastro de Pessoa 2","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afqgdv5","name":"Tela: Processos Judiciais - Campo: Diversos","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afqdtr8","name":"Tela: Pessoas - Campo: Diversos","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afqd860","name":"Tela: Regime Jurídico - Campo: Diversos","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq7zj9","name":"Tela: Servidores - Campo: Diversos","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq75zy","name":"Tela: Local de Trabalho - Campo: Código INEP","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1772002800000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq6nyd","name":"Tela: Órgão - Campo: Diveros","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":"1772002800000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq4xax","name":"Tela: Secretarias - Campo: Órgão","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1772002800000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq4w4k","name":"Tela: Unidades - Campo: Secretaria","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1772002800000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq4tdc","name":"Tela: Centro de Custo - Campo: Nome da Conta","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1772002800000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq4kng","name":"Tela: Centro de Custo - Campo: Nome Unidade","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1772002800000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afq3zvr","name":"Correção em Listas Dinâmicas","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afnaeu7","name":"Tela de exportação e importação do assistente de regras","status":"em desenvolvimento","priority":null,"assignees":[{"username":"Alexandre Oliveira Freitas"}],"due_date":null,"list":{"id":"901322262788","name":"DIVERSOS"}},{"id":"86afmuxn0","name":"Tela de Gerenciamento - Folha de Pagamento - Normal","status":"em desenvolvimento","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"},{"username":"Alexandre Oliveira Freitas"}],"due_date":null,"list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86afmubz5","name":"Melhoria - Cadastro de Pessoa 1","status":"concluído","priority":null,"assignees":[{"username":"Igor Santos Silva"},{"username":"Luciano Santana"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86afjac51","name":"Salário Família (Assistente de Regras)","status":"completed","priority":null,"assignees":[{"username":"Luciano Santana"}],"due_date":"1771570800000","list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86afeu49y","name":"Salário Base (Assistente de Regras)","status":"completed","priority":null,"assignees":[{"username":"Luciano Santana"}],"due_date":"1771570800000","list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86afepc3h","name":"ATS Adicional de Tempo de Serviço (Assistente de Regras)","status":"completed","priority":null,"assignees":[{"username":"Luciano Santana"}],"due_date":"1771570800000","list":{"id":"901323904770","name":"EXECUÇÃO"}},{"id":"86aff05jb","name":"Melhorando o Acordeon","status":"em desenvolvimento","priority":null,"assignees":[{"username":"Alexandre Oliveira Freitas"}],"due_date":null,"list":{"id":"901322262788","name":"DIVERSOS"}},{"id":"86af530pr","name":"06.02 - Melhoria - Add Campo Descrição Problema","status":"completed","priority":"high","assignees":[{"username":"Eduarda Ramalho"}],"due_date":"1770966000000","list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af52xa8","name":"06.02 - Melhoria - Tela de Atendimentos - Mostrar Prévia da Descrição","status":"completed","priority":"high","assignees":[{"username":"Eduarda Ramalho"}],"due_date":"1770966000000","list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af4hudh","name":"Divida Fundada","status":"especif.em análise (po)","priority":null,"assignees":[{"username":"Anderson Luis"},{"username":"Mariana Figueiredo"}],"due_date":"1770620400000","list":{"id":"901323301448","name":"CADASTROS BÁSICOS"}},{"id":"86af4htna","name":"Convênios","status":"especif.em análise (po)","priority":null,"assignees":[{"username":"Anderson Luis"},{"username":"Mariana Figueiredo"}],"due_date":"1770620400000","list":{"id":"901323301448","name":"CADASTROS BÁSICOS"}},{"id":"86af4ht79","name":"Rescisão de Contrato","status":"em desenvolvimento","priority":null,"assignees":[{"username":"Anderson Luis"},{"username":"Mariana Figueiredo"},{"username":"Alexandre Oliveira Freitas"}],"due_date":"1771570800000","list":{"id":"901323301448","name":"CADASTROS BÁSICOS"}},{"id":"86af4hr7e","name":"Dispensas/Inexigibilidade","status":"concluído","priority":null,"assignees":[{"username":"Mariana Figueiredo"},{"username":"Anderson Luis"},{"username":"Alexandre Oliveira Freitas"}],"due_date":"1771570800000","list":{"id":"901323301448","name":"CADASTROS BÁSICOS"}},{"id":"86af4hkb3","name":"Licitação","status":"concluído","priority":null,"assignees":[{"username":"Anderson Luis"},{"username":"Mariana Figueiredo"},{"username":"Alexandre Oliveira Freitas"}],"due_date":"1771570800000","list":{"id":"901323301448","name":"CADASTROS BÁSICOS"}},{"id":"86af4hk4n","name":"Edital","status":"concluído","priority":null,"assignees":[{"username":"Anderson Luis"},{"username":"Mariana Figueiredo"},{"username":"Alexandre Oliveira Freitas"}],"due_date":"1771570800000","list":{"id":"901323301448","name":"CADASTROS BÁSICOS"}},{"id":"86af4hjp2","name":"Contratos","status":"em desenvolvimento","priority":null,"assignees":[{"username":"Anderson Luis"},{"username":"Mariana Figueiredo"},{"username":"Alexandre Oliveira Freitas"}],"due_date":"1772175600000","list":{"id":"901323301448","name":"CADASTROS BÁSICOS"}},{"id":"86af1fhg5","name":"Cadastro de Documento","status":"teste aprovado","priority":null,"assignees":[{"username":"Ana Claudia Moura Barreto Barreto"}],"due_date":"1773385200000","list":{"id":"901323301164","name":"CADASTROS BÁSICOS"}},{"id":"86af9wpa7","name":"Automação de processos","status":"backlog","priority":null,"assignees":[{"username":"Alexandre Oliveira Freitas"}],"due_date":null,"list":{"id":"901322262788","name":"DIVERSOS"}},{"id":"86af960t0","name":"Automação Inteligente de Análise de Despesas da Visita","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af91n75","name":"Automação Inteligente de Validação de Despesas","status":"feito","priority":null,"assignees":[{"username":"Mabiane Andrade de Souza"},{"username":"Ana Carolina Almeida"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8yhrf","name":"Automação Inteligente de Aprovação de Adiantamentos","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8v302","name":"Automação Inteligente de Adiantamentos Avulsos","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8m1c1","name":"Automação Inteligente de Validação de Relatórios de Visita","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8faap","name":"Automação Inteligente de Execução de Visitas","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8f5fb","name":"Automação Inteligente de Aprovação Financeira (Pré-Viagem)","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8f57v","name":"Automação Inteligente de Avaliação e Aprovação de Visitas","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8f4ye","name":"Automação Inteligente de Solicitação de Visitas","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8f4tc","name":"Atendimento a Fila de Implantação","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8f4ka","name":"Solicitação de Implantação","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af8f2m5","name":"Gravação de Vídeos demonstrativos da automação","status":"feito","priority":null,"assignees":[{"username":"Ana Carolina Almeida"},{"username":"Mabiane Andrade de Souza"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86afaaar6","name":"Ajustar a Ordem da Urgência para seleção","status":"teste aprovado","priority":null,"assignees":[{"username":"Eduarda Ramalho"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86afa4990","name":"Ajuste no botão Limpar para limpar e consultar sem filtros","status":"teste aprovado","priority":null,"assignees":[{"username":"Eduarda Ramalho"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86afa3gtz","name":"Na grid apresenta só a Sigla do Sistema e no filtro apresenta só o nome","status":"teste aprovado","priority":null,"assignees":[{"username":"Eduarda Ramalho"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86af9y9t7","name":"Quando tiver um Cliente selecionado apresentará somente as Entidades vinculadas","status":"teste aprovado","priority":null,"assignees":[{"username":"Eduarda Ramalho"}],"due_date":null,"list":{"id":"901323262425","name":"V3.0 ZapFlow"}},{"id":"86aeyjhxp","name":"Status de Concurso","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770188400000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aeya41m","name":"Tipo Evento Contratação Pessoal","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770188400000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aeya33p","name":"Tipo de Término de Pensão","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9ynu","name":"Melhoria - Regime Jurídico 1","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770188400000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9waw","name":"Tipo de Regime (Ato de Pessoal)","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9pz4","name":"Melhoria - Parentesco","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770188400000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9pat","name":"Tipo de Parentesco","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9mvr","name":"Tipo de Fundamento Legal","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9m1n","name":"Tipo de Benefício Aposentadoria","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9k53","name":"Tipo de Atualização de Cargo","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9hna","name":"Tipo de Ato Pessoal","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aey9dtr","name":"Função Servidor Temporário","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":"1770102000000","list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aeqmeax","name":"Melhoria - Lei Salarial","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}},{"id":"86aepv6u5","name":"Unidade de Pagamento","status":"concluído","priority":null,"assignees":[{"username":"Luciano Santana"},{"username":"Igor Santos Silva"}],"due_date":null,"list":{"id":"901323301228","name":"CADASTROS BÁSICOS"}}];
+}
+// ─────────────────────────────────────────────────────────────
 
 function popularArvoreProjeto(projetoId) {
   const sel = document.getElementById('ntPai');
