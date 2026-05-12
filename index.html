@@ -7139,7 +7139,7 @@ async function iniciarMigracaoDocumentos() {
     _migDocLog('Total de documentos encontrados: ' + docs.length, 'info');
 
     // 2. Verificar docs já migrados
-    const { data: jaImportados } = await safeDb.from('documentos').select('titulo,pasta');
+    const { data: jaImportados } = await safeDb.from('documentos').select('titulo,pasta,conteudo');
     const jaImportadosSet = new Set((jaImportados||[]).map(d => d.titulo + '|' + d.pasta));
 
     const total = docs.length;
@@ -7153,39 +7153,71 @@ async function iniciarMigracaoDocumentos() {
       // Pasta baseada na localização do doc
       const pasta = doc.parent?.name || doc.parent?.title || 'ClickUp';
 
-      // Verificar duplicata
+      // Verificar duplicata — reimportar se conteúdo for placeholder vazio
       const key = titulo + '|' + pasta;
-      if (jaImportadosSet.has(key)) {
-        ctSkip++;
-        _migDocLog('Pulado (já existe): ' + titulo, 'skip');
-        upd();
-        continue;
+      const jaExiste = jaImportados && jaImportados.find(d => d.titulo === titulo && d.pasta === pasta);
+      if (jaExiste) {
+        const ehVazio = !jaExiste.conteudo || jaExiste.conteudo.includes('Documento migrado do ClickUp)') || jaExiste.conteudo.trim().length < 10;
+        if (!ehVazio) {
+          ctSkip++;
+          _migDocLog('Pulado (já existe com conteúdo): ' + titulo, 'skip');
+          upd();
+          continue;
+        }
+        // Se estava vazio, deletar e reimportar
+        await safeDb.from('documentos').delete().eq('titulo', titulo).eq('pasta', pasta);
+        _migDocLog('Reimportando (estava vazio): ' + titulo, 'info');
       }
 
       // Buscar páginas do documento
       let conteudo = '';
       try {
-        // Tentar v3 pages
-        let pages = [];
+        // Buscar páginas com conteúdo via v3
         try {
-          const pr = await fetch('https://api.clickup.com/api/v3/workspaces/'+_CU_WS+'/docs/'+doc.id+'/pages?max_page_depth=-1&content_format=text%2Fmd', {
-            headers: { 'Authorization': _CU_TOKEN }
-          });
-          const pd = await pr.json();
-          pages = pd.pages || pd.data || [];
+          const pr = await fetch(
+            'https://api.clickup.com/api/v3/workspaces/'+_CU_WS+'/docs/'+doc.id+'/pages?max_page_depth=-1&content_format=text%2Fmd',
+            { headers: { 'Authorization': _CU_TOKEN, 'Content-Type': 'application/json' } }
+          );
+          if (pr.ok) {
+            const pd = await pr.json();
+            const pages = pd.pages || pd.data || [];
+            for (const page of pages) {
+              // Buscar conteúdo individual da página
+              try {
+                const pgr = await fetch(
+                  'https://api.clickup.com/api/v3/workspaces/'+_CU_WS+'/docs/'+doc.id+'/pages/'+page.id+'?content_format=text%2Fmd',
+                  { headers: { 'Authorization': _CU_TOKEN } }
+                );
+                if (pgr.ok) {
+                  const pgd = await pgr.json();
+                  const pgName = pgd.name || pgd.title || page.name || '';
+                  const pgContent = pgd.content || pgd.text || pgd.page_content || '';
+                  if (pgContent) conteudo += (pgName ? '# ' + pgName + '\n\n' : '') + pgContent + '\n\n---\n\n';
+                  else if (pgName) conteudo += '# ' + pgName + '\n\n';
+                }
+              } catch(pge) {
+                // usar o que veio na listagem
+                const pgName = page.name || page.title || '';
+                const pgContent = page.content || page.text || '';
+                if (pgContent) conteudo += (pgName ? '# ' + pgName + '\n\n' : '') + pgContent + '\n\n---\n\n';
+              }
+            }
+          }
         } catch(pe2) {
           // fallback v2
           try {
-            const pr2 = await _cuFetch('doc/'+doc.id+'/page?max_page_depth=-1');
-            pages = pr2.pages || [];
+            const pr2 = await fetch('https://api.clickup.com/api/v2/doc/'+doc.id+'/page?max_page_depth=-1&content_format=text%2Fmd', {
+              headers: { 'Authorization': _CU_TOKEN }
+            });
+            if (pr2.ok) {
+              const pd2 = await pr2.json();
+              const pages2 = pd2.pages || [];
+              for (const p of pages2) {
+                const pgContent = p.content || p.text || '';
+                if (pgContent) conteudo += (p.name ? '# ' + p.name + '\n\n' : '') + pgContent + '\n\n---\n\n';
+              }
+            }
           } catch(pe3) {}
-        }
-        for (const page of pages) {
-          const pgName = page.name || page.title || '';
-          const pgContent = page.content || page.text || '';
-          if (pgContent) {
-            conteudo += (pgName ? '# ' + pgName + '\n\n' : '') + pgContent + '\n\n---\n\n';
-          }
         }
       } catch(e) { conteudo = '*(Documento migrado do ClickUp - conteúdo não disponível)*'; }
 
