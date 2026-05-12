@@ -315,6 +315,7 @@ body{
 .content{
   flex:1;margin-left:var(--sidebar-w);
   padding:24px 24px 100px;
+  margin-top:var(--topbar-h);
   height:calc(100dvh - var(--topbar-h));
   overflow-y:auto;
 }
@@ -336,6 +337,7 @@ body{
 .tab.on{display:block;}
 .tab:not(.on){height:0;overflow:hidden;margin:0;padding:0;}
 #t-migracao.on{display:block!important;height:auto!important;overflow:visible!important;}
+.content:has(#t-migracao.on){overflow-y:auto!important;height:auto!important;}
 
 /* ═══════════════════════════════════════════════════════════════
    CARDS BASE
@@ -3118,6 +3120,7 @@ select.sel{
     </div>
   </div>
   <div id="horasTabela" style="overflow-x:auto;"></div>
+</div>
 </div>
 
 <div class="tab" id="t-migracao"><script>console.log("TAB MIGRACAO CARREGADA NO DOM");</script><h1 style="color:red;font-size:40px;position:relative;z-index:9999;">TESTE MIGRAÇÃO</h1>
