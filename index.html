@@ -2564,6 +2564,19 @@ select.sel{
           </div>
         </div>
       </div>
+      <!-- Filtros Setor/Projeto para Lista -->
+      <div id="listaProjSelector" style="margin-bottom:8px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;min-width:48px;">🏢 SETOR</span>
+            <div id="listaSetorChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+          <div id="listaProjRow" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;min-width:48px;">📁 PROJETO</span>
+            <div id="listaProjChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+        </div>
+      </div>
       <div class="chips" id="tChips">
         <button class="chip on" onclick="filterT('todas',this)">Todas</button>
         <button class="chip" onclick="filterT('minhas',this)">Minhas (MA)</button>
@@ -4519,7 +4532,7 @@ async function loadAll() {
     try {
       const [pm,tm,mm,fm,rm,rem,am,avm,espm] = await Promise.all([
         safeDb.from('projetos').select('*').order('created_at',{ascending:false}),
-        safeDb.from('tarefas').select('*').order('created_at',{ascending:false}),
+        (async () => { let all=[]; let from=0; while(true){ const {data}=await safeDb.from('tarefas').select('*').order('created_at',{ascending:false}).range(from,from+999); if(!data||!data.length) break; all=[...all,...data]; if(data.length<1000) break; from+=1000; } return {data:all}; })(),
         safeDb.from('membros').select('*').order('nome'),
         safeDb.from('ferias').select('*').order('inicio'),
         safeDb.from('riscos').select('*').eq('status','aberto').order('created_at',{ascending:false}),
@@ -5366,10 +5379,26 @@ function trow(t) {
 }
 
 function renderTasks() {
+  // Renderizar chips de setor/projeto
+  try { renderListaSetorChips(); } catch(e) {}
+  if (_listaSetorFiltro !== 'todos') { try { renderListaProjChips(); } catch(e) {} }
+
   const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
   const _isFech = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
 
   let l = [...tar];
+  // Filtrar por setor
+  if (_listaSetorFiltro !== 'todos') {
+    if (_listaSetorFiltro === 'sem_setor') {
+      l = l.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return !p?.espaco_id; });
+    } else {
+      l = l.filter(t => { const p=proj.find(x=>x.id===t.projeto_id); return p?.espaco_id===_listaSetorFiltro; });
+    }
+  }
+  // Filtrar por projeto
+  if (_listaProjFiltro !== 'todos') {
+    l = l.filter(t => t.projeto_id === _listaProjFiltro);
+  }
   if (curTF==='minhas') l = l.filter(t => {
     if (t.resp === curUser?.av) return true;
     if (t.resp_original === curUser?.av) return true;
@@ -5378,8 +5407,8 @@ function renderTasks() {
   if (curTF==='urgente')    l = l.filter(t => t.prior==='urgente' && !_isFech(t));
   if (curTF==='andamento')  l = l.filter(t => !_isFech(t) && ((t.status||'').includes('andamento')||(t.status||'').includes('desenvolv')));
   if (curTF==='concluidas') l = l.filter(t => _isFech(t));
-  // Por padrão (Todas) — mostra só abertas
-  if (curTF==='todas')      l = l.filter(t => !_isFech(t));
+  // Por padrão (Todas) — mostra tudo (abertas + concluídas)
+  // if (curTF==='todas')      l = l.filter(t => !_isFech(t));
   if (curView==='kanban') { renderKanban(l); return; }
 
   const ab = l.filter(t => !_isFech(t)), dn = l.filter(t => _isFech(t));
@@ -5423,6 +5452,53 @@ function _chipStyle(ativo, cor) {
 
 let _arvoreSetorFiltro = 'todos';
 let _arvoreProjFiltro  = 'todos';
+let _listaSetorFiltro = 'todos';
+let _listaProjFiltro  = 'todos';
+
+function renderListaSetorChips() {
+  const wrap = document.getElementById('listaSetorChips');
+  if (!wrap) return;
+  // Mostrar todos os espaços que têm projetos
+  const setoresComProj = [...new Set(proj.filter(p=>p.espaco_id).map(p=>p.espaco_id))];
+  const chips = [
+    {id:'todos', nome:'Todos os setores', cor:'#6366F1'},
+    ...setoresComProj.map(sid => { const s = espacos.find(x=>x.id===sid); return {id:sid, nome:s?.nome||'Setor', cor:'#4F46E5'}; }),
+  ];
+  wrap.innerHTML = chips.map(c => { const a=_listaSetorFiltro===c.id; return '<button onclick="selecionarListaSetor(\'' + c.id + '\')" style="' + _chipStyle(a, c.cor) + '">' + (a?'\u2713 ':'') + c.nome + '</button>'; }).join('');
+}
+
+function renderListaProjChips() {
+  const wrap = document.getElementById('listaProjChips');
+  if (!wrap) return;
+  let projetosFiltro = [];
+  if (_listaSetorFiltro === 'todos') { projetosFiltro = proj.map(p=>p.id); }
+  else if (_listaSetorFiltro === 'sem_setor') {
+    projetosFiltro = proj.filter(p => !p.espaco_id).map(p=>p.id);
+  } else {
+    projetosFiltro = proj.filter(p => p.espaco_id===_listaSetorFiltro).map(p=>p.id);
+  }
+  const chips = [
+    {id:'todos', nome:'Todos os projetos', cor:'#6366F1'},
+    ...projetosFiltro.map(pid => { const p=proj.find(x=>x.id===pid); return {id:pid, nome:p?.nome||'Projeto', cor:'#0EA5E9'}; })
+  ];
+  wrap.innerHTML = chips.map(c => { const a=_listaProjFiltro===c.id; return '<button onclick="selecionarListaProjeto(\'' + c.id + '\')" style="' + _chipStyle(a, c.cor) + '">' + (a?'\u2713 ':'') + c.nome + '</button>'; }).join('');
+}
+
+function selecionarListaSetor(id) {
+  _listaSetorFiltro = id;
+  _listaProjFiltro = 'todos';
+  renderListaSetorChips();
+  const projRow = document.getElementById('listaProjRow');
+  if (projRow) projRow.style.display = id === 'todos' ? 'none' : 'flex';
+  if (id !== 'todos') renderListaProjChips();
+  renderTasks();
+}
+
+function selecionarListaProjeto(id) {
+  _listaProjFiltro = id;
+  renderListaProjChips();
+  renderTasks();
+}
 
 function _arvoreChipStyle(ativo, cor) {
   return `padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${cor};transition:all .15s;background:${ativo?cor:'transparent'};color:${ativo?'#fff':cor};`;
