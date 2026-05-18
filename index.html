@@ -3935,9 +3935,11 @@ select.sel{
     🌳 Árvore do Projeto
     <span style="font-size:10px;color:var(--tx3);font-weight:400;">— vincular como subtarefa de</span>
   </label>
-  <div id="ntPaiWrap"><select class="sel" id="ntPai">
-    <option value="">— Tarefa raiz (nível principal)</option>
-  </select></div>
+  <div id="ntPaiWrap">
+    <input id="ntPaiBusca" class="inp" placeholder="🔍 Selecione um projeto primeiro..." style="font-size:12px;" disabled autocomplete="off" oninput="filtrarArvoreProjeto(this.value)" onfocus="if(window._arvoreOpcoes){filtrarArvoreProjeto(this.value);document.getElementById('ntPaiLista').style.display='block';}" onblur="setTimeout(()=>{const l=document.getElementById('ntPaiLista');if(l)l.style.display='none';},200)">
+    <div id="ntPaiLista" style="position:absolute;background:var(--surface);border:1.5px solid var(--brand);border-top:none;border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;z-index:999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.15);left:0;right:0;"></div>
+    <input type="hidden" id="ntPai" value="">
+  </div>
   <div id="ntPaiPreview" style="display:none;font-size:11px;color:var(--tx3);margin-top:-8px;margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;"></div>
 
   <div style="font-size:10px;color:var(--tx3);margin-bottom:12px;">* Campos obrigatórios</div>
@@ -5610,63 +5612,35 @@ function selecionarArvoreSetor(id) {
 }
 
 function popularArvoreProjeto(projetoId) {
-  const sel = document.getElementById('ntPai');
+  const inp = document.getElementById('ntPaiBusca');
+  const hidden = document.getElementById('ntPai');
   const wrap = document.getElementById('ntPaiWrap');
-  if (!sel) return;
-
-  // Substituir o select por um campo de busca + lista customizada
-  if (wrap) {
-    wrap.innerHTML = '';
-    if (!projetoId) { wrap.innerHTML = '<select class="sel" id="ntPai"><option value="">— Tarefa raiz (nível principal)</option></select>'; return; }
-
-    const tarefasDoProjeto = tar
-      .filter(t => t.projeto_id === projetoId && !t.ok)
-      .sort((a,b) => (a.titulo||'').localeCompare(b.titulo||'', 'pt-BR'));
-
-    // Campo de busca
-    const searchId = 'ntPaiBusca';
-    const listId = 'ntPaiLista';
-    wrap.innerHTML =
-      '<div style="position:relative;">' +
-        '<input id="' + searchId + '" class="inp" placeholder="🔍 Buscar tarefa ou deixar em branco para raiz..." ' +
-          'style="margin-bottom:0;font-size:12px;" autocomplete="off" ' +
-          'oninput="filtrarArvoreProjeto(this.value)">' +
-        '<div id="' + listId + '" style="position:absolute;top:100%;left:0;right:0;background:var(--surface);' +
-          'border:1.5px solid var(--brand);border-top:none;border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;' +
-          'z-index:999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.15);">' +
-        '</div>' +
-        '<input type="hidden" id="ntPai" value="">' +
-      '</div>';
-
-    // Popular lista
-    window._arvoreOpcoes = [
-      {id:'', label:'— Tarefa raiz (nível principal)', indent:0}
-    ];
-    tarefasDoProjeto.forEach(t => {
-      window._arvoreOpcoes.push({id: String(t.id), label: t.titulo||'Sem título', indent:0});
-    });
-
-    // Mostrar lista ao focar
-    const inp = document.getElementById(searchId);
-    if (inp) {
-      inp.addEventListener('focus', () => { filtrarArvoreProjeto(''); document.getElementById(listId).style.display='block'; });
-      inp.addEventListener('blur', () => setTimeout(() => { const l=document.getElementById(listId); if(l) l.style.display='none'; }, 200));
-    }
+  
+  // Resetar seleção
+  if (hidden) hidden.value = '';
+  if (inp) inp.value = '';
+  
+  if (!projetoId) {
+    if (inp) { inp.disabled = true; inp.placeholder = '🔍 Selecione um projeto primeiro...'; }
+    window._arvoreOpcoes = [];
     return;
   }
 
-  // Fallback select original
-  sel.innerHTML = '<option value="">— Tarefa raiz (nível principal)</option>';
-  if (!projetoId) return;
   const tarefasDoProjeto = tar
-    .filter(t => t.projeto_id === projetoId)
+    .filter(t => t.projeto_id === projetoId && !t.ok)
     .sort((a,b) => (a.titulo||'').localeCompare(b.titulo||'', 'pt-BR'));
+
+  window._arvoreOpcoes = [
+    {id:'', label:'— Tarefa raiz (nível principal)'}
+  ];
   tarefasDoProjeto.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.titulo;
-    sel.appendChild(opt);
+    window._arvoreOpcoes.push({id: String(t.id), label: t.titulo||'Sem título'});
   });
+
+  if (inp) {
+    inp.disabled = false;
+    inp.placeholder = '🔍 Buscar tarefa ou deixar em branco para raiz...';
+  }
 }
 
 function filtrarArvoreProjeto(query) {
