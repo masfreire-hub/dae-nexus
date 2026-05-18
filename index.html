@@ -995,7 +995,9 @@ button{font-family:var(--fb);}
 .det-anexos-list{padding:0 14px 8px;}
 
 /* ══ ACTIONS BAR ══ */
-.det-actions-bar{padding:10px 14px;border-top:2px solid #F1F5F9;display:flex;gap:7px;flex-shrink:0;background:#fff;justify-content:flex-end;align-items:center;}
+.det-actions-bar{display:none!important;} /* movido para topo */
+.det-top-actions{position:absolute;top:12px;right:44px;display:flex;gap:6px;align-items:center;z-index:10;}
+.det-top-actions button{padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
 .det-btn-concluir{padding:9px 20px;border-radius:10px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 2px 10px rgba(79,70,229,.3);}
 .det-btn-concluir:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(79,70,229,.4);}
 .det-btn-reabrir{padding:9px 18px;border-radius:10px;border:1.5px solid #E2E8F0;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:#64748B;display:flex;align-items:center;gap:5px;}
@@ -4152,51 +4154,67 @@ select.sel{
 
       <!-- ÁREA PRINCIPAL COM ABAS -->
       <div class="det-right">
-        <!-- ABAS -->
-        <div class="det-tabs">
-          <button class="det-tab on" id="detTabCom" onclick="switchDetTab('com')">💬 Comentários <span id="detComCount" style="font-weight:400;opacity:.6"></span></button>
-          <button class="det-tab" id="detTabDesc" onclick="switchDetTab('desc')">📝 Descrição</button>
-          <button class="det-tab" id="detTabAnexos" onclick="switchDetTab('anexos')">📎 Anexos</button>
-          <button class="det-tab" id="detTabLog" onclick="switchDetTab('log')">📋 Histórico</button>
+        <!-- ABAS PRINCIPAIS -->
+        <div class="det-tabs" style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;">
+            <button class="det-tab on" id="detTabDetalhes" onclick="switchDetTab('detalhes')">📋 Detalhes</button>
+            <button class="det-tab" id="detTabLog" onclick="switchDetTab('log')">📜 Histórico</button>
+          </div>
+          <div id="detTopActions" style="display:flex;gap:6px;align-items:center;padding-right:8px;flex-shrink:0;"></div>
         </div>
 
-        <!-- ABA COMENTÁRIOS -->
-        <div class="det-tab-content on" id="detTabContentCom">
-          <div class="det-coms" id="comsBox"></div>
-          <div class="det-com-input" id="detComInput" style="display:none;flex-direction:column;padding:8px 12px;gap:6px">
-            <div id="comPastePreview" style="display:none;position:relative;margin-bottom:4px">
-              <img id="comPasteImg" style="max-height:80px;max-width:200px;border-radius:8px;border:1.5px solid #E2E8F0;object-fit:cover">
-              <button onclick="limparImagemColada()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:#EF4444;color:#fff;border:none;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+        <!-- ABA DETALHES: layout em grade — Descrição | Comentários em cima, Anexos embaixo -->
+        <div class="det-tab-content on" id="detTabContentDetalhes" style="flex-direction:column;overflow-y:auto;padding:12px;gap:12px;">
+
+          <!-- Linha superior: Descrição (esquerda) + Comentários (direita) -->
+          <div style="display:flex;gap:12px;flex:1;min-height:0;align-items:stretch;">
+
+            <!-- DESCRIÇÃO -->
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;overflow:hidden;">
+              <div style="font-size:10px;font-weight:800;color:#92400E;letter-spacing:.8px;text-transform:uppercase;padding:10px 14px 8px;border-bottom:1.5px solid #FDE68A;background:#FEF3C7;flex-shrink:0;">
+                📝 Descrição
+              </div>
+              <div id="detDescArea" style="flex:1;overflow-y:auto;padding:12px;">
+                <div style="text-align:center;padding:24px 0;color:#CBD5E1;">
+                  <div style="font-size:28px;opacity:.3;margin-bottom:6px;">📝</div>
+                  <div style="font-size:11px;">Sem descrição</div>
+                </div>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input class="det-com-inp" id="comInp" placeholder="Comentar ou cole uma imagem (Ctrl+V)..."
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}"
-                onpaste="handleComPaste(event)">
-              <button class="det-com-send" onclick="addComentario(window._detTarefaId)" title="Enviar (Enter)">➤</button>
+
+            <!-- COMENTÁRIOS -->
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:12px;overflow:hidden;">
+              <div style="font-size:10px;font-weight:800;color:#075985;letter-spacing:.8px;text-transform:uppercase;padding:10px 14px 8px;border-bottom:1.5px solid #BAE6FD;background:#E0F2FE;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+                <span>💬 Comentários <span id="detComCount" style="font-weight:400;opacity:.6;text-transform:none;font-size:10px;"></span></span>
+              </div>
+              <div class="det-coms" id="comsBox" style="flex:1;overflow-y:auto;"></div>
+              <div class="det-com-input" id="detComInput" style="display:flex;flex-direction:column;padding:8px 12px;gap:6px;border-top:1px solid var(--border);flex-shrink:0;">
+                <div id="comPastePreview" style="display:none;position:relative;margin-bottom:4px">
+                  <img id="comPasteImg" style="max-height:80px;max-width:200px;border-radius:8px;border:1.5px solid #E2E8F0;object-fit:cover">
+                  <button onclick="limparImagemColada()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:#EF4444;color:#fff;border:none;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input class="det-com-inp" id="comInp" placeholder="Comentar ou cole uma imagem (Ctrl+V)..."
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}"
+                    onpaste="handleComPaste(event)">
+                  <button class="det-com-send" onclick="addComentario(window._detTarefaId)" title="Enviar (Enter)">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linha inferior: ANEXOS -->
+          <div style="flex-shrink:0;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;overflow:hidden;">
+            <div class="det-anexos" id="detAnexos" style="border-top:none;max-height:none;background:transparent;">
+              <div class="det-anexos-header" style="border-radius:12px 12px 0 0;background:#DCFCE7;border-bottom:1.5px solid #BBF7D0;">
+                <span class="det-anexos-title">📎 Arquivos anexados</span>
+                <button class="det-anexar-btn" onclick="triggerAnexoInput(window._detTarefaId)">+ Anexar arquivo</button>
+              </div>
+              <div class="det-anexos-list" id="anexosBox"></div>
             </div>
           </div>
         </div>
 
-        <!-- ABA DESCRIÇÃO -->
-        <div class="det-tab-content" id="detTabContentDesc">
-          <div class="det-desc-area" id="detDescArea">
-            <div class="det-desc-empty">
-              <div style="font-size:32px;opacity:.3">📝</div>
-              <div style="font-size:12px;color:#94A3B8">Sem descrição</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ABA ANEXOS -->
-        <div class="det-tab-content" id="detTabContentAnexos">
-          <div class="det-anexos" id="detAnexos" style="border-top:none;max-height:none;flex:1;">
-            <div class="det-anexos-header">
-              <span class="det-anexos-title">📎 Arquivos anexados</span>
-              <button class="det-anexar-btn" onclick="triggerAnexoInput(window._detTarefaId)">+ Anexar arquivo</button>
-            </div>
-            <div class="det-anexos-list" id="anexosBox"></div>
-          </div>
-        </div>
         <!-- ABA HISTÓRICO -->
         <div class="det-tab-content" id="detTabContentLog">
           <div id="detLogList" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:0;"></div>
@@ -6640,18 +6658,21 @@ async function openDet(type, id) {
     }
 
     // ── Reset abas para Comentários ────────────────────────────────
-    switchDetTab('com');
+    switchDetTab('detalhes');
 
     // ── Barra de ações ─────────────────────────────────────────────
-    document.getElementById('detActionsBar').innerHTML = `
+    // Botões no topo direito
+    const _topAct = document.getElementById('detTopActions');
+    if (_topAct) _topAct.innerHTML = `
       ${t.ok
-        ? `<button class="det-btn-reabrir" onclick="togTask('${id}');openDet('task','${id}')">↩ Reabrir</button>`
-        : `<button class="det-btn-concluir" onclick="togTask('${id}');openDet('task','${id}')">✓ Concluir tarefa</button>`
+        ? `<button onclick="togTask('${id}');openDet('task','${id}')" style="background:#F0FDF4;color:#16A34A;border:1.5px solid #BBF7D0;padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;">↩ Reabrir</button>`
+        : `<button onclick="togTask('${id}');openDet('task','${id}')" style="background:#4F46E5;color:#fff;border:none;padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;">✓ Concluir</button>`
       }
-      <button class="det-btn-editar" onclick="openEditTask('${id}');closeDet()">✏ Editar</button>
-      <button class="det-btn-editar" style="background:rgba(99,102,241,.15);color:#6366F1;" onclick="adicionarSubtarefa('${id}','${t.projeto_id||''}','${t.titulo?.replace(/'/g,'')||''}')">🌿 + Subtarefa</button>
-      <button class="det-btn-excluir" onclick="if(confirm('Excluir esta tarefa?')){delTask('${id}');closeDet()}" title="Excluir tarefa">🗑</button>
+      <button onclick="openEditTask('${id}');closeDet()" style="background:#F1F5F9;color:#475569;border:1.5px solid #E2E8F0;padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;">✏ Editar</button>
+      <button onclick="adicionarSubtarefa('${id}','${t.projeto_id||''}','${t.titulo?.replace(/'/g,'')||''}')" style="background:#EEF2FF;color:#6366F1;border:1.5px solid #C7D2FE;padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;">🌿 Subtarefa</button>
+      <button onclick="if(confirm('Excluir esta tarefa?')){delTask('${id}');closeDet()}" style="background:#FFF5F5;color:#EF4444;border:1.5px solid #FECACA;padding:6px 10px;border-radius:10px;font-size:12px;cursor:pointer;" title="Excluir">🗑</button>
     `;
+    document.getElementById('detActionsBar').innerHTML = '';
 
     // ── Subtarefas existentes ───────────────────────────────────────
     const subtarefas = tar.filter(st => String(st.tarefa_pai_id) === String(id));
@@ -14272,21 +14293,23 @@ function _iniciarAutoSaveTimer() {
 }
 
 function switchDetTab(tab) {
-  ['com','desc','anexos','log'].forEach(t => {
+  ['detalhes','log'].forEach(t => {
     const btn = document.getElementById('detTab' + t.charAt(0).toUpperCase() + t.slice(1));
-    const content = document.getElementById('detTabContent' + t.charAt(0).toUpperCase() + t.slice(1));
+    const cnt = document.getElementById('detTabContent' + t.charAt(0).toUpperCase() + t.slice(1));
     if (btn) btn.classList.remove('on');
-    if (content) content.classList.remove('on');
+    if (cnt) cnt.classList.remove('on');
   });
-  const btnMap = {com:'detTabCom', desc:'detTabDesc', anexos:'detTabAnexos', log:'detTabLog'};
-  const contentMap = {com:'detTabContentCom', desc:'detTabContentDesc', anexos:'detTabContentAnexos', log:'detTabContentLog'};
-  const btn = document.getElementById(btnMap[tab]);
-  const content = document.getElementById(contentMap[tab]);
+  const btn = document.getElementById('detTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+  const cnt = document.getElementById('detTabContent' + tab.charAt(0).toUpperCase() + tab.slice(1));
   if (btn) btn.classList.add('on');
-  if (content) content.classList.add('on');
-  const comInput = document.getElementById('detComInput');
-  if (comInput) comInput.style.display = tab === 'com' ? 'flex' : 'none';
+  if (cnt) cnt.classList.add('on');
+  // Carregar anexos sempre que abrir detalhes
+  if (tab === 'detalhes' && window._detTarefaId) {
+    try { carregarAnexosTarefa(window._detTarefaId); } catch(e) {}
+  }
 }
+
+function switchDetSubTab(sub) { switchDetTab('detalhes'); }
 
 // ── FIM Auto-save ──────────────────────────────────────────
 function horasHoje()          { _horasOffset = 0; renderHoras(); }
