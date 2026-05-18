@@ -7857,9 +7857,12 @@ async function notificarTarefaTelegram(tarefa, evento, extra) {
   const p = proj.find(x=>x.id===tarefa.projeto_id);
   const nomeProjeto = p?.nome || '';
 
+  console.log('[TG] Notificar:', tarefa.titulo, '| Envolvidos:', envolvidos, '| memb:', memb.map(m=>m.av+':'+m.telegram_id));
+
   for (const av of [...new Set(envolvidos.filter(Boolean))]) {
     const mb = memb.find(x=>x.av===av);
-    if (!mb?.telegram_id) continue;
+    console.log('[TG] av:', av, '| mb:', mb?.nome, '| telegram_id:', mb?.telegram_id);
+    if (!mb?.telegram_id) { console.warn('[TG] Sem telegram_id para:', av); continue; }
     const titulo = tarefa.titulo||tarefa.tit||'';
     const texto = '\ud83d\udd14 <b>DAE Nexus</b>\n\n' + evento + '\n\n\ud83d\udccb <b>' + titulo + '</b>\n'
       + (nomeProjeto ? '\ud83d\udcc1 ' + nomeProjeto + '\n' : '')
