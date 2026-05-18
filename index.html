@@ -6222,6 +6222,9 @@ function executarSalvarTarefa() {
 }
 
 function resetarModalTarefa() {
+  const _buscaReset = document.getElementById('ntPaiBusca'); if(_buscaReset){_buscaReset.value='';_buscaReset.disabled=true;_buscaReset.placeholder='🔍 Selecione um projeto primeiro...';}
+  const _paiReset = document.getElementById('ntPai'); if(_paiReset) _paiReset.value = '';
+  window._arvoreOpcoes = [];
   _modoEdicaoTarefa = null;
   const btn = document.getElementById('btnSaveTask');
   if (btn) { btn.textContent = 'CRIAR TAREFA'; btn.disabled = false; }
@@ -6296,8 +6299,14 @@ function openEditTask(id) {
         popularArvoreProjeto(t.projeto_id);
         setTimeout(() => {
           const ntPai = document.getElementById('ntPai');
-          if (ntPai && t.tarefa_pai_id) ntPai.value = t.tarefa_pai_id;
-        }, 50);
+          const ntPaiBuscaEl = document.getElementById('ntPaiBusca');
+          if (ntPai && t.tarefa_pai_id) {
+            ntPai.value = t.tarefa_pai_id;
+            // Mostrar nome no campo de busca
+            const tarefaPai = tar.find(x => String(x.id) === String(t.tarefa_pai_id));
+            if (ntPaiBuscaEl && tarefaPai) ntPaiBuscaEl.value = tarefaPai.titulo || '';
+          }
+        }, 100);
 
         // 6. Re-confirmar título e botão (openM pode ter resetado)
         document.getElementById('mTaskTitle').textContent = 'EDITAR TAREFA';
