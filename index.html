@@ -7767,15 +7767,17 @@ const TG_BOT_TOKEN = '8244048842:AAFx_qpJNH0OHc6CUT8Wvov4AsC1SEpgGmU';
 async function enviarTelegram(chatId, texto) {
   if (!chatId || !texto) return;
   try {
-    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+    const r = await fetch('https://api.telegram.org/bot' + TG_BOT_TOKEN + '/sendMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: chatId,
+        chat_id: String(chatId),
         text: texto,
         parse_mode: 'HTML'
       })
     });
+    const d = await r.json();
+    if (!d.ok) console.warn('Telegram erro:', d.description, 'chat_id:', chatId);
   } catch(e) { console.warn('Telegram:', e.message); }
 }
 
