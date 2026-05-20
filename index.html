@@ -2593,7 +2593,13 @@ select.sel{
     </div>
     <!-- TAREFAS / KANBAN -->
     <div class="tab" id="t-tasks">
-      <div class="ph"><div><div class="pt">TAREFAS</div><div class="ps">Gestão de tarefas da equipe</div></div><button class="btnadd" onclick="openM('mTask')">+ NOVA</button></div>
+      <div class="ph"><div><div class="pt">TAREFAS</div><div class="ps">Gestão de tarefas da equipe</div></div><div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:6px 12px;transition:all .2s;" onfocusin="this.style.borderColor='var(--brand)'" onfocusout="this.style.borderColor='var(--border)'">
+      <span style="font-size:12px;color:var(--tx3);">🔍</span>
+      <input id="buscaNumero" placeholder="Buscar por número ou texto..." style="background:none;border:none;outline:none;font-family:var(--fb);font-size:12px;color:var(--tx);width:220px;" oninput="buscarTarefas(this.value)">
+    </div>
+    <button class="btnadd" onclick="openM('mTask')">+ NOVA</button>
+  </div></div>
       <div class="chips" id="viewChips">
         <button class="chip on" onclick="setView('lista',this)">📋 Lista</button>
         <button class="chip" onclick="setView('kanban',this)">🗂️ Kanban</button>
@@ -4645,6 +4651,9 @@ async function loadAll() {
       // Sincronizar localStorage com dados do Supabase
       const projIds = new Set(proj.map(p => p.id));
       tar = tar.filter(t => !t.projeto_id || projIds.has(t.projeto_id));
+      // Numerar tarefas cronologicamente
+      const tarOrdenadas = [...tar].sort((a,b) => new Date(a.created_at||0) - new Date(b.created_at||0));
+      tarOrdenadas.forEach((t,i) => { t._num = i+1; });
       salvarLocal();
       // BACKUP AUTOMÁTICO com timestamp
       try {
@@ -5427,7 +5436,7 @@ function trow(t) {
   return `<div class="ti" onclick="openDet('task','${t.id}')" style="${_tarefaAtrasada?'border-left:4px solid #EF4444;background:rgba(239,68,68,0.06);box-shadow:inset 0 0 0 1px rgba(239,68,68,0.12);':''}">
     <div class="tc ${t.ok?'ok':''}" onclick="event.stopPropagation();togTask('${t.id}')">${t.ok?'✓':''}</div>
     <div style="flex:1;min-width:0;">
-      <div class="tt ${t.ok?'done':''}" style="${_tarefaAtrasada?'color:#DC2626;':''}">${_tarefaAtrasada?'<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:5px;vertical-align:middle;">⚠ ATRASADO</span>':''}${t.titulo||t.tit}</div>
+      <div class="tt ${t.ok?'done':''}" style="${_tarefaAtrasada?'color:#DC2626;':''}">${t._num?'<span style="font-size:11px;font-weight:800;color:#6366F1;background:#EEF2FF;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:monospace;">'+t._num+'</span>':''}${_tarefaAtrasada?'<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:5px;vertical-align:middle;">⚠ ATRASADO</span>':''}${t.titulo||t.tit}</div>
       <div style="font-size:10px;color:var(--tx3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         ${nomeSetor ? `<span style="font-weight:600;color:var(--brand);">${nomeSetor}</span><span>›</span>` : ''}
         <span>${p?p.nome:''}</span>
@@ -5477,6 +5486,19 @@ function renderTasks() {
   if (curTF==='concluidas') l = l.filter(t => _isFech(t));
   // Por padrão (Todas) — mostra tudo (abertas + concluídas)
   // if (curTF==='todas')      l = l.filter(t => !_isFech(t));
+  // Busca global (número, título, descrição, responsável)
+  const _sq = (window._searchQuery||'').toLowerCase().trim();
+  if (_sq) {
+    const numMatch = _sq.replace('#','').trim();
+    const isNum = /^\d+$/.test(numMatch);
+    l = l.filter(t => {
+      if (isNum && t._num && String(t._num) === numMatch) return true;
+      const tit = (t.titulo||t.tit||'').toLowerCase();
+      const desc = (t.descricao||'').toLowerCase();
+      const resp = (t.resp||'').toLowerCase();
+      return tit.includes(_sq) || desc.includes(_sq) || resp.includes(_sq) || ('#'+t._num).includes(_sq);
+    });
+  }
   if (curView==='kanban') { renderKanban(l); return; }
 
   const ab = l.filter(t => !_isFech(t)), dn = l.filter(t => _isFech(t));
@@ -6034,6 +6056,33 @@ async function togTask(id) {
   }
   renderTasks(); renderUrgent(); renderDashInteligente();
   showToast(novoOk ? `✅ Concluída! Projeto em ${newProg}%` : '↩️ Tarefa reaberta');
+  // Notificar MA
+  if (curUser?.av !== 'MA') {
+    const pTogMA = proj.find(x=>x.id===t.projeto_id);
+    notificarMA(
+      novoOk ? '✅ Tarefa concluída' : '↩️ Tarefa reaberta',
+      t.titulo||t.tit||'',
+      '📁 ' + (pTogMA?.nome||'') + '\n👤 Resp: ' + (t.resp||'—') + '\n✍️ Por: ' + (curUser?.nome||curUser?.av||'—')
+    );
+  }
+}
+
+function buscarTarefas(q) {
+  window._searchQuery = (q||'').trim();
+  renderTasks();
+  // Highlight se busca por número exato
+  if (window._searchQuery) {
+    const num = window._searchQuery.replace(/\D/g,'');
+    if (num) {
+      const found = tar.find(t => String(t._num) === num);
+      if (found) {
+        setTimeout(() => {
+          const el = document.querySelector('.ti[onclick*="' + found.id + '"]');
+          if (el) { el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='3px solid var(--brand)'; setTimeout(()=>el.style.outline='',2000); }
+        }, 100);
+      }
+    }
+  }
 }
 
 function filterT(f,b) { curTF=f; document.querySelectorAll('#tChips .chip').forEach(c=>c.classList.remove('on')); b.classList.add('on'); renderTasks(); }
@@ -6417,7 +6466,12 @@ async function openDet(type, id) {
     const isVencida  = t.prazo && new Date(t.prazo) < new Date() && !t.ok;
 
     // ── Título e badges ────────────────────────────────────────────
-    document.getElementById('detTitle').textContent = t.titulo||t.tit||'—';
+    const detTitleEl = document.getElementById('detTitle');
+    if (detTitleEl) {
+      detTitleEl.innerHTML = (t._num
+        ? '<span style="font-size:14px;font-weight:900;background:rgba(255,255,255,.2);border-radius:8px;padding:3px 10px;margin-right:10px;font-family:monospace;">' + t._num + '</span>'
+        : '') + (t.titulo||t.tit||'—');
+    }
 
     // ── Banner colorido por prioridade ─────────────────────────────
     const bannerColors = {
@@ -7813,6 +7867,14 @@ async function removerCoResp(tarefaId, av) {
 // ── TELEGRAM NOTIFICATIONS ───────────────────────────────────
 const TG_BOT_TOKEN = '8244048842:AAFx_qpJNH0OHc6CUT8Wvov4AsC1SEpgGmU';
 
+// Notifica MA em QUALQUER evento do sistema
+async function notificarMA(evento, titulo, detalhe) {
+  const ma = memb.find(x => x.av === 'MA');
+  if (!ma?.telegram_id) return;
+  const texto = '\ud83d\udd14 <b>DAE Nexus</b>\n\n' + evento + '\n\n<b>' + titulo + '</b>\n' + (detalhe||'') + '\n\n\ud83d\udd50 ' + new Date().toLocaleString('pt-BR');
+  await enviarTelegram(ma.telegram_id, texto);
+}
+
 async function enviarTelegram(chatId, texto) {
   if (!chatId || !texto) return;
   try {
@@ -7837,20 +7899,22 @@ async function notificarTarefaTelegram(tarefa, evento, extra) {
     envolvidos.push(...co);
   } catch(e) {}
 
+  // MA sempre recebe todas as notificações de status
+  if (!envolvidos.includes('MA')) envolvidos.push('MA');
+
   const p = proj.find(x=>x.id===tarefa.projeto_id);
   const nomeProjeto = p?.nome || '';
 
-  console.log('[TG] Notificar:', tarefa.titulo, '| Envolvidos:', envolvidos, '| memb:', memb.map(m=>m.av+':'+m.telegram_id));
-
   for (const av of [...new Set(envolvidos.filter(Boolean))]) {
     const mb = memb.find(x=>x.av===av);
-    console.log('[TG] av:', av, '| mb:', mb?.nome, '| telegram_id:', mb?.telegram_id);
-    if (!mb?.telegram_id) { console.warn('[TG] Sem telegram_id para:', av); continue; }
+    if (!mb?.telegram_id) continue;
     const titulo = tarefa.titulo||tarefa.tit||'';
+    const quemAlterou = curUser?.av && curUser.av !== av ? '\n\u270f\ufe0f Alterado por: ' + (curUser.nome||curUser.av) : '';
     const texto = '\ud83d\udd14 <b>DAE Nexus</b>\n\n' + evento + '\n\n\ud83d\udccb <b>' + titulo + '</b>\n'
       + (nomeProjeto ? '\ud83d\udcc1 ' + nomeProjeto + '\n' : '')
       + (extra ? extra + '\n' : '')
-      + '\n\ud83d\udc64 Respons\u00e1vel: ' + (tarefa.resp||'\u2014');
+      + '\n\ud83d\udc64 Respons\u00e1vel: ' + (tarefa.resp||'\u2014')
+      + quemAlterou;
     await enviarTelegram(mb.telegram_id, texto);
   }
 }
@@ -7868,8 +7932,8 @@ async function salvarStatus(tarefaId, status) {
   if (t) {
     const emoji = ok ? '✅' : '🔄';
     notificarTarefaTelegram(t,
-      `${emoji} Status alterado para: <b>${status}</b>`,
-      `🕐 ${new Date().toLocaleString('pt-BR')}`
+      emoji + ' Status alterado para: <b>' + status + '</b>',
+      '\u270f\ufe0f Por: ' + (curUser?.nome||curUser?.av||'\u2014') + '\n\ud83d\udd50 ' + new Date().toLocaleString('pt-BR')
     );
   }
 
@@ -12992,7 +13056,15 @@ function gsearch(q) {
   if (!q || q.length < 2) { drop.classList.remove('on'); return; }
   const ql = q.toLowerCase();
   const rProj = proj.filter(p => p.nome.toLowerCase().includes(ql) || (p.dept||'').toLowerCase().includes(ql)).slice(0,4);
-  const rTask = tar.filter(t => (t.titulo||(t.titulo||t.tit)||'').toLowerCase().includes(ql)).slice(0,4);
+  // Busca por número (#123) ou texto
+  const isNumQ = /^#?\d+$/.test(q.trim());
+  const numQ = q.replace('#','').trim();
+  const rTask = tar.filter(t => {
+    if (isNumQ && t._num && String(t._num) === numQ) return true;
+    const tit = (t.titulo||t.tit||'').toLowerCase();
+    const desc = (t.descricao||'').toLowerCase();
+    return tit.includes(ql) || desc.includes(ql) || ('#'+t._num).includes(ql);
+  }).slice(0,6);
   const rMemb = memb.filter(m => m.nome.toLowerCase().includes(ql) || m.av.toLowerCase().includes(ql)).slice(0,3);
 
   if (!rProj.length && !rTask.length && !rMemb.length) {
@@ -13014,7 +13086,7 @@ function gsearch(q) {
       const p = proj.find(x=>x.id===t.projeto_id);
       return `<div class="gsr-item" onclick="sw('tasks',document.querySelectorAll('#sidebar .ni')[2]);setTimeout(()=>openDet('task','${t.id}'),200);document.getElementById('gsearchDrop').classList.remove('on')">
         <span class="gsr-item-ico">${t.ok?'✅':'⬜'}</span>
-        <div><div class="gsr-item-txt">${t.titulo||t.tit}</div><div class="gsr-item-sub">${p?.nome||''} · ${t.prior}</div></div>
+        <div><div class="gsr-item-txt"><span style="font-size:10px;color:#94A3B8;font-weight:700;margin-right:4px">#${t._num||'?'}</span>${t.titulo||t.tit}</div><div class="gsr-item-sub">${p?.nome||''} · ${t.prior}${t.descricao?' · '+t.descricao.substring(0,40)+'...':''}</div></div>
       </div>`;
     }).join('');
   }
