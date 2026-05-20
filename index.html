@@ -4172,18 +4172,18 @@ select.sel{
           <div id="detTopActions" style="display:flex;gap:6px;align-items:center;padding-right:8px;flex-shrink:0;"></div>
         </div>
 
-        <!-- ABA DETALHES: layout em grade — Descrição | Comentários em cima, Anexos embaixo -->
-        <div class="det-tab-content on" id="detTabContentDetalhes" style="flex-direction:column;overflow-y:auto;padding:12px;gap:12px;">
+        <!-- ABA DETALHES: layout em grade — Descrição (esquerda) | Comentários + Anexos (direita) -->
+        <div class="det-tab-content on" id="detTabContentDetalhes" style="flex-direction:column;overflow:hidden;padding:12px;gap:12px;">
 
-          <!-- Linha superior: Descrição (esquerda) + Comentários (direita) -->
+          <!-- Layout principal: Descrição | Coluna direita -->
           <div style="display:flex;gap:12px;flex:1;min-height:0;align-items:stretch;">
 
-            <!-- DESCRIÇÃO -->
-            <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;overflow:hidden;">
+            <!-- DESCRIÇÃO (coluna esquerda, altura total) -->
+            <div style="flex:1.2;min-width:0;display:flex;flex-direction:column;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;overflow:hidden;min-height:400px;">
               <div style="font-size:10px;font-weight:800;color:#92400E;letter-spacing:.8px;text-transform:uppercase;padding:10px 14px 8px;border-bottom:1.5px solid #FDE68A;background:#FEF3C7;flex-shrink:0;">
                 📝 Descrição
               </div>
-              <div id="detDescArea" style="flex:1;overflow-y:auto;padding:12px;">
+              <div id="detDescArea" style="flex:1;overflow-y:auto;padding:0;">
                 <div style="text-align:center;padding:24px 0;color:#CBD5E1;">
                   <div style="font-size:28px;opacity:.3;margin-bottom:6px;">📝</div>
                   <div style="font-size:11px;">Sem descrição</div>
@@ -4191,37 +4191,42 @@ select.sel{
               </div>
             </div>
 
-            <!-- COMENTÁRIOS -->
-            <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:12px;overflow:hidden;">
-              <div style="font-size:10px;font-weight:800;color:#075985;letter-spacing:.8px;text-transform:uppercase;padding:10px 14px 8px;border-bottom:1.5px solid #BAE6FD;background:#E0F2FE;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
-                <span>💬 Comentários <span id="detComCount" style="font-weight:400;opacity:.6;text-transform:none;font-size:10px;"></span></span>
-              </div>
-              <div class="det-coms" id="comsBox" style="flex:1;overflow-y:auto;"></div>
-              <div class="det-com-input" id="detComInput" style="display:flex;flex-direction:column;padding:8px 12px;gap:6px;border-top:1px solid var(--border);flex-shrink:0;">
-                <div id="comPastePreview" style="display:none;position:relative;margin-bottom:4px">
-                  <img id="comPasteImg" style="max-height:80px;max-width:200px;border-radius:8px;border:1.5px solid #E2E8F0;object-fit:cover">
-                  <button onclick="limparImagemColada()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:#EF4444;color:#fff;border:none;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input class="det-com-inp" id="comInp" placeholder="Comentar ou cole uma imagem (Ctrl+V)..."
-                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}"
-                    onpaste="handleComPaste(event)">
-                  <button class="det-com-send" onclick="addComentario(window._detTarefaId)" title="Enviar (Enter)">➤</button>
-                </div>
-              </div>
-            </div>
-          </div>
+            <!-- COLUNA DIREITA: Comentários (cima) + Anexos (baixo) -->
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden;">
 
-          <!-- Linha inferior: ANEXOS -->
-          <div style="flex-shrink:0;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;overflow:hidden;">
-            <div class="det-anexos" id="detAnexos" style="border-top:none;max-height:none;background:transparent;">
-              <div class="det-anexos-header" style="border-radius:12px 12px 0 0;background:#DCFCE7;border-bottom:1.5px solid #BBF7D0;">
-                <span class="det-anexos-title">📎 Arquivos anexados</span>
-                <button class="det-anexar-btn" onclick="triggerAnexoInput(window._detTarefaId)">+ Anexar arquivo</button>
-              </div>
-              <div class="det-anexos-list" id="anexosBox"></div>
-            </div>
-          </div>
+              <!-- COMENTÁRIOS -->
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:12px;overflow:hidden;min-height:0;max-height:calc(100% - 90px);">
+                <div style="font-size:10px;font-weight:800;color:#075985;letter-spacing:.8px;text-transform:uppercase;padding:10px 14px 8px;border-bottom:1.5px solid #BAE6FD;background:#E0F2FE;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+                  <span>💬 Comentários <span id="detComCount" style="font-weight:400;opacity:.6;text-transform:none;font-size:10px;"></span></span>
+                </div>
+                <div class="det-coms" id="comsBox" style="flex:1;overflow-y:auto;"></div>
+                <div class="det-com-input" id="detComInput" style="display:flex;flex-direction:column;padding:8px 12px;gap:6px;border-top:1px solid var(--border);flex-shrink:0;">
+                  <div id="comPastePreview" style="display:none;position:relative;margin-bottom:4px">
+                    <img id="comPasteImg" style="max-height:80px;max-width:200px;border-radius:8px;border:1.5px solid #E2E8F0;object-fit:cover">
+                    <button onclick="limparImagemColada()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:#EF4444;color:#fff;border:none;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input class="det-com-inp" id="comInp" placeholder="Comentar ou cole uma imagem (Ctrl+V)..."
+                      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComentario(window._detTarefaId);}"
+                      onpaste="handleComPaste(event)">
+                    <button class="det-com-send" onclick="addComentario(window._detTarefaId)" title="Enviar (Enter)">➤</button>
+                  </div>
+                </div>
+              </div><!-- fim comentários -->
+
+              <!-- ANEXOS (abaixo dos comentários) -->
+              <div style="flex-shrink:0;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;overflow:hidden;">
+                <div class="det-anexos" id="detAnexos" style="border-top:none;max-height:none;background:transparent;">
+                  <div class="det-anexos-header" style="border-radius:12px 12px 0 0;background:#DCFCE7;border-bottom:1.5px solid #BBF7D0;">
+                    <span class="det-anexos-title">📎 Arquivos anexados</span>
+                    <button class="det-anexar-btn" onclick="triggerAnexoInput(window._detTarefaId)">+ Anexar arquivo</button>
+                  </div>
+                  <div class="det-anexos-list" id="anexosBox"></div>
+                </div>
+              </div><!-- fim anexos -->
+
+            </div><!-- fim coluna direita -->
+          </div><!-- fim layout principal -->
         </div>
 
         <!-- ABA HISTÓRICO -->
@@ -5016,13 +5021,28 @@ function renderAct() {
   }).join('');
 }
 
+function switchAtivTab(id, tab) {
+  const painelA = document.getElementById(id+'_painelA');
+  const painelC = document.getElementById(id+'_painelC');
+  const tabA = document.getElementById(id+'_tabA');
+  const tabC = document.getElementById(id+'_tabC');
+  if (!painelA || !painelC) return;
+  const isAtivas = tab === 'ativas';
+  painelA.style.display = isAtivas ? 'flex' : 'none';
+  painelA.style.flexDirection = 'column';
+  painelC.style.display = isAtivas ? 'none' : 'flex';
+  painelC.style.flexDirection = 'column';
+  if (tabA) { tabA.style.color = isAtivas ? '#4F46E5' : '#94A3B8'; tabA.style.borderBottom = isAtivas ? '2px solid #4F46E5' : '2px solid transparent'; }
+  if (tabC) { tabC.style.color = isAtivas ? '#94A3B8' : '#059669'; tabC.style.borderBottom = isAtivas ? '2px solid transparent' : '2px solid #059669'; }
+}
+
 function toggleAtivSetor(id) {
   const el = document.getElementById(id);
   const ico = document.getElementById(id + '_ico');
   if (!el) return;
   const aberto = el.style.display !== 'none';
-  el.style.display = aberto ? 'none' : 'flex';
-  if (ico) ico.textContent = aberto ? '▼' : '▲';
+  el.style.display = aberto ? 'none' : 'block';
+  if (ico) ico.textContent = aberto ? '▶' : '▲';
 }
 
 let _ativFiltroAtual = 'todas';
@@ -6740,11 +6760,7 @@ async function openDet(type, id) {
     if (descArea) {
       const descTxt = t.descricao || t.desc || '';
       descArea.innerHTML = `
-        <div style="display:flex;flex-direction:column;height:100%;padding:16px;gap:10px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-            <div style="font-size:10px;font-weight:800;color:#94A3B8;letter-spacing:.8px;text-transform:uppercase;">📝 DESCRIÇÃO DA TAREFA</div>
-            <span id="descSaveStatus" style="font-size:10px;color:#10B981;font-weight:600;opacity:0;transition:opacity .3s;">✓ Salvo</span>
-          </div>
+        <div style="display:flex;flex-direction:column;height:100%;padding:10px;gap:8px;">
           <textarea id="detDescInput"
             placeholder="Descreva os detalhes desta tarefa, objetivos, critérios de aceite..."
             style="flex:1;resize:none;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px;font-size:13px;font-family:inherit;color:#1E293B;line-height:1.7;outline:none;background:#FAFBFD;transition:border-color .2s,box-shadow .2s;"
@@ -11804,34 +11820,84 @@ function renderHierarquia() {
       // Atividades do setor — bloco colapsável
       if (ativsSetor.length > 0) {
         var _ativSetorId = 'ativSetor_' + setor.id.replace(/-/g,'');
-        var _ativAtrasadasCount = ativsSetor.filter(function(a){ return a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < hoje; }).length;
+        var ativsAtivas = ativsSetor.filter(function(a){ return (a.status||'').toLowerCase().trim() !== 'concluida'; });
+        var ativsConcluidas = ativsSetor.filter(function(a){ return (a.status||'').toLowerCase().trim() === 'concluida'; });
+        var _ativAtrasadasCount = ativsAtivas.filter(function(a){ return a.prazo && new Date(a.prazo+'T23:59') < hoje; }).length;
+
+        function _renderAtivRow(a) {
+          var cor = a.cor || '#4F46E5';
+          var autor = memb.find(function(m){ return m.av===a.autor; });
+          var _atrasada = a.prazo && (a.status||'').toLowerCase().trim() !== 'concluida' && new Date(a.prazo+'T23:59') < hoje;
+          var _concluida = (a.status||'').toLowerCase().trim() === 'concluida';
+          // Status badge colors
+          var _statusMap = {
+            'a fazer': {bg:'#F1F5F9',c:'#64748B'},
+            'em andamento': {bg:'#DBEAFE',c:'#2563EB'},
+            'em desenvolvimento': {bg:'#EDE9FE',c:'#7C3AED'},
+            'aguardando': {bg:'#FEF3C7',c:'#D97706'},
+            'concluida': {bg:'#D1FAE5',c:'#059669'},
+            'concluída': {bg:'#D1FAE5',c:'#059669'},
+            'cancelada': {bg:'#FEE2E2',c:'#DC2626'},
+          };
+          var _st = (a.status||'em andamento').toLowerCase().trim();
+          var _stStyle = _statusMap[_st] || {bg:'#F1F5F9',c:'#64748B'};
+          var _stLabel = a.status || 'Em andamento';
+          var row = '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(_concluida?'rgba(16,185,129,0.03)':_atrasada?'rgba(239,68,68,0.04)':'#fff')+';border-radius:10px;border:1px solid '+(_concluida?'#A7F3D0':_atrasada?'#FECACA':'#EAEFF6')+';transition:all .15s;cursor:pointer;opacity:'+(_concluida?'.72':'1')+';" onclick="abrirDetalheAtiv(\''+a.id+'\')">';
+          row += '<div style="width:4px;height:36px;border-radius:4px;background:'+(_concluida?'#10B981':_atrasada?'#EF4444':cor)+';flex-shrink:0"></div>';
+          row += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:'+(_concluida?'#059669':_atrasada?'#DC2626':'#1E293B')+';'+(_concluida?'text-decoration:line-through;':'')+'">';
+          if (_atrasada) row += '<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:4px;">⚠ ATRASADO</span>';
+          row += a.titulo+'</div>';
+          if (a.descricao) row += '<div style="font-size:10px;color:#64748B;margin-top:2px;">'+a.descricao.slice(0,60)+(a.descricao.length>60?'…':'')+'</div>';
+          row += '</div>';
+          // Status badge
+          row += '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;background:'+_stStyle.bg+';color:'+_stStyle.c+';">'+_stLabel+'</span>';
+          if (autor) row += '<div style="width:26px;height:26px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="'+autor.nome+'">'+autor.av+'</div>';
+          row += '<div style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+cor+'14;color:'+cor+';">'+(a.tipo||'atividade')+'</div>';
+          row += '<button onclick="event.stopPropagation();excluirAtividade(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#FEF2F2;border:none;cursor:pointer;font-size:11px;flex-shrink:0;">🗑</button>';
+          row += '</div>';
+          return row;
+        }
+
         h += '<div style="margin-top:8px;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">';
+        // Header do acordeão
         h += '<div onclick="toggleAtivSetor(\''+_ativSetorId+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#F8FAFC;cursor:pointer;user-select:none;" onmouseover="this.style.background=\'#F1F5F9\'" onmouseout="this.style.background=\'#F8FAFC\'">';
         h += '<div style="display:flex;align-items:center;gap:8px;">';
         h += '<span style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.8px;">⚡ Atividades</span>';
-        h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E0E7FF;color:#4F46E5;">'+ativsSetor.length+'</span>';
-        if (_ativAtrasadasCount > 0) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#FEE2E2;color:#EF4444;">'+_ativAtrasadasCount+' atrasada'+(  _ativAtrasadasCount>1?'s':'')+'</span>';
+        h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E0E7FF;color:#4F46E5;">'+ativsAtivas.length+' ativas</span>';
+        if (ativsConcluidas.length > 0) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#D1FAE5;color:#059669;">'+ativsConcluidas.length+' concluída'+(ativsConcluidas.length>1?'s':'')+'</span>';
+        if (_ativAtrasadasCount > 0) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#FEE2E2;color:#EF4444;">'+_ativAtrasadasCount+' atrasada'+(_ativAtrasadasCount>1?'s':'')+'</span>';
         h += '</div>';
-        h += '<span id="'+_ativSetorId+'_ico" style="font-size:12px;color:#94A3B8;">▼</span>';
+        h += '<span id="'+_ativSetorId+'_ico" style="font-size:12px;color:#94A3B8;">▶</span>';
         h += '</div>';
-        h += '<div id="'+_ativSetorId+'" style="display:none;padding:10px 14px;display:flex;flex-direction:column;gap:6px;">';
-        ativsSetor.forEach(function(a){
-          const cor = a.cor || '#4F46E5';
-          const autor = memb.find(function(m){ return m.av===a.autor; });
-          const _atrasada = a.prazo && a.status !== 'concluida' && new Date(a.prazo+'T23:59') < hoje;
-          h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(_atrasada?'rgba(239,68,68,0.04)':'#fff')+';border-radius:10px;border:1px solid '+(_atrasada?'#FECACA':'#EAEFF6')+';transition:all .15s;cursor:pointer;" onclick="abrirDetalheAtiv(\''+a.id+'\')">';
-          h += '<div style="width:4px;height:36px;border-radius:4px;background:'+(_atrasada?'#EF4444':cor)+';flex-shrink:0"></div>';
-          h += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:'+(_atrasada?'#DC2626':'#1E293B')+';">';
-          if (_atrasada) h += '<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:4px;">⚠ ATRASADO</span>';
-          h += a.titulo+'</div>';
-          if (a.descricao) h += '<div style="font-size:10px;color:#64748B;margin-top:2px;">'+a.descricao.slice(0,60)+(a.descricao.length>60?'…':'')+'</div>';
-          h += '</div>';
-          if (autor) h += '<div style="width:26px;height:26px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="'+autor.nome+'">'+autor.av+'</div>';
-          h += '<div style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+cor+'14;color:'+cor+';">'+( a.tipo||'atividade')+'</div>';
-          h += '<button onclick="event.stopPropagation();excluirAtividade(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#FEF2F2;border:none;cursor:pointer;font-size:11px;flex-shrink:0;">🗑</button>';
-          h += '</div>';
-        });
-        h += '</div></div>';
+
+        // Corpo colapsável (começa fechado — sem display:flex que sobrescreve)
+        h += '<div id="'+_ativSetorId+'" style="display:none;">';
+
+        // Abas internas: Em andamento | Concluídas
+        h += '<div style="display:flex;border-bottom:1px solid #E2E8F0;background:#FAFBFD;">';
+        h += '<button id="'+_ativSetorId+'_tabA" onclick="switchAtivTab(\''+_ativSetorId+'\',\'ativas\')" style="padding:7px 14px;font-size:10px;font-weight:700;border:none;background:transparent;cursor:pointer;color:#4F46E5;border-bottom:2px solid #4F46E5;font-family:inherit;">Em andamento ('+ativsAtivas.length+')</button>';
+        h += '<button id="'+_ativSetorId+'_tabC" onclick="switchAtivTab(\''+_ativSetorId+'\',\'concluidas\')" style="padding:7px 14px;font-size:10px;font-weight:700;border:none;background:transparent;cursor:pointer;color:#94A3B8;border-bottom:2px solid transparent;font-family:inherit;">✅ Concluídas ('+ativsConcluidas.length+')</button>';
+        h += '</div>';
+
+        // Painel ativas
+        h += '<div id="'+_ativSetorId+'_painelA" style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;">';
+        if (ativsAtivas.length > 0) {
+          ativsAtivas.forEach(function(a){ h += _renderAtivRow(a); });
+        } else {
+          h += '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:11px;">Nenhuma atividade em andamento</div>';
+        }
+        h += '</div>';
+
+        // Painel concluídas (começa oculto)
+        h += '<div id="'+_ativSetorId+'_painelC" style="display:none;padding:10px 14px;flex-direction:column;gap:6px;">';
+        if (ativsConcluidas.length > 0) {
+          ativsConcluidas.forEach(function(a){ h += _renderAtivRow(a); });
+        } else {
+          h += '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:11px;">Nenhuma atividade concluída ainda</div>';
+        }
+        h += '</div>';
+
+        h += '</div></div>'; // fim corpo + wrapper
       }
 
       // Se setor vazio
