@@ -134,6 +134,7 @@ body{
    LOGIN
 ══════════════════════════════════════════════════════════════ */
 #loginScreen{display:flex;flex-direction:column;min-height:100dvh;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#141B2D 0%,#1F2A3C 50%,#141B2D 100%);position:fixed;inset:0;z-index:9999;}
+#loginScreen.hidden{display:none!important;}
 #mainApp{display:none;flex-direction:column;height:100vh;overflow:hidden;}
 #loginScreen::before{
   content:'';position:fixed;inset:0;pointer-events:none;
@@ -2901,10 +2902,24 @@ select.sel{
 
     <!-- REUNIÕES / AGENDA -->
     <div class="tab" id="t-meet">
-      <div class="ph"><div><div class="pt">AGENDA</div><div class="ps">Reuniões e compromissos · ClickUp</div></div><button class="btnadd" onclick="openM('mMeet')">+ NOVA</button></div>
-      <div class="sl">Compromissos · Agenda Inteligente (ClickUp)</div>
+      <div class="ph">
+        <div><div class="pt">AGENDA</div><div class="ps">Reuniões, atas e compromissos</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+          <button class="btnadd" style="background:rgba(16,185,129,.15);border:1.5px solid rgba(16,185,129,.4);color:#10B981;" onclick="openM('mAtaAvulsa')" title="Registrar ata de reunião já realizada">📝 + Ata</button>
+          <button class="btnadd" onclick="openM('mMeet')">+ Reunião</button>
+        </div>
+      </div>
+      <!-- CHIPS de filtro -->
+      <div class="chips" id="meetFiltroChips" style="margin-bottom:4px;">
+        <button class="chip on" onclick="setMeetFiltro('todas',this)">Todas</button>
+        <button class="chip" onclick="setMeetFiltro('online',this)">📹 Online (Meet)</button>
+        <button class="chip" onclick="setMeetFiltro('presencial',this)">📍 Presencial</button>
+        <button class="chip" onclick="setMeetFiltro('sem_call',this)">📋 Sem call</button>
+
+      </div>
+      <div class="sl">Compromissos · Agenda Inteligente</div>
       <div id="agendaList"></div>
-      <div class="sl">Reuniões Agendadas</div>
+      <div class="sl" id="meetListLabel">Reuniões</div>
       <div id="meetList"></div>
     </div>
 
@@ -3957,8 +3972,21 @@ select.sel{
   <div class="mhandle"></div>
   <div class="mtitle">NOVA REUNIÃO</div>
 
+  <!-- STEP 0: Tipo -->
+  <div style="font-size:10px;font-weight:700;color:var(--gold2);letter-spacing:1px;margin-bottom:8px">① TIPO DE REUNIÃO</div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="nmTipoChips">
+    <button id="nmTipoOnline"     onclick="nmSetTipo('online')"     style="padding:8px 14px;border-radius:10px;border:2px solid #0EA5E9;background:rgba(14,165,233,.15);color:#0EA5E9;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fh);">📹 Online (Meet)</button>
+    <button id="nmTipoPresencial" onclick="nmSetTipo('presencial')" style="padding:8px 14px;border-radius:10px;border:2px solid var(--br);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fh);">📍 Presencial</button>
+    <button id="nmTipoExterna"    onclick="nmSetTipo('externa')"    style="padding:8px 14px;border-radius:10px;border:2px solid var(--br);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fh);">🌐 Externa</button>
+  </div>
+  <input type="hidden" id="nmTipoVal" value="online">
+  <!-- Local (presencial/externa) -->
+  <div id="nmLocalRow" style="display:none;margin-bottom:14px;">
+    <label class="lbl">📍 Local / Endereço</label>
+    <input class="inp" style="margin:0;" placeholder="Ex: Sede Sudoeste / Empresa XYZ" id="nmLocalExt">
+  </div>
   <!-- STEP 1: Link do Meet -->
-  <div style="background:linear-gradient(135deg,rgba(14,165,233,.08),rgba(56,189,248,.04));border:1px solid rgba(14,165,233,.2);border-radius:10px;padding:12px;margin-bottom:14px">
+  <div id="nmLinkRow" style="background:linear-gradient(135deg,rgba(14,165,233,.08),rgba(56,189,248,.04));border:1px solid rgba(14,165,233,.2);border-radius:10px;padding:12px;margin-bottom:14px">
     <div style="font-size:10px;font-weight:700;color:var(--gold2);letter-spacing:1px;margin-bottom:8px">① LINK DO GOOGLE MEET</div>
     <div style="display:flex;gap:8px;align-items:center">
       <input class="inp" style="margin:0;flex:1" placeholder="Cole aqui: https://meet.google.com/xxx-xxxx-xxx" id="nmLk" oninput="previewMeetLink(this.value)">
@@ -3999,6 +4027,9 @@ select.sel{
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;background:var(--surface2);border:1px solid var(--br);border-radius:8px;padding:7px 12px;transition:border-color .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--br)'">
       <input type="checkbox" id="chkWhats" checked style="accent-color:var(--gold)"> 💬 WhatsApp
     </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;background:var(--surface2);border:1px solid rgba(0,136,204,.4);border-radius:8px;padding:7px 12px;">
+      <input type="checkbox" id="chkTelegram" checked style="accent-color:#0088cc"> ✈️ Telegram
+    </label>
   </div>
 
   <!-- Preview convite -->
@@ -4012,6 +4043,60 @@ select.sel{
 
   <button class="btnp" onclick="addMeet()" id="btnAddMeet">🚀 AGENDAR E DISPARAR CONVITES</button>
   <button class="btncanc" onclick="closeM('mMeet')">Cancelar</button>
+</div></div>
+
+<!-- MODAL: ATA AVULSA / Reunião Presencial / Sem Call -->
+<div class="ov" id="mAtaAvulsa"><div class="modal">
+  <div class="mhandle"></div>
+  <div class="mtitle">📝 REGISTRAR REUNIÃO / ATA</div>
+
+  <!-- TIPO DE REUNIÃO -->
+  <div style="font-size:10px;font-weight:700;color:var(--gold2);letter-spacing:1px;margin-bottom:8px;">① TIPO DE REUNIÃO</div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;" id="tipoReuniaoChips">
+    <button id="trChip_presencial" onclick="selectTipoReuniao('presencial')" style="padding:8px 14px;border-radius:10px;border:2px solid #10B981;background:rgba(16,185,129,.12);color:#10B981;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fh);transition:all .2s;">📍 Presencial</button>
+    <button id="trChip_sem_call" onclick="selectTipoReuniao('sem_call')" style="padding:8px 14px;border-radius:10px;border:2px solid var(--br);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fh);transition:all .2s;">📋 Sem call / Registro de ata</button>
+    <button id="trChip_online" onclick="selectTipoReuniao('online')" style="padding:8px 14px;border-radius:10px;border:2px solid var(--br);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fh);transition:all .2s;">📹 Online com link</button>
+    <button id="trChip_externa" onclick="selectTipoReuniao('externa')" style="padding:8px 14px;border-radius:10px;border:2px solid var(--br);background:var(--surface2);color:var(--tx2);font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fh);transition:all .2s;">🌐 Externa</button>
+  </div>
+  <input type="hidden" id="aaaTipoVal" value="presencial">
+
+  <!-- LINK (apenas para online) -->
+  <div id="aaaLinkRow" style="display:none;margin-bottom:12px;">
+    <div style="font-size:10px;font-weight:700;color:var(--gold2);letter-spacing:1px;margin-bottom:6px;">🔗 LINK DA REUNIÃO</div>
+    <input class="inp" style="margin:0;" placeholder="https://meet.google.com/xxx-xxxx-xxx" id="aaaLink">
+  </div>
+
+  <!-- DETALHES -->
+  <div style="font-size:10px;font-weight:700;color:var(--gold2);letter-spacing:1px;margin-bottom:8px;">② DETALHES</div>
+  <label class="lbl">Título da reunião</label>
+  <input class="inp" placeholder="Ex: Alinhamento presencial Sprint — MK I" id="aaaT">
+  <div class="fg">
+    <div><label class="lbl">Data</label><input class="inp" type="date" id="aaaD"></div>
+    <div><label class="lbl">Hora</label><input class="inp" type="time" id="aaaH" value="09:00"></div>
+  </div>
+  <label class="lbl">Local / Sala</label>
+  <input class="inp" placeholder="Ex: Sala de Reunião 2 · Sede Salvador" id="aaaLocal">
+  <label class="lbl">Pauta (tópicos discutidos)</label>
+  <textarea class="ta" id="aaaPauta" placeholder="Liste os assuntos tratados nesta reunião..." style="height:60px;"></textarea>
+
+  <!-- PARTICIPANTES -->
+  <div style="font-size:10px;font-weight:700;color:var(--gold2);letter-spacing:1px;margin:12px 0 8px;">③ PARTICIPANTES</div>
+  <div id="aaaParticList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:38px;background:var(--surface2);border:1px solid var(--br);border-radius:var(--rs);padding:8px;"></div>
+  <div style="position:relative;margin-bottom:4px">
+    <input class="inp" style="margin:0;" placeholder="🔍 Buscar membro..." id="aaaBuscaMembro" oninput="buscarMembroAta(this.value)">
+    <div id="aaaMembrosDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--br2);border-radius:10px;z-index:50;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
+  </div>
+  <button style="background:none;border:none;color:var(--gold2);font-size:11px;cursor:pointer;margin-bottom:10px;padding:2px 0;" onclick="adicionarTodosParticAta()">+ Adicionar toda a equipe</button>
+  <label class="lbl" style="margin-top:0;">Participantes externos (fora do sistema)</label>
+  <input class="inp" id="aaaParticExt" placeholder="Ex: João Silva, Maria Costa, Carlos (cliente)..." style="margin-bottom:14px;">
+
+  <!-- ATA (opcional no cadastro, pode preencher depois) -->
+  <div style="font-size:10px;font-weight:700;color:var(--gold2);letter-spacing:1px;margin-bottom:8px;">④ ATA (opcional — pode preencher depois)</div>
+  <textarea class="ta" id="aaaAtaTexto" placeholder="Registre aqui as decisões, ações e encaminhamentos desta reunião..." style="height:100px;"></textarea>
+
+
+  <button class="btnp" onclick="salvarReuniaoAvulsa()">💾 SALVAR REUNIÃO</button>
+  <button class="btncanc" onclick="closeM('mAtaAvulsa')">Cancelar</button>
 </div></div>
 
 <div class="ov" id="mMember"><div class="modal">
@@ -4488,21 +4573,40 @@ async function doLogin() {
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) { btnLogin.textContent = 'Entrando...'; btnLogin.disabled = true; }
 
+  // Caixa de debug fixа na tela
+  let dbg = document.getElementById('loginDebug');
+  if (!dbg) {
+    dbg = document.createElement('div');
+    dbg.id = 'loginDebug';
+    dbg.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1E293B;border:1.5px solid #4F46E5;border-radius:12px;padding:14px 20px;color:#fff;font-size:12px;font-family:monospace;max-width:90vw;z-index:99999;line-height:1.8;min-width:300px;';
+    document.body.appendChild(dbg);
+  }
+  const log = msg => { dbg.innerHTML += msg + '<br>'; };
+  dbg.innerHTML = '';
+
   try {
+    log('▶ email: ' + emailDigitado);
+    log('▶ conectando ao banco...');
     const { data: todos, error } = await safeDb.from('membros').select('*');
-    if (error) throw error;
+    if (error) { log('❌ ERRO: ' + error.message); if(btnLogin){btnLogin.textContent='Entrar no sistema';btnLogin.disabled=false;} return; }
+    log('✅ membros: ' + (todos||[]).length);
     const usuario = (todos||[]).find(m => m.email && m.email.trim().toLowerCase() === emailDigitado.toLowerCase());
     if (!usuario) {
-      showToast('❌ E-mail não encontrado. Verifique o cadastro.');
-      if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
+      log('❌ email não encontrado');
+      log('📋 emails no banco:');
+      (todos||[]).forEach(m => log('  • ' + (m.email||'(vazio)')));
+      if(btnLogin){btnLogin.textContent='Entrar no sistema';btnLogin.disabled=false;}
       return;
     }
+    log('✅ usuário: ' + usuario.nome);
+    log('▶ entrando no app...');
     localStorage.setItem('dae_user_email', usuario.email);
     await entrarNoApp(usuario);
-    showToast('✅ Bem-vindo, ' + (usuario.nome||'').split(' ')[0] + '!');
+    dbg.remove();
   } catch(err) {
-    showToast('❌ Erro: ' + (err.message || 'Verifique a conexão'));
-    if (btnLogin) { btnLogin.textContent = 'Entrar no sistema'; btnLogin.disabled = false; }
+    log('❌ EXCEÇÃO: ' + (err.message || String(err)));
+    console.error('doLogin:', err);
+    if(btnLogin){btnLogin.textContent='Entrar no sistema';btnLogin.disabled=false;}
   }
 }
 
@@ -9106,6 +9210,25 @@ function toggleAudio(id, btn) {
     btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
   }
 }
+function baixarArqPDF(url, nome) {
+  // Para PDFs: abre direto no browser com print
+  const ext = (url.split('?')[0].split('.').pop()||'').toLowerCase();
+  if (ext === 'pdf') { window.open(url, '_blank'); return; }
+  // Para imagens: abre em janela para imprimir como PDF
+  if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome||'Arquivo'}</title>
+    <style>*{margin:0;padding:0}body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fff;}
+    img{max-width:100%;max-height:100vh;object-fit:contain;}
+    @media print{body{display:block;}img{width:100%;height:auto;page-break-inside:avoid;}}</style></head>
+    <body><img src="${url}" alt="${nome}"><script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`;
+    const b = new Blob([html],{type:'text/html'}); const u=URL.createObjectURL(b);
+    const w = window.open(u,'_blank'); if(!w) showToast('⚠️ Permita pop-ups');
+    setTimeout(()=>URL.revokeObjectURL(u),60000); return;
+  }
+  // Para outros tipos: download direto
+  baixarAnexo(url, nome);
+}
+
 function baixarAnexo(url, nome) {
   const a = document.createElement('a');
   a.href = url; a.download = nome || 'arquivo';
@@ -9202,6 +9325,172 @@ async function sendChat() {
 // ══════════════════════════════════════════════════════════════════
 // AGENDA + REUNIÕES — CRUD
 // ══════════════════════════════════════════════════════════════════
+// ── FILTRO DE REUNIÕES ──────────────────────────────────────────────
+let _meetFiltroAtual = 'todas';
+function setMeetFiltro(f, el) {
+  _meetFiltroAtual = f;
+  document.querySelectorAll('#meetFiltroChips .chip').forEach(c => c.classList.remove('on'));
+  if (el) el.classList.add('on');
+  renderMeet();
+}
+
+// ── TIPO REUNIÃO CHIPS (modal ata avulsa) ────────────────────────────
+function selectTipoReuniao(tipo) {
+  document.getElementById('aaaTipoVal').value = tipo;
+  const cfg = {
+    presencial: { bg:'rgba(16,185,129,.12)',  c:'#10B981', bc:'#10B981' },
+    sem_call:   { bg:'rgba(139,92,246,.12)',  c:'#8B5CF6', bc:'#8B5CF6' },
+    online:     { bg:'rgba(14,165,233,.12)',  c:'#0EA5E9', bc:'#0EA5E9' },
+    externa:    { bg:'rgba(245,158,11,.12)',  c:'#F59E0B', bc:'#F59E0B' },
+  };
+  ['presencial','sem_call','online','externa'].forEach(t => {
+    const btn = document.getElementById('trChip_' + t);
+    if (!btn) return;
+    if (t === tipo) {
+      btn.style.borderColor = cfg[t].bc;
+      btn.style.background  = cfg[t].bg;
+      btn.style.color       = cfg[t].c;
+    } else {
+      btn.style.borderColor = 'var(--br)';
+      btn.style.background  = 'var(--surface2)';
+      btn.style.color       = 'var(--tx2)';
+    }
+  });
+  document.getElementById('aaaLinkRow').style.display = tipo === 'online' ? 'block' : 'none';
+}
+
+// ── PARTICIPANTES MODAL ATA AVULSA ───────────────────────────────────
+let _ataParticipantes = [];
+function buscarMembroAta(q) {
+  const dd = document.getElementById('aaaMembrosDropdown');
+  if (!q.trim()) { dd.style.display = 'none'; return; }
+  const res = memb.filter(m => (m.nome||'').toLowerCase().includes(q.toLowerCase()) && !_ataParticipantes.includes(m.av));
+  if (!res.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = res.map(m => `<div onclick="addParticAta('${m.av}')" style="padding:10px 14px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''"><div style="width:28px;height:28px;border-radius:8px;background:${m.cor||'#4F46E5'}22;color:${m.cor||'#4F46E5'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">${m.av}</div><span>${m.nome}</span></div>`).join('');
+}
+function addParticAta(av) {
+  if (_ataParticipantes.includes(av)) return;
+  _ataParticipantes.push(av);
+  renderParticAtaList();
+  document.getElementById('aaaBuscaMembro').value = '';
+  document.getElementById('aaaMembrosDropdown').style.display = 'none';
+}
+function removeParticAta(av) {
+  _ataParticipantes = _ataParticipantes.filter(x => x !== av);
+  renderParticAtaList();
+}
+function renderParticAtaList() {
+  const box = document.getElementById('aaaParticList');
+  if (!box) return;
+  box.innerHTML = _ataParticipantes.map(av => {
+    const m = memb.find(x => x.av === av);
+    const c = m?.cor || '#4F46E5';
+    return `<div style="display:flex;align-items:center;gap:6px;background:${c}18;border:1.5px solid ${c}44;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:${c}"><span>${av}</span><span style="font-size:10px;color:var(--tx2);font-weight:600;">${m?.nome?.split(' ')[0]||''}</span><span onclick="removeParticAta('${av}')" style="cursor:pointer;opacity:.6;font-size:12px;margin-left:2px;">✕</span></div>`;
+  }).join('') || '<span style="font-size:11px;color:var(--tx3);">Nenhum participante adicionado</span>';
+}
+function adicionarTodosParticAta() {
+  memb.forEach(m => { if (!_ataParticipantes.includes(m.av)) _ataParticipantes.push(m.av); });
+  renderParticAtaList();
+}
+
+// ── SALVAR REUNIÃO AVULSA (presencial / sem call / online sem disparo) ─
+async function salvarReuniaoAvulsa() {
+  const t = document.getElementById('aaaT').value.trim();
+  if (!t) { showToast('⚠️ Digite o título da reunião'); return; }
+  const d = document.getElementById('aaaD').value || new Date().toISOString().split('T')[0];
+  const ps = d.split('-');
+  const ms2 = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const tipo = document.getElementById('aaaTipoVal').value || 'presencial';
+  const local = document.getElementById('aaaLocal').value.trim();
+  const link  = document.getElementById('aaaLink').value.trim();
+  const pauta = document.getElementById('aaaPauta').value.trim();
+  const ata   = document.getElementById('aaaAtaTexto').value.trim();
+  const todos = _ataParticipantes.length ? [..._ataParticipantes] : [curUser?.av||'?'];
+  // tipo, pauta e participantes externos são embutidos na ata (colunas não existem no Supabase)
+  const tipoLabel = tipo === 'presencial' ? 'Presencial' : tipo === 'sem_call' ? 'Sem call' : tipo === 'externa' ? 'Externa' : 'Online';
+  const particExt = (document.getElementById('aaaParticExt')?.value?.trim()) || '';
+  const ataFinal = [
+    `[Tipo: ${tipoLabel}]\n`,
+    pauta ? `[Pauta: ${pauta}]\n` : '',
+    particExt ? `[Externos: ${particExt}]\n` : '',
+    '\n',
+    ata
+  ].join('').trim();
+  const nova = {
+    tit: t,
+    dia: ps[2],
+    mes: ms2[parseInt(ps[1])-1],
+    hora: document.getElementById('aaaH').value || '09:00',
+    local: local || (tipo==='online' ? 'Google Meet' : tipo==='presencial' ? 'Presencial' : tipo==='externa' ? 'Externa' : 'Sem call'),
+    link: link || '',
+    participantes: todos,
+    status: 'realizada',
+    ata: ataFinal
+  };
+  const { data, error } = await safeDb.from('reunioes').insert([nova]).select().single();
+  if (error && db) { showToast('❌ ' + error.message); return; }
+  const reunSalva = data || { id: 'local-' + Date.now(), ...nova };
+  reun.unshift(reunSalva);
+
+  // Telegram para participantes internos
+  if (todos.length > 0) {
+    await notificarReuniaoTelegram({ ...reunSalva, pauta: pauta }, todos);
+  }
+
+  closeM('mAtaAvulsa');
+  renderMeet();
+  // reset
+  _ataParticipantes = [];
+  ['aaaT','aaaD','aaaH','aaaLocal','aaaLink','aaaPauta','aaaAtaTexto','aaaParticExt'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  renderParticAtaList();
+  selectTipoReuniao('presencial');
+  showToast('Reunião registrada' + (ata ? ' com ata!' : '! Adicione a ata quando quiser.'));
+}
+
+// ── GERAR ATA IA para modal ata avulsa ──────────────────────────────
+async function gerarAtaAA() {
+  const t = document.getElementById('aaaT').value.trim() || 'Reunião';
+  const pauta = document.getElementById('aaaPauta').value.trim() || '';
+  const d = document.getElementById('aaaD').value || new Date().toISOString().split('T')[0];
+  const ta = document.getElementById('aaaAtaTexto');
+  ta.placeholder = '✨ Gerando ata com IA...';
+  const participantesNomes = _ataParticipantes.map(av => memb.find(m => m.av === av)?.nome || av).join(', ') || 'Equipe DAE';
+  const projResumo = proj.slice(0,6).map(p => `• ${p.nome} — ${p.prog}% — Prazo: ${p.fim||'—'}`).join('\n');
+  const prompt = `Gere uma ata profissional e completa para a seguinte reunião:
+
+REUNIÃO: ${t}
+DATA: ${d}
+PARTICIPANTES: ${participantesNomes}
+PAUTA: ${pauta||'Alinhamento geral'}
+
+CONTEXTO DOS PROJETOS:
+${projResumo}
+
+Formato:
+1. ATA DE REUNIÃO — título com data
+2. Participantes — nomes
+3. Pauta discutida
+4. Discussões e Deliberações
+5. Decisões Tomadas — lista numerada
+6. Ações e Responsáveis — Ação | Responsável | Prazo
+7. Próxima Reunião
+8. Assinaturas`;
+  try {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:2000,temperature:0.7} })
+    });
+    const data = await resp.json();
+    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!texto) throw new Error('Resposta vazia');
+    ta.value = '';
+    for (let i = 0; i < texto.length; i += 10) { ta.value = texto.slice(0, i+10); ta.scrollTop = ta.scrollHeight; await new Promise(r => setTimeout(r, 8)); }
+    ta.value = texto;
+    showToast('✨ Ata gerada! Revise e salve.');
+  } catch(e) { ta.placeholder = 'Erro: ' + e.message; showToast('❌ ' + e.message.slice(0,80)); }
+}
+
 function renderMeet() {
   document.getElementById('agendaList').innerHTML = agenda.map(a => `<div class="card">
     <div style="display:flex;align-items:center;gap:10px">
@@ -9211,46 +9500,183 @@ function renderMeet() {
     </div>
   </div>`).join('') || '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Nenhum compromisso</div>';
 
-  document.getElementById('meetList').innerHTML = reun.map(r => {
+  // Badge e ícone por tipo
+  const _tipoInfo = {
+    online:     { icon:'📹', label:'Online',     cor:'#0EA5E9', bg:'rgba(14,165,233,.12)',  bc:'rgba(14,165,233,.3)'  },
+    presencial: { icon:'📍', label:'Presencial', cor:'#10B981', bg:'rgba(16,185,129,.12)', bc:'rgba(16,185,129,.3)'  },
+    sem_call:   { icon:'📋', label:'Sem call',   cor:'#8B5CF6', bg:'rgba(139,92,246,.12)', bc:'rgba(139,92,246,.3)'  },
+  };
+
+  // Filtro ativo
+  let lista = [...reun];
+  const _getTipo = r => {
+    const a = r.ata || '';
+    const m = a.match(/\[Tipo:\s*(📍 Presencial|📋 Sem call|📹 Online)\]/);
+    if (m) return m[1].includes('Presencial') ? 'presencial' : m[1].includes('Sem call') ? 'sem_call' : 'online';
+    return r.tipo || 'online';
+  };
+  if (_meetFiltroAtual === 'online')     lista = lista.filter(r => _getTipo(r) === 'online');
+  if (_meetFiltroAtual === 'presencial') lista = lista.filter(r => _getTipo(r) === 'presencial');
+  if (_meetFiltroAtual === 'sem_call')   lista = lista.filter(r => _getTipo(r) === 'sem_call');
+
+
+  // Label dinâmico
+  const lbl = document.getElementById('meetListLabel');
+  if (lbl) lbl.textContent = _meetFiltroAtual === 'todas' ? 'Reuniões (' + reun.length + ')' :
+(_tipoInfo[_meetFiltroAtual]?.icon||'') + ' Reuniões ' + (_tipoInfo[_meetFiltroAtual]?.label||'') + ' (' + lista.length + ')';
+
+  document.getElementById('meetList').innerHTML = lista.map(r => {
+    // tipo e pauta são embutidos no campo ata (ex: "[Tipo: 📍 Presencial]\n[Pauta: ...]")
+    const _ataRaw = r.ata || '';
+    const _tipoMatch = _ataRaw.match(/\[Tipo:\s*(📍 Presencial|📋 Sem call|📹 Online)\]/);
+    const tipo = _tipoMatch
+      ? (_tipoMatch[1].includes('Presencial') ? 'presencial' : _tipoMatch[1].includes('Sem call') ? 'sem_call' : 'online')
+      : (r.tipo || 'online');
+    const _pautaMatch = _ataRaw.match(/\[Pauta:\s*([^\]]+)\]/);
+    const _pautaExibir = _pautaMatch ? _pautaMatch[1] : (r.pauta || '');
+    const ti = _tipoInfo[tipo] || _tipoInfo.online;
     const par = (r.participantes||[]).map(av => { const m=memb.find(x=>x.av===av); const c=m?m.cor:'#0EA5E9'; return `<div style="width:22px;height:22px;border-radius:50%;background:${c}33;color:${c};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;margin-right:-4px;border:2px solid var(--surface2)">${av}</div>`; }).join('');
-    return `<div class="mtg">
+    const semAta = !r.ata || !r.ata.trim();
+    return `<div class="mtg" style="${semAta?'border-left:3px solid #F59E0B;':''}">
       <div class="mtgtop">
         <div class="mtgdt"><div class="mtgdy">${r.dia||'—'}</div><div class="mtgmn">${r.mes||''}</div></div>
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;margin-bottom:2px">${r.tit}</div>
-          <div style="font-size:11px;color:var(--tx3)">⏰ ${r.hora||'—'} · 📍 ${r.local||'—'}</div>
-          <div style="margin-top:7px;display:flex">${par}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-size:13px;font-weight:700;">${r.tit}</span>
+            <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:${ti.bg};color:${ti.cor};border:1px solid ${ti.bc};white-space:nowrap;">${ti.icon} ${ti.label}</span>
+            ${semAta ? '<span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;">⚠️ Sem ata</span>' : '<span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">✅ Ata registrada</span>'}
+          </div>
+          <div style="font-size:11px;color:var(--tx3);">⏰ ${r.hora||'—'} · 📍 ${r.local||'—'}${_pautaExibir ? ' · 📋 '+_pautaExibir.slice(0,40)+(_pautaExibir.length>40?'…':'') : ''}</div>
+          <div style="margin-top:7px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">${par}${(()=>{const em=_ataRaw.match(/\[Externos:\s*([^\]]+)\]/);return em?`<span style="font-size:10px;color:var(--tx3);margin-left:6px;">+ ${em[1]}</span>`:'';})()}</div>
         </div>
         <button onclick="delReuniao('${r.id}')" style="background:rgba(239,68,68,.12);border:none;border-radius:6px;padding:4px 7px;font-size:10px;color:#EF4444;cursor:pointer;align-self:flex-start">🗑</button>
       </div>
       <div class="mtgacts">
-        ${r.link?`<button class="bmtg bmtgp" onclick="window.open('${r.link}','_blank')">📹 Entrar</button>`:''}
-        <button class="bmtg bmtgs" onclick="togAta('${r.id}')">📝 ${r.ata?'Ver Ata':'Ata'}</button>
-        <button class="bmtg bmtgs" style="background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(14,165,233,.2));border-color:rgba(139,92,246,.4);color:#C4B5FD" onclick="gerarAtaIA('${r.id}')">✨ Gerar Ata</button>
-        <button class="bmtg bmtgs" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#22C55E" onclick="abrirModalConvite('${r.id}')">✉️ Convidar</button>
+        ${r.link ? `<button class="bmtg bmtgp" onclick="window.open('${r.link}','_blank')">📹 Entrar</button>` : ''}
+        <button class="bmtg bmtgs" onclick="togAta('${r.id}')" style="${semAta?'background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4);color:#D97706;font-weight:800;':''}">📝 ${r.ata?'Ver / Editar Ata':'+ Adicionar Ata'}</button>
+
+        ${tipo !== 'presencial' && tipo !== 'sem_call' ? `<button class="bmtg bmtgs" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#22C55E" onclick="abrirModalConvite('${r.id}')">✉️ Convidar</button>` : ''}
       </div>
-      <div style="display:flex;gap:7px;margin-top:6px;padding:0 0 4px 0">
-        <button onclick="compartilharAtaWpp('${r.id}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#22C55E,#16A34A);border:none;border-radius:10px;padding:10px 0;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--fh);letter-spacing:.3px">
-          📲 Enviar Ata no WhatsApp
+      <div style="display:flex;gap:7px;margin-top:6px;padding:0 0 4px 0;flex-wrap:wrap;">
+        <button onclick="compartilharAtaWpp('${r.id}')" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#22C55E,#16A34A);border:none;border-radius:10px;padding:10px 0;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--fh);letter-spacing:.3px">
+          📲 Enviar no WhatsApp
         </button>
-        <button onclick="copiarAtaFormatada('${r.id}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(14,165,233,.15);border:1.5px solid rgba(14,165,233,.4);border-radius:10px;padding:10px 0;font-size:12px;font-weight:700;color:#0EA5E9;cursor:pointer;font-family:var(--fh);letter-spacing:.3px">
-          📋 Copiar Ata Formatada
+
+        <button onclick="copiarAtaFormatada('${r.id}')" style="flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(14,165,233,.15);border:1.5px solid rgba(14,165,233,.4);border-radius:10px;padding:10px 0;font-size:12px;font-weight:700;color:#0EA5E9;cursor:pointer;font-family:var(--fh);letter-spacing:.3px">
+          📋 Copiar
+        </button>
+        <button onclick="baixarAtaPDF('${r.id}')" style="flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#EF4444,#DC2626);border:none;border-radius:10px;padding:10px 0;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--fh);letter-spacing:.3px">
+          📄 Baixar PDF
         </button>
       </div>
       <div class="atabox" id="ata-${r.id}">
-        <div id="ata-status-${r.id}" style="display:none;font-size:11px;color:var(--gold2);margin-bottom:6px;display:flex;align-items:center;gap:6px"><span style="animation:pulse 1s infinite">✨</span> <span id="ata-status-txt-${r.id}">Gerando ata com IA...</span></div>
-        <textarea class="atainp" placeholder="A ata aparecerá aqui após geração pela IA, ou escreva manualmente..." id="atat-${r.id}">${r.ata||''}</textarea>
+        <div id="ata-status-${r.id}" style="display:none;font-size:11px;color:var(--gold2);margin-bottom:6px;align-items:center;gap:6px"><span style="animation:pulse 1s infinite">✨</span> <span id="ata-status-txt-${r.id}">Gerando ata com IA...</span></div>
+        <textarea class="atainp" placeholder="Abra a ata para ver o conteúdo..." id="atat-${r.id}"></textarea>
         <div style="display:flex;gap:6px;margin-top:6px">
           <button class="btnp" style="padding:8px 12px;font-size:11px;flex:1" onclick="saveAta('${r.id}')">💾 SALVAR ATA</button>
         </div>
       </div>
     </div>`;
-  }).join('') || '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Nenhuma reunião agendada</div>';
+  }).join('') || `<div style="text-align:center;padding:32px;color:var(--tx3);font-size:12px;">
+    <div style="font-size:28px;opacity:.3;margin-bottom:8px;">📅</div>
+    <div style="font-weight:700;">Nenhuma reunião encontrada</div>
+  </div>`;
 }
 
-function togAta(id) { 
-  const b = document.getElementById('ata-'+id); 
-  b.style.display = b.style.display==='block' ? 'none' : 'block'; 
+function togAta(id) {
+  const b = document.getElementById('ata-'+id);
+  const isOpen = b.style.display === 'block';
+  b.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    const r = reun.find(x => x.id === id);
+    const ta = document.getElementById('atat-'+id);
+    if (!ta) return;
+    const rawAta = (r ? r.ata : '') || '';
+    // Strip metadata tags
+    const limpa = rawAta
+      .replace(/\[Tipo:[^\]]*\]\n*/g, '')
+      .replace(/\[Pauta:[^\]]*\]\n*/g, '')
+      .replace(/\[Externos:[^\]]*\]\n*/g, '')
+      .trim();
+    if (limpa) {
+      ta.value = limpa;
+      return;
+    }
+    // Build structured header template
+    const mesesMap = {JAN:'Janeiro',FEV:'Fevereiro',MAR:'Marco',ABR:'Abril',MAI:'Maio',JUN:'Junho',JUL:'Julho',AGO:'Agosto',SET:'Setembro',OUT:'Outubro',NOV:'Novembro',DEZ:'Dezembro'};
+    const mesExtenso = mesesMap[r ? r.mes : ''] || (r ? r.mes : '') || '';
+    const anoAtual = new Date().getFullYear();
+    const partNomes = (r ? r.participantes : [] || []).map(function(av) {
+      const m = memb.find(function(x){ return x.av === av; });
+      return m ? m.nome + (m.cargo ? ' (' + m.cargo + ')' : '') : av;
+    });
+    const extMatch = rawAta.match(/\[Externos:\s*([^\]]+)\]/);
+    if (extMatch) extMatch[1].split(',').map(function(s){ return s.trim(); }).filter(Boolean).forEach(function(n){ partNomes.push(n); });
+    const pautaMatch = rawAta.match(/\[Pauta:\s*([^\]]+)\]/);
+    const tipoMatch  = rawAta.match(/\[Tipo:\s*([^\]]+)\]/);
+    const tipoLabel  = tipoMatch ? tipoMatch[1] : ((r && r.link) ? 'Online' : 'Presencial');
+    const emissao    = new Date().toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const SEP  = '------------------------------------------';
+    const SEP2 = '==========================================';
+    const linhas = [
+      SEP2,
+      '           ATA DE REUNIAO',
+      SEP2,
+      '',
+      'REUNIAO: ' + (r ? r.tit : ''),
+      'DATA: ' + (r ? r.dia : '--') + ' de ' + mesExtenso + ' de ' + anoAtual,
+      'HORARIO: ' + (r ? r.hora : '--'),
+      'LOCAL: ' + (r ? r.local : '--') + ' | ' + tipoLabel,
+      'ELABORADA EM: ' + emissao,
+      '',
+      SEP,
+      '1. PARTICIPANTES',
+      SEP
+    ];
+    partNomes.forEach(function(n){ linhas.push('   * ' + n); });
+    linhas.push('');
+    linhas.push(SEP);
+    linhas.push('2. PAUTA');
+    linhas.push(SEP);
+    linhas.push(pautaMatch ? '   ' + pautaMatch[1] : '   (Descreva os topicos discutidos)');
+    linhas.push('');
+    linhas.push(SEP);
+    linhas.push('3. DISCUSSOES E DELIBERACOES');
+    linhas.push(SEP);
+    linhas.push('   (Registre aqui os pontos discutidos)');
+    linhas.push('');
+    linhas.push(SEP);
+    linhas.push('4. DECISOES TOMADAS');
+    linhas.push(SEP);
+    linhas.push('   1. ');
+    linhas.push('   2. ');
+    linhas.push('');
+    linhas.push(SEP);
+    linhas.push('5. ACOES E RESPONSAVEIS');
+    linhas.push(SEP);
+    linhas.push('   Acao                  | Responsavel         | Prazo');
+    linhas.push('   ' + '-'.repeat(50));
+    linhas.push('                         |                     |      ');
+    linhas.push('');
+    linhas.push(SEP);
+    linhas.push('6. PROXIMA REUNIAO');
+    linhas.push(SEP);
+    linhas.push('   Data: ___/___/______  Horario: ___:___');
+    linhas.push('');
+    linhas.push(SEP);
+    linhas.push('7. ASSINATURAS');
+    linhas.push(SEP);
+    partNomes.slice(0,6).forEach(function(n) {
+      const nome = n.split('(')[0].trim();
+      const pad = nome.length < 35 ? nome + ' ' + '_'.repeat(35 - nome.length) : nome.slice(0,35);
+      linhas.push('   ' + pad + '  ___/___/______');
+    });
+    linhas.push('');
+    linhas.push(SEP2);
+    linhas.push('  Gerado pelo DAE Nexus.AI - Sudoeste TI');
+    linhas.push(SEP2);
+    ta.value = linhas.join('\n');
+  }
 }
 
 async function gerarAtaIA(id) {
@@ -9282,28 +9708,71 @@ async function gerarAtaIA(id) {
   const riscosAbertos = riscos.filter(r2 => r2.status==='aberto').slice(0,5)
     .map(r2 => `• [${r2.sev}] ${r2.desc}`).join('\n') || 'Nenhum risco ativo';
 
-  const prompt = `Gere uma ata profissional e completa para a seguinte reunião:
+  const _ataRawIA = r.ata || '';
+  const _pautaIA = (_ataRawIA.match(/\[Pauta:\s*([^\]]+)\]/) || [])[1] || '';
+  const _extIA   = (_ataRawIA.match(/\[Externos:\s*([^\]]+)\]/) || [])[1] || '';
+  const _tipoIA  = (_ataRawIA.match(/\[Tipo:\s*([^\]]+)\]/) || [])[1] || (r.link ? 'Online' : 'Presencial');
+  const allPartics = participantesNomes + (_extIA ? ', ' + _extIA : '');
+  const mesesIA = {JAN:'Janeiro',FEV:'Fevereiro',MAR:'Março',ABR:'Abril',MAI:'Maio',JUN:'Junho',JUL:'Julho',AGO:'Agosto',SET:'Setembro',OUT:'Outubro',NOV:'Novembro',DEZ:'Dezembro'};
+
+  const prompt = `Gere uma ATA DE REUNIÃO profissional, estruturada e completa. Use o formato abaixo EXATAMENTE, sem markdown, sem asteriscos, sem símbolos extras. Texto limpo com separadores de linha.
+
+══════════════════════════════════════════
+           ATA DE REUNIÃO
+══════════════════════════════════════════
 
 REUNIÃO: ${r.tit}
-DATA: ${r.dia}/${r.mes} às ${r.hora}
-LOCAL: ${r.local || 'Google Meet'}
-PARTICIPANTES: ${participantesNomes}
+DATA: ${r.dia} de ${mesesIA[r.mes]||r.mes} de ${new Date().getFullYear()}
+HORÁRIO: ${r.hora}
+LOCAL: ${r.local||'—'} · ${_tipoIA}
+ELABORADA EM: ${new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
 
-CONTEXTO DOS PROJETOS:
+──────────────────────────────────────────
+1. PARTICIPANTES
+──────────────────────────────────────────
+${allPartics.split(',').map(n=>'   • '+n.trim()).join('\n')}
+
+──────────────────────────────────────────
+2. PAUTA
+──────────────────────────────────────────
+${_pautaIA || '   (Descreva os tópicos discutidos na reunião)'}
+
+──────────────────────────────────────────
+3. DISCUSSÕES E DELIBERAÇÕES
+──────────────────────────────────────────
+[Gere aqui um resumo profissional das discussões com base no contexto dos projetos abaixo]
+
+PROJETOS EM ANDAMENTO:
 ${projResumo}
 
 RISCOS ATIVOS:
 ${riscosAbertos}
 
-Formato da ata:
-1. **ATA DE REUNIÃO** — título com data
-2. **Participantes** — nomes e cargos
-3. **Pauta** — tópicos discutidos
-4. **Discussões e Deliberações** — pontos por projeto
-5. **Decisões Tomadas** — lista numerada
-6. **Ações e Responsáveis** — Ação | Responsável | Prazo
-7. **Próxima Reunião** — sugestão
-8. **Assinaturas** — ${participantesNomes}`;
+──────────────────────────────────────────
+4. DECISÕES TOMADAS
+──────────────────────────────────────────
+[Liste as decisões numeradas — ao menos 3 decisões relevantes baseadas no contexto]
+
+──────────────────────────────────────────
+5. AÇÕES E RESPONSÁVEIS
+──────────────────────────────────────────
+   Ação                  | Responsável         | Prazo
+   ─────────────────────────────────────────────────
+[Liste ao menos 3 ações com responsáveis e prazos realistas]
+
+──────────────────────────────────────────
+6. PRÓXIMA REUNIÃO
+──────────────────────────────────────────
+[Sugira data e pauta para próxima reunião]
+
+──────────────────────────────────────────
+7. ASSINATURAS
+──────────────────────────────────────────
+${allPartics.split(',').slice(0,6).map(n=>('   '+n.trim().split('(')[0].trim()).padEnd(38,'_')+'___/___/______').join('\n')}
+
+══════════════════════════════════════════
+  Gerado pelo DAE Nexus.AI · Sudoeste TI
+══════════════════════════════════════════`;
 
   try {
     // Usar Google Gemini API (gratuito)
@@ -9686,6 +10155,7 @@ async function renderArquivos() {
           </div>
           <div style="display:flex;gap:4px;padding:8px;border-top:1px solid var(--border)">
             <button class="arq-btn primary" onclick="window.open('${url}','_blank')" style="flex:1">⬇ Abrir</button>
+            <button class="arq-btn" onclick="baixarArqPDF('${url}','${arqNomeLimpo(f.name)}')" title="Baixar PDF" style="background:rgba(239,68,68,.1);color:#EF4444;border-color:rgba(239,68,68,.25);">📄</button>
             <button class="arq-btn" onclick="copiarLinkArquivo('${url}')" title="Copiar link">🔗</button>
             <button class="arq-btn red" onclick="excluirArquivo('${pasta+f.name}',this)" title="Excluir">🗑</button>
           </div>
@@ -9711,6 +10181,7 @@ async function renderArquivos() {
           <span class="arq-fav ${isFav?'':'off'}" onclick="arqToggleFav('${f.name}')" style="margin-right:8px">★</span>
           <div class="arq-actions">
             <button class="arq-btn primary" onclick="window.open('${url}','_blank')">⬇ Abrir</button>
+            <button class="arq-btn" onclick="baixarArqPDF('${url}','${arqNomeLimpo(f.name)}')" title="Baixar / Imprimir PDF" style="background:rgba(239,68,68,.1);color:#EF4444;border-color:rgba(239,68,68,.25);">📄 PDF</button>
             <button class="arq-btn" onclick="arqRenomearArquivo('${pasta+f.name}','${arqNomeLimpo(f.name)}')" title="Renomear">✏️</button>
             <button class="arq-btn" onclick="copiarLinkArquivo('${url}')" title="Copiar link">🔗</button>
             <button class="arq-btn" onclick="arqAdicionarTag('${f.name}')" title="Tag">🏷️</button>
@@ -10261,102 +10732,254 @@ function compartilharAtaWpp(id) {
 }
 
 // Formatar ata no padrão WhatsApp
+function baixarAtaPDF(id) {
+  const t = document.getElementById('atat-'+id);
+  const ataTexto = t?.value?.trim() || '';
+  if (!ataTexto) { showToast('⚠️ Nenhuma ata para exportar'); return; }
+  const r = reun.find(x => x.id === id);
+  if (!r) return;
+
+  const agora = new Date();
+  const dataEmissao = agora.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const dataReuniao = `${r.dia||'—'}/${r.mes||'—'}`;
+  const hora   = r.hora || '—';
+  const local  = r.local || '—';
+  const titulo = r.tit  || 'Reunião';
+
+  // participantes internos
+  const partNomes = (r.participantes||[]).map(av => {
+    const m = memb.find(x => x.av === av);
+    return m ? m.nome : av;
+  });
+  // externos embutidos na ata
+  const extMatch = (r.ata||'').match(/\[Externos:\s*([^\]]+)\]/);
+  if (extMatch) extMatch[1].split(',').map(s=>s.trim()).filter(Boolean).forEach(n => partNomes.push(n));
+  const pautaMatch = (r.ata||'').match(/\[Pauta:\s*([^\]]+)\]/);
+  const pauta = pautaMatch ? pautaMatch[1] : '';
+  const _ataRawM = (r.ata||'').match(/\[Tipo:\s*(📍 Presencial|📋 Sem call|📹 Online)\]/);
+  const tipoLabel = _ataRawM ? _ataRawM[1] : (r.link ? '📹 Online' : '📍 Presencial');
+
+  // Converter markdown-like para HTML
+  function mdToHtml(txt) {
+    return txt
+      .split('\n')
+      .map(l => {
+        const t = l.trimEnd();
+        if (!t) return '<br>';
+        // Seção principal: "1. TITULO" ou "**Titulo**"
+        if (/^\d+\.\s+[A-ZÀ-Ú]/.test(t)) return `<h3 class="sec">${t}</h3>`;
+        if (/^#{1,2}\s/.test(t)) return `<h3 class="sec">${t.replace(/^#+\s/,'')}</h3>`;
+        if (/^#{3,}\s/.test(t)) return `<h4 class="subsec">${t.replace(/^#+\s/,'')}</h4>`;
+        // Subseção
+        if (/^\d+\.\d+[\s.]/.test(t)) return `<h4 class="subsec">${t}</h4>`;
+        // Bullets / listas
+        if (/^[-•*]\s+/.test(t)) return `<li>${t.replace(/^[-•*]\s+/,'').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>')}</li>`;
+        // Tabela simples "col | col | col"
+        if (/\|/.test(t) && t.split('|').length >= 3) {
+          const cols = t.split('|').map(c=>c.trim()).filter(Boolean);
+          const isHead = /^[-| ]+$/.test(t);
+          if (isHead) return '';
+          return '<tr>' + cols.map(c=>`<td>${c}</td>`).join('') + '</tr>';
+        }
+        // Decisões / ações destacadas
+        if (/^(✅|✔|Ficou acordado|Decisão|Ação|Encaminhamento|Prazo)/i.test(t))
+          return `<p class="decisao">${t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')}</p>`;
+        // Linha "Chave: valor"
+        if (/^[A-ZÀ-Úa-zà-ú][^:]{1,30}:\s+\S/.test(t))
+          return `<p class="kv">${t.replace(/^([^:]+):/, '<strong>$1:</strong>')}</p>`;
+        // Linha com bold
+        const line = t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+        return `<p>${line}</p>`;
+      }).join('\n');
+  }
+
+  const corpoHtml = mdToHtml(ataTexto);
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Ata — ${titulo}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Nunito',Arial,sans-serif;font-size:11pt;color:#1E2A3B;background:#fff;padding:0;}
+  @page{size:A4;margin:20mm 22mm 20mm 22mm;}
+
+  /* HEADER */
+  .cover{background:linear-gradient(135deg,#0A1F14 0%,#1a3a28 60%,#0A1F14 100%);padding:28px 36px 24px;color:#fff;position:relative;overflow:hidden;}
+  .cover::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 15% 40%,rgba(79,70,229,.25) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 85% 70%,rgba(16,185,129,.15) 0%,transparent 60%);}
+  .cover-inner{position:relative;z-index:1;}
+  .cover-logo{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .cover-logo-badge{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .cover-logo-name{font-size:18px;font-weight:900;letter-spacing:3px;}
+  .cover-logo-sub{font-size:8px;color:rgba(255,255,255,.45);font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+  .cover-tipo{display:inline-block;background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.4);border-radius:6px;padding:3px 10px;font-size:8pt;font-weight:800;color:#10B981;letter-spacing:.8px;margin-bottom:10px;}
+  .cover-title{font-size:20pt;font-weight:900;color:#fff;line-height:1.2;margin-bottom:14px;}
+  .cover-meta{display:flex;gap:20px;flex-wrap:wrap;}
+  .cover-meta-item{display:flex;flex-direction:column;gap:2px;}
+  .cover-meta-label{font-size:7pt;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1.5px;}
+  .cover-meta-value{font-size:10pt;font-weight:700;color:rgba(255,255,255,.9);}
+
+  /* PARTICIPANTES STRIP */
+  .partic-strip{background:#F8F9FB;border-bottom:2px solid #E2E6ED;padding:12px 36px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .partic-label{font-size:8pt;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-right:6px;}
+  .partic-chip{background:#fff;border:1.5px solid #E2E6ED;border-radius:20px;padding:3px 10px;font-size:9pt;font-weight:700;color:#334155;}
+
+  /* PAUTA STRIP */
+  .pauta-strip{background:#FFFBEB;border-bottom:2px solid #FDE68A;padding:10px 36px;}
+  .pauta-label{font-size:8pt;font-weight:800;color:#92400E;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+  .pauta-text{font-size:10pt;color:#78350F;line-height:1.6;}
+
+  /* BODY */
+  .body{padding:24px 36px 32px;}
+
+  /* SEÇÕES */
+  h3.sec{font-size:11pt;font-weight:900;color:#1E2A3B;text-transform:uppercase;letter-spacing:.6px;margin:20px 0 6px;padding:8px 14px;background:#F0F2F5;border-left:4px solid #4F46E5;border-radius:0 6px 6px 0;}
+  h4.subsec{font-size:10pt;font-weight:800;color:#4F46E5;margin:12px 0 4px;padding-left:10px;border-left:3px solid #C7D2FE;}
+  p{margin:4px 0;font-size:10pt;line-height:1.7;color:#334155;}
+  p.decisao{background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:6px;padding:7px 12px;margin:8px 0;color:#065F46;font-weight:700;}
+  p.kv{margin:4px 0;padding-left:8px;}
+  li{margin:3px 0 3px 24px;font-size:10pt;color:#334155;line-height:1.6;}
+  li:before{content:"• ";color:#4F46E5;font-weight:800;}
+  li{list-style:none;}
+  tr td{padding:5px 10px;border:1px solid #E2E6ED;font-size:9.5pt;}
+  tr:nth-child(odd) td{background:#F8F9FB;}
+  br{display:block;margin:4px 0;}
+
+  /* FOOTER */
+  .footer{margin-top:32px;padding:14px 36px;background:#F8F9FB;border-top:2px solid #E2E6ED;display:flex;justify-content:space-between;align-items:center;}
+  .footer-left{font-size:8pt;color:#94A3B8;font-weight:600;}
+  .footer-right{font-size:8pt;color:#94A3B8;font-weight:700;}
+  .footer-stamp{background:#4F46E5;color:#fff;border-radius:6px;padding:4px 12px;font-size:8pt;font-weight:800;letter-spacing:.5px;}
+
+  /* ASSINATURAS */
+  .assinaturas{margin-top:36px;padding:0 36px;}
+  .assin-title{font-size:8pt;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
+  .assin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .assin-item{text-align:center;}
+  .assin-line{border-top:1.5px solid #334155;margin-bottom:5px;}
+  .assin-name{font-size:9pt;font-weight:700;color:#334155;}
+  .assin-cargo{font-size:8pt;color:#94A3B8;}
+
+  @media print{
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .no-print{display:none!important;}
+    .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+
+<!-- CAPA -->
+<div class="cover">
+  <div class="cover-inner">
+    <div class="cover-logo">
+      <div class="cover-logo-badge">🧠</div>
+      <div>
+        <div class="cover-logo-name">DAE NEXUS.AI</div>
+        <div class="cover-logo-sub">Departamento de Ações Estratégicas</div>
+      </div>
+    </div>
+    <div class="cover-tipo">${tipoLabel}</div>
+    <div class="cover-title">${titulo}</div>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><div class="cover-meta-label">Data</div><div class="cover-meta-value">📅 ${dataReuniao}</div></div>
+      <div class="cover-meta-item"><div class="cover-meta-label">Horário</div><div class="cover-meta-value">⏰ ${hora}</div></div>
+      <div class="cover-meta-item"><div class="cover-meta-label">Local</div><div class="cover-meta-value">📍 ${local}</div></div>
+      <div class="cover-meta-item"><div class="cover-meta-label">Emissão</div><div class="cover-meta-value">🗓 ${dataEmissao}</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PARTICIPANTES -->
+<div class="partic-strip">
+  <span class="partic-label">👥 Participantes</span>
+  ${partNomes.map(n=>`<span class="partic-chip">${n}</span>`).join('')}
+</div>
+
+${pauta ? `<div class="pauta-strip"><div class="pauta-label">📋 Pauta</div><div class="pauta-text">${pauta}</div></div>` : ''}
+
+<!-- CORPO DA ATA -->
+<div class="body">
+  ${corpoHtml}
+</div>
+
+<!-- ASSINATURAS -->
+${partNomes.length ? `
+<div class="assinaturas">
+  <div class="assin-title">Assinaturas</div>
+  <div class="assin-grid">
+    ${partNomes.slice(0,6).map(n=>`
+    <div class="assin-item">
+      <div class="assin-line"></div>
+      <div class="assin-name">${n}</div>
+      <div class="assin-cargo">Participante</div>
+    </div>`).join('')}
+  </div>
+</div>` : ''}
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-left">DAE Nexus.AI · Sudoeste Informática · ${dataEmissao}</div>
+  <div class="footer-right"><span class="footer-stamp">Documento Oficial</span></div>
+</div>
+
+<script>window.onload=()=>{ setTimeout(()=>window.print(),400); }<\/script>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) showToast('⚠️ Permita pop-ups para baixar o PDF');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+
 function formatarAtaWhatsapp(r, ataTexto, participantes) {
   const agora = new Date();
-  const dataHoraEnvio = agora.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  const data = r ? `${r.dia||'—'}/${r.mes||'—'}` : agora.toLocaleDateString('pt-BR');
-  const hora = r?.hora || '—';
-  const local = r?.local || '—';
-  const titulo = r?.tit || 'Reunião';
+  const dataHoraEnvio = agora.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const data  = r ? (r.dia||'--') + '/' + (r.mes||'--') : agora.toLocaleDateString('pt-BR');
+  const hora  = r?.hora  || '--';
+  const local = r?.local || '--';
+  const titulo = r?.tit  || 'Reuniao';
 
-  // Processar corpo: detectar seções, subseções, decisões, nomes
+  // Processar corpo — sem caracteres especiais
   const linhas = ataTexto.split('\n');
   const blocos = [];
-  let emListaNomes = false;
-
   for (let i = 0; i < linhas.length; i++) {
     const l = linhas[i].trim();
-    if (!l) { emListaNomes = false; blocos.push(''); continue; }
-
-    // Ignorar linha de título repetido (já está no cabeçalho)
-    if (/^ATA DE REUNI/i.test(l)) continue;
-    // Ignorar linhas de data/objetivo que já estão no cabeçalho
-    if (/^(Data|Objetivo)\s*:/i.test(l) && i < 6) continue;
-
-    // Seção principal numerada: "1. Participantes" → cabeçalho destacado
+    if (!l) { blocos.push(''); continue; }
+    // Ignorar linha de título repetido
+    if (/^ATA DE REUNI/i.test(l) || /^={5,}/.test(l) || /^-{5,}/.test(l)) continue;
+    // Seção numerada: "1. TITULO"
     if (/^\d+\.\s+[A-ZÀ-Ú]/.test(l)) {
       const num = l.match(/^(\d+)\.\s+(.+)/);
-      if (num) {
-        blocos.push('');
-        blocos.push(`┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄`);
-        blocos.push(`*${num[1]}. ${num[2].toUpperCase()}*`);
-        blocos.push(`┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄`);
-        emListaNomes = /participante|presença|membro/i.test(l);
-        continue;
-      }
+      if (num) { blocos.push(''); blocos.push('*' + num[1] + '. ' + num[2].toUpperCase() + '*'); continue; }
     }
-
-    // Subseção: "3.1 Algo" ou "3.1. Algo"
-    if (/^\d+\.\d+[\s.]/.test(l)) {
-      blocos.push('');
-      blocos.push(`▸ *${l}*`);
-      continue;
-    }
-
-    // Linha de presença/nomes (linha curta, sem pontuação, após seção participantes)
-    if (emListaNomes && l.length < 45 && !/[:;]/.test(l) && !/^(A |O |As |Os )/i.test(l)) {
-      blocos.push(`   👤 ${l}`);
-      continue;
-    }
-
-    // Decisões / acordos / encaminhamentos
-    if (/^(Ficou acordado|Delibera|Decis[ãa]o|Encaminhamento|Ação definida|Prazo)/i.test(l)) {
-      blocos.push(`✅ _${l}_`);
-      continue;
-    }
-
-    // Linhas com "chave: valor"
-    if (/^[A-ZÀ-Úa-zà-ú][^:]{1,30}:\s+\S/.test(l)) {
-      blocos.push(l.replace(/^([^:]+):/, '*$1:*'));
-      continue;
-    }
-
-    // Bullets
-    if (/^[-•]\s+/.test(l)) {
-      blocos.push(`  • ${l.replace(/^[-•]\s+/, '')}`);
-      continue;
-    }
-
+    // Bullets e asteriscos
+    if (/^[-*•]\s+/.test(l)) { blocos.push('  - ' + l.replace(/^[-*•]\s+/, '')); continue; }
+    // Decisões/Ações
+    if (/^(Ficou acordado|Decisao|Decisão|Encaminhamento|Acao|Ação)/i.test(l)) { blocos.push('✅ ' + l); continue; }
+    // Chave: valor
+    if (/^[A-Za-zÀ-ú][^:]{1,30}:\s+\S/.test(l)) { blocos.push(l.replace(/^([^:]+):/, '*$1:*')); continue; }
     blocos.push(l);
   }
 
-  // Limpar linhas em branco duplicadas
   const corpo = blocos
     .reduce((acc, l) => { if (l === '' && acc[acc.length-1] === '') return acc; acc.push(l); return acc; }, [])
     .join('\n').trim();
 
-  const nomeMes = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'][agora.getMonth()];
-
-  return `╔══════════════════════╗
-║  🗂️  *ATA DE REUNIÃO*  ║
-╚══════════════════════╝
-
-📌 *${titulo}*
-
-📅 *${data} às ${hora}*
-📍 ${local}
-👥 ${participantes || '—'}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-${corpo}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-> 🤖 *Gerado e enviado automaticamente pelo*
-> *DAE Nexus.AI · Sudoeste Informática*
-> _${dataHoraEnvio}_`;
+  return '*ATA DE REUNIAO*\n' +
+    '_DAE Nexus - Sudoeste Informatica_\n\n' +
+    '*' + titulo + '*\n' +
+    'Data: ' + data + ' as ' + hora + '\n' +
+    'Local: ' + local + '\n' +
+    'Participantes: ' + (participantes || '--') + '\n\n' +
+    corpo + '\n\n' +
+    '_Enviado automaticamente em ' + dataHoraEnvio + '_';
 }
+
 
 // ══════════════════════════════════════════════════════════════════
 // SISTEMA DE CONVITES — SELEÇÃO + MULTI-CANAL
@@ -10735,6 +11358,52 @@ _Enviado por ${curUser?.nome?.split(' ')[0]||curUser?.av||'Você'} via DAE Nexus
 }
 
 // ── addMeet com participantes e disparo automático ────────────────
+function nmSetTipo(tipo) {
+  document.getElementById('nmTipoVal').value = tipo;
+  var cores = {online:'#0EA5E9', presencial:'#10B981', externa:'#F59E0B'};
+  ['online','presencial','externa'].forEach(function(t) {
+    var cap = t.charAt(0).toUpperCase() + t.slice(1);
+    var btn = document.getElementById('nmTipo' + cap);
+    if (!btn) return;
+    if (t === tipo) { btn.style.borderColor=cores[t]; btn.style.background=cores[t]+'22'; btn.style.color=cores[t]; }
+    else { btn.style.borderColor='var(--br)'; btn.style.background='var(--surface2)'; btn.style.color='var(--tx2)'; }
+  });
+  var lr = document.getElementById('nmLocalRow');
+  var lk = document.getElementById('nmLinkRow');
+  if (lr) lr.style.display = (tipo !== 'online') ? 'block' : 'none';
+  if (lk) lk.style.display = (tipo === 'online') ? 'block' : 'none';
+}
+
+async function notificarReuniaoTelegram(reuniao, participantesAvs) {
+  var meses = {JAN:'jan',FEV:'fev',MAR:'mar',ABR:'abr',MAI:'mai',JUN:'jun',JUL:'jul',AGO:'ago',SET:'set',OUT:'out',NOV:'nov',DEZ:'dez'};
+  var dataStr = (reuniao.dia||'--') + '/' + (meses[reuniao.mes]||reuniao.mes||'--');
+  var tipo = reuniao.tipo || 'online';
+  var tipoLabel = tipo === 'presencial' ? 'Presencial' : tipo === 'externa' ? 'Externa' : 'Online';
+  var localStr = reuniao.local || (tipo === 'online' ? 'Google Meet' : '-');
+  var linkStr = reuniao.link ? '\nLink: ' + reuniao.link : '';
+  var organizador = (curUser && curUser.nome) ? curUser.nome.split(' ')[0] : 'DAE';
+  var semTelegram = [];
+  for (var i = 0; i < participantesAvs.length; i++) {
+    var av = participantesAvs[i];
+    var m = memb.find(function(x){ return x.av === av; });
+    if (!m) continue;
+    if (!m.telegram_id) { semTelegram.push(m.nome || av); continue; }
+    var nome = (m.nome || av).split(' ')[0];
+    var texto =
+      '<b>Reuniao Agendada - DAE Nexus</b>\n\n' +
+      'Ola, <b>' + nome + '</b>! Voce foi convocado(a):\n\n' +
+      '<b>' + reuniao.tit + '</b>\n' +
+      'Data: ' + dataStr + '\n' +
+      'Horario: ' + (reuniao.hora||'-') + '\n' +
+      'Local: ' + localStr + ' | ' + tipoLabel +
+      linkStr + '\n\n' +
+      (reuniao.pauta ? 'Pauta: ' + reuniao.pauta.slice(0,200) + '\n\n' : '') +
+      '<i>Convocado por ' + organizador + ' via DAE Nexus</i>';
+    await enviarTelegram(m.telegram_id, texto);
+  }
+  if (semTelegram.length) showToast('Telegram nao configurado para: ' + semTelegram.join(', '));
+}
+
 async function addMeetComConvite(dados, participantesAvs, chkNotif, chkEmail, chkWhats) {
   const { data: _dataR, error } = await safeDb.from('reunioes').insert([{ ...dados, participantes: participantesAvs }]).select().single();
   if (error && db) { showToast('❌ Erro: ' + error.message); return null; }
@@ -10826,21 +11495,27 @@ async function addMeet() {
 
   const todos = [curUser?.av||curUser?.av||'?', ...conviteParticipantes].filter((v,i,a) => a.indexOf(v)===i);
 
+  const pauta    = document.getElementById('nmPauta')?.value?.trim() || '';
+  const tipoVal  = document.getElementById('nmTipoVal')?.value || 'online';
+  const localExt = document.getElementById('nmLocalExt')?.value?.trim() || '';
+  const localFinal = tipoVal === 'online' ? 'Google Meet' : (localExt || (tipoVal === 'presencial' ? 'Presencial' : 'Externa'));
+  const tipoPrefix = tipoVal === 'presencial' ? '[Tipo: Presencial]' : tipoVal === 'externa' ? '[Tipo: Externa]' : '[Tipo: Online]';
   const nova = {
     tit: t,
     dia: ps[2],
     mes: ms[parseInt(ps[1])-1],
     hora: document.getElementById('nmH').value||'09:00',
-    local: 'Google Meet',
+    local: localFinal,
     link: link||'',
     participantes: todos,
     status: 'proxima',
-    ata: ''
+    ata: tipoPrefix + (pauta ? '\n[Pauta: ' + pauta + ']' : '')
   };
 
-  const chkNotif = document.getElementById('chkNotif').checked;
-  const chkEmail = document.getElementById('chkEmail').checked;
-  const chkWhats = document.getElementById('chkWhats').checked;
+  const chkNotif    = document.getElementById('chkNotif').checked;
+  const chkEmail    = document.getElementById('chkEmail').checked;
+  const chkWhats    = document.getElementById('chkWhats').checked;
+  const chkTelegram = document.getElementById('chkTelegram')?.checked !== false;
 
   // Feedback visual no botão
   const btn = document.getElementById('btnAddMeet');
@@ -10851,12 +11526,18 @@ async function addMeet() {
     btn.textContent = '🚀 AGENDAR E DISPARAR CONVITES'; btn.disabled = false;
     if (!result) return;
 
+    // Telegram para cada participante
+    if (chkTelegram) {
+      const reuComPauta = { ...result, pauta: pauta };
+      await notificarReuniaoTelegram(reuComPauta, todos);
+    }
+
     // Fechar modal manualmente sem usar closeM (evita conflito)
     document.getElementById('mMeet').classList.remove('on');
     renderMeet();
 
     // Limpar campos
-    ['nmT','nmLk','nmPauta'].forEach(fid => { const el=document.getElementById(fid); if(el) el.value=''; });
+    ['nmT','nmLk','nmPauta','nmLocalExt'].forEach(fid => { const el=document.getElementById(fid); if(el) el.value=''; });
     const lpEl = document.getElementById('meetLinkPreview');
     const cpEl = document.getElementById('nmConvitePreview');
     const cbEl = document.getElementById('nmCobertura');
@@ -10864,13 +11545,15 @@ async function addMeet() {
     if(cpEl) cpEl.style.display = 'none';
     if(cbEl) cbEl.style.display = 'none';
     conviteParticipantes = [];
+    nmSetTipo('online');
 
     // Toast detalhado
     const canais = [];
-    if (chkNotif) canais.push(`🔔 ${todos.length} notif.`);
-    if (chkEmail) canais.push('📧 e-mail');
-    if (chkWhats) canais.push('💬 WhatsApp');
-    showToast(`✅ Reunião agendada! ${canais.join(' · ')}`);
+    if (chkNotif)    canais.push('🔔 ' + todos.length + ' notif.');
+    if (chkEmail)    canais.push('📧 e-mail');
+    if (chkWhats)    canais.push('💬 WhatsApp');
+    if (chkTelegram) canais.push('✈️ Telegram');
+    showToast('✅ Reunião agendada! ' + canais.join(' · '));
 
   } catch(e) {
     btn.textContent = '🚀 AGENDAR E DISPARAR CONVITES'; btn.disabled = false;
@@ -12993,6 +13676,15 @@ function openM(id) {
     if (!document.getElementById('nmD').value) {
       document.getElementById('nmD').value = new Date().toISOString().split('T')[0];
     }
+    setTimeout(function(){ if(typeof nmSetTipo==='function') nmSetTipo('online'); }, 50);
+  }
+  if (id === 'mAtaAvulsa') {
+    _ataParticipantes = [curUser?.av||'?'];
+    renderParticAtaList();
+    if (!document.getElementById('aaaD').value) {
+      document.getElementById('aaaD').value = new Date().toISOString().split('T')[0];
+    }
+    selectTipoReuniao('presencial');
   }
   if (id === 'mMember') {
     // SEMPRE resetar ao abrir modal de novo membro
@@ -13636,7 +14328,7 @@ function pedirPermissaoNotif() {
 function mostrarTelaCriarSenha(usuario) {
   // Esconder login
   const ls = document.getElementById('loginScreen');
-  if (ls) ls.style.display = 'none';
+  if (ls) { ls.classList.add('hidden'); ls.style.display = 'none'; }
 
   // Criar tela de definição de senha
   const div = document.createElement('div');
@@ -13669,6 +14361,14 @@ function mostrarTelaCriarSenha(usuario) {
 
   // Guardar usuario para usar depois
   window._usuarioPendenteSenha = usuario;
+
+  // Pré-preencher com a senha digitada no login, se houver
+  if (usuario._senhaTentativa) {
+    const n1 = document.getElementById('novaSenha1');
+    const n2 = document.getElementById('novaSenha2');
+    if (n1) n1.value = usuario._senhaTentativa;
+    if (n2) n2.value = usuario._senhaTentativa;
+  }
 }
 
 async function salvarNovaSenha(userId, email) {
@@ -13696,27 +14396,27 @@ async function salvarNovaSenha(userId, email) {
 }
 
 async function entrarNoApp(usuario) {
-  // Se não tem senha cadastrada, mostrar tela de definição de senha
-  if (!usuario.senha) {
-    mostrarTelaCriarSenha(usuario);
-    return;
-  }
 
   curUser = usuario;
-  // Atualizar avatar
+  
+  // Esconder login PRIMEIRO — usar classe para sobrescrever o CSS do #loginScreen
+  const ls = document.getElementById('loginScreen');
+  if (ls) { ls.classList.add('hidden'); ls.style.display = 'none'; }
+  
+  // Mostrar app
+  const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
+  if (ma) { ma.style.display = 'block'; }
+  
+  // Avatar
   const avEl = document.getElementById('userAv');
   if (avEl) { 
     avEl.textContent = usuario.av||'?'; 
     avEl.style.background = (usuario.cor||'#4F46E5')+'33'; 
     avEl.style.color = usuario.cor||'#4F46E5'; 
   }
-  // Esconder login e mostrar app
-  const ls = document.getElementById('loginScreen');
-  if (ls) ls.style.display = 'none';
-  // Mostrar o app — tenta mainApp primeiro, depois body-wrap
-  const ma = document.getElementById('mainApp') || document.getElementById('body-wrap');
-  if (ma) { ma.style.display = 'block'; }
-  try { await loadAll(); } catch(e) { console.error(e); }
+  
+  // loadAll com proteção total
+  try { await loadAll(); } catch(e) { console.error('loadAll error:', e); }
   showLoading(false);
   // Garantir nome correto no dashboard
   const wname = document.getElementById('wname');
@@ -13793,13 +14493,19 @@ document.addEventListener('DOMContentLoaded', async function(){
     try {
       const { data: todos } = await safeDb.from('membros').select('*');
       const usuario = (todos||[]).find(m => m.email && m.email.trim().toLowerCase() === emailSalvo.toLowerCase());
-      if (usuario) { await entrarNoApp(usuario); return; }
+      if (usuario) {
+        // Auto-login: não pede senha de novo, confia no email salvo
+        // Marcar _senhaOk para entrarNoApp não redirecionar para criar senha
+        usuario._senhaOk = true;
+        await entrarNoApp(usuario);
+        return;
+      }
     } catch(e) { console.warn('Auto-login falhou:', e); }
     localStorage.removeItem('dae_user_email');
   }
   showLoading(false);
   const ls = document.getElementById('loginScreen');
-  if (ls) ls.style.display = 'flex';
+  if (ls) { ls.classList.remove('hidden'); ls.style.display = 'flex'; }
 });
 
 // ══════════════════════════════════════════════════════════════════
