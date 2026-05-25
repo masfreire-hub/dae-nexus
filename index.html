@@ -3130,6 +3130,7 @@ select.sel{
   </div>
 
 </div><!-- /tl-wrap -->
+</div><!-- /t-gantt -->
 
 <div class="tab" id="t-meuespaco">
   <div class="ph">
@@ -3147,9 +3148,9 @@ select.sel{
   </div>
 
   <!-- ── TAREFAS PESSOAIS ── -->
-  <div id="me-tarefas" style="padding:16px;">
+  <div id="me-tarefas" style="padding:16px;display:block;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-size:12px;font-weight:700;color:var(--tx2);">MINHAS TAREFAS</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx2);">MINHAS TAREFAS PESSOAIS</div>
       <button onclick="abrirNovaTarefaME()" style="background:linear-gradient(135deg,#EC4899,#8B5CF6);border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;">+ Nova Tarefa</button>
     </div>
 
@@ -4396,7 +4397,7 @@ function sw(name, el) {
   if (!tabEl) return;
   tabEl.classList.add('on');
   if (el) el.classList.add('on');
-  const titles = {home:'Dashboard',atividades:'⚡ Atividades',migracao:'🔄 Migração ClickUp',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos',procedimentos:'📋 Procedimentos'};
+  const titles = {home:'Dashboard',atividades:'⚡ Atividades',migracao:'🔄 Migração ClickUp',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos',procedimentos:'📋 Procedimentos',meuespaco:'Meu Espaço'};
   const ttEl = document.getElementById('topbar-page-title');
   if (ttEl) ttEl.textContent = titles[name] || '';
   // Renderizar aba ativa
@@ -4419,9 +4420,25 @@ function sw(name, el) {
     risk:    () => { if(curUser?.av !== 'MA'){ showToast('⛔ Acesso restrito à gestora'); sw('home'); return; } try{renderRiscos();}catch(e){} },
     gantt:   () => { try{renderGantt();}catch(e){} },
     painel:  () => { try{renderPainel();}catch(e){} },
-    meuespaco: () => { 
-      try { swME('tarefas'); } catch(e) {}
-      try { renderMeTarefas(); } catch(e) {}
+    meuespaco: () => {
+      try {
+        // Garantir que a tab está visível
+        const t = document.getElementById('t-meuespaco');
+        if (t) { t.style.display = 'block'; t.classList.add('on'); }
+        // Garantir que a seção de tarefas está visível
+        const mt = document.getElementById('me-tarefas');
+        if (mt) mt.style.display = 'block';
+        const mn = document.getElementById('me-notas');
+        if (mn) mn.style.display = 'none';
+        const ma = document.getElementById('me-agenda');
+        if (ma) ma.style.display = 'none';
+        // Ativar botão correto
+        ['tarefas','notas','agenda'].forEach(a => {
+          const btn = document.getElementById('me-btn-'+a);
+          if (btn) { btn.style.background = a==='tarefas'?'var(--brand)':'transparent'; btn.style.color = a==='tarefas'?'#fff':'var(--tx2)'; btn.style.borderColor = a==='tarefas'?'var(--brand)':'var(--border)'; }
+        });
+        renderMeTarefas();
+      } catch(e) { console.error('meuespaco',e); }
     },
     migracao: () => {},
     config:  () => { try{renderCadastros();}catch(e){} try{updateSelects();}catch(e){} },
@@ -14777,7 +14794,12 @@ function renderMeTarefas() {
   if (meFiltroAtual === 'feita')   lista = lista.filter(t => t.feita);
 
   if (!lista.length) {
-    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tx3);font-size:12px;">Nenhuma tarefa aqui 🎉</div>';
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--tx3);">
+      <div style="font-size:40px;margin-bottom:12px;opacity:.4;">✅</div>
+      <div style="font-size:14px;font-weight:700;color:var(--tx2);margin-bottom:6px;">Nenhuma tarefa pessoal</div>
+      <div style="font-size:12px;margin-bottom:16px;">Use este espaço para suas anotações e tarefas particulares — visível só para você.</div>
+      <button onclick="abrirNovaTarefaME()" style="background:linear-gradient(135deg,#EC4899,#8B5CF6);border:none;border-radius:10px;padding:8px 20px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;">+ Criar primeira tarefa</button>
+    </div>`;
     return;
   }
   const corPrior = {urgente:'#EF4444',alta:'#F97316',media:'#EAB308',baixa:'#10B981'};
