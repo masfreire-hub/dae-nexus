@@ -3668,12 +3668,12 @@ select.sel{
   <div id="docBox">
     <div id="docHeader">
       <span style="font-size:20px;flex-shrink:0">📝</span>
-      <input id="docTituloInput" placeholder="Título do documento..." oninput="docAgendar()">
-      <select id="docPastaSelect" style="padding:5px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#fff;font-size:12px;color:#475569;font-family:inherit;cursor:pointer;min-width:120px">
+      <input id="docTituloInput" placeholder="Título do documento..." oninput="docAgendar()" onblur="docSalvarTituloAgora()" onkeydown="if(event.key==='Enter'){event.preventDefault();docSalvarTituloAgora();}">
+      <select id="docPastaSelect" onchange="docSalvarPastaAgora(this.value)" style="padding:5px 10px;border-radius:8px;border:1px solid #E2E8F0;background:#fff;font-size:12px;color:#475569;font-family:inherit;cursor:pointer;min-width:120px">
         <option value="">📁 Sem pasta</option>
       </select>
       <span id="docSaveStatus">✓ Salvo</span>
-      <button onclick="docAbrirPermissoes()" title="Permissões de acesso" style="padding:6px 14px;border-radius:8px;background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">🔒 Acesso</button>
+      <span id="docAcessoBadge" onclick="docAbrirPermissoes()" title="Clique para configurar permissões" style="padding:4px 10px;border-radius:20px;background:#ECFDF5;color:#059669;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #A7F3D0;white-space:nowrap;">🌐 Todos</span>
       <button onclick="docImprimirPDF()" style="padding:6px 14px;border-radius:8px;background:#EF4444;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">📄 PDF</button>
       <button onclick="docSalvar().then(()=>showToast('💾 Salvo!'))" style="padding:6px 14px;border-radius:8px;background:#10B981;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;" title="Salvar (Ctrl+S)">💾 Salvar</button>
       <button onclick="docSalvar().then(()=>fecharDoc())" style="width:30px;height:30px;border:none;border-radius:8px;background:#F1F5F9;color:#64748B;cursor:pointer;font-size:15px;" title="Salvar e fechar">✕</button>
@@ -4421,6 +4421,12 @@ function sw(name, el) {
     gantt:   () => { try{renderGantt();}catch(e){} },
     painel:  () => { try{renderPainel();}catch(e){} },
     meuespaco: () => {
+      // Limpar backups antigos pesados do localStorage na primeira abertura
+      try {
+        Object.keys(localStorage).filter(k => k.startsWith('dae_backup_')).forEach(k => {
+          try { const v = localStorage.getItem(k); if (v && v.length > 50000) localStorage.removeItem(k); } catch(e) {}
+        });
+      } catch(e) {}
       try {
         // Garantir que a tab está visível
         const t = document.getElementById('t-meuespaco');
@@ -4823,19 +4829,21 @@ async function loadAll() {
       const tarOrdenadas = [...tar].sort((a,b) => new Date(a.created_at||0) - new Date(b.created_at||0));
       tarOrdenadas.forEach((t,i) => { t._num = i+1; });
       salvarLocal();
-      // BACKUP AUTOMÁTICO com timestamp
+      // BACKUP AUTOMÁTICO — apenas metadados mínimos (sem tarefas/conteúdo pesado)
       try {
         const backupKey = 'dae_backup_' + new Date().toISOString().slice(0,10);
         const backup = JSON.stringify({
           ts: new Date().toISOString(),
-          membros: memb, projetos: proj, tarefas: tar,
-          espacos, reunioes: reun, ferias, riscos
+          membros: memb.map(m => ({id:m.id,av:m.av,nome:m.nome,email:m.email,cor:m.cor,cargo:m.cargo})),
+          projetos: proj.map(p => ({id:p.id,nome:p.nome,prog:p.prog,status:p.status,dept:p.dept})),
+          tarefas_count: tar.length,
+          espacos: espacos.map(e => ({id:e.id,nome:e.nome,estacao:e.estacao}))
         });
-        localStorage.setItem(backupKey, backup);
-        // Manter apenas os 3 backups mais recentes
+        try { localStorage.setItem(backupKey, backup); } catch(eq) { /* quota - skip */ }
+        // Manter apenas 2 backups mais recentes
         const allKeys = Object.keys(localStorage).filter(k => k.startsWith('dae_backup_')).sort();
-        if (allKeys.length > 3) allKeys.slice(0, allKeys.length-3).forEach(k => localStorage.removeItem(k));
-      } catch(e) { console.warn('Backup falhou:', e); }
+        if (allKeys.length > 2) allKeys.slice(0, allKeys.length-2).forEach(k => localStorage.removeItem(k));
+      } catch(e) { /* backup falhou silenciosamente */ }
     } catch(e) {
       console.warn('Supabase indisponível, usando dados locais');
       carregarLocal();
@@ -9981,18 +9989,17 @@ let arqPastas = JSON.parse(localStorage.getItem('arqPastas')||'["Processos","Fin
 
 // Carrega pastas do Supabase e mescla com as locais
 async function arqCarregarPastas() {
+  // 1. Tenta tabela configuracoes
   try {
-    // 1. Tenta tabela configuracoes
     const { data, error } = await safeDb.from('configuracoes').select('valor').eq('chave','arq_pastas').single();
     if (!error && data?.valor) {
       const remotas = JSON.parse(data.valor);
       arqPastas = [...new Set([...remotas, ...arqPastas])];
-      localStorage.setItem('arqPastas', JSON.stringify(arqPastas));
+      try { localStorage.setItem('arqPastas', JSON.stringify(arqPastas)); } catch(e) {}
     }
   } catch(e) {}
 
-  // 2. Descobre pastas que EXISTEM no storage (criadas por qualquer usuário)
-  // Lista a raiz do bucket — subpastas aparecem como itens com metadata id = null
+  // 2. Descobre pastas que EXISTEM no storage bucket (criadas por qualquer usuário)
   try {
     const { data: rootItems } = await db.storage.from(ARQ_BUCKET).list('', { limit: 200 });
     if (rootItems) {
@@ -10003,46 +10010,28 @@ async function arqCarregarPastas() {
         const merged = [...new Set([...arqPastas, ...pastasNoStorage])];
         if (merged.length !== arqPastas.length) {
           arqPastas = merged;
-          localStorage.setItem('arqPastas', JSON.stringify(arqPastas));
-          // Persiste no Supabase para todos
+          try { localStorage.setItem('arqPastas', JSON.stringify(arqPastas)); } catch(e) {}
           arqSalvarPastas();
         }
       }
     }
   } catch(e) {}
-
-  // 3. Fallback: tenta ler do storage JSON
-  try {
-    const { data } = await db.storage.from('arquivos').download('_config/pastas.json');
-    if (data) {
-      const remotas = JSON.parse(await data.text());
-      arqPastas = [...new Set([...remotas, ...arqPastas])];
-      localStorage.setItem('arqPastas', JSON.stringify(arqPastas));
-    }
-  } catch(e) {}
-
+  // Sem fallback de storage JSON — evita erros 404 no console
   renderArqPastasSidebar();
 }
 
 // Salva pastas no Supabase E no localStorage
 async function arqSalvarPastas() {
-  localStorage.setItem('arqPastas', JSON.stringify(arqPastas));
+  try { localStorage.setItem('arqPastas', JSON.stringify(arqPastas)); } catch(e) { /* quota */ }
   try {
-    // Tenta tabela configuracoes
-    const { error } = await safeDb.from('configuracoes').upsert(
+    // Salva na tabela configuracoes (compartilhado para toda equipe)
+    await safeDb.from('configuracoes').upsert(
       { chave: 'arq_pastas', valor: JSON.stringify(arqPastas) },
       { onConflict: 'chave' }
     );
-    if (error) throw error;
-  } catch(e) {
-    // Fallback: salva como arquivo JSON no storage
-    try {
-      const blob = new Blob([JSON.stringify(arqPastas)], { type: 'application/json' });
-      await db.storage.from('arquivos').upload('_config/pastas.json', blob, { upsert: true, cacheControl: '0' });
-    } catch(e2) { /* silently ignore */ }
-  }
+  } catch(e) { /* silently ignore — usa localStorage como fallback */ }
 }
-function arqSalvarFavs() { localStorage.setItem('arqFavs', JSON.stringify(arqFavs)); }
+function arqSalvarFavs() { try { localStorage.setItem('arqFavs', JSON.stringify(arqFavs)); } catch(e) {} }
 
 const ARQ_BUCKET      = 'arquivos';  // documentos gerais
 const ANEXOS_BUCKET   = 'arquivos';  // mesmo bucket, pasta isolada tarefas/{id}/
@@ -10607,34 +10596,137 @@ async function novoDocumento() {
   } catch(e) { showToast('❌ Erro ao criar documento'); }
 }
 
-async function abrirDoc(id) {
-  const doc = _docsCache.find(d=>d.id===id);
-  if(!doc) return;
-  _docId = id;
-  _docAcesso = doc.acesso || []; // Carregar permissões do doc
-  const modal = document.getElementById('docModal');
-  const titulo = document.getElementById('docTituloInput');
-  if(!modal||!titulo) return;
-  titulo.value = doc.titulo||'';
-  // Popular select de pastas
-  const sel = document.getElementById('docPastaSelect');
-  if(sel) {
-    sel.innerHTML = '<option value="">📁 Sem pasta</option>';
-    (arqPastas||[]).forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p; opt.textContent = '📁 ' + p;
-      if(doc.pasta === p) opt.selected = true;
-      sel.appendChild(opt);
-    });
+function _docAtualizarBadgeAcesso() {
+  const badge = document.getElementById('docAcessoBadge');
+  if (!badge) return;
+  const acesso = window._docAcesso || [];
+  if (!acesso.length) {
+    badge.textContent = '🌐 Todos'; badge.style.background='#ECFDF5'; badge.style.color='#059669'; badge.style.borderColor='#A7F3D0';
+  } else {
+    badge.textContent = '🔒 ' + acesso.join(', '); badge.style.background='#FEF3C7'; badge.style.color='#92400E'; badge.style.borderColor='#FDE68A';
   }
+}
+
+function docAbrirPermissoes() {
+  const doc = _docId ? _docsCache.find(d => d.id === _docId) : null;
+  _docAcesso = window._docAcesso || doc?.acesso || [];
+  window._docAcesso = _docAcesso;
+  const modal = document.getElementById('docPermModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  const tipo = (!_docAcesso || _docAcesso.length === 0) ? 'todos' : 'restrito';
+  docSetAcessoTipo(tipo);
+}
+
+function fecharPermDoc() {
+  const m = document.getElementById('docPermModal');
+  if (m) m.style.display = 'none';
+}
+
+function docSetAcessoTipo(tipo) {
+  document.getElementById('aaaTipoVal') && (document.getElementById('aaaTipoVal').value = tipo);
+  const btnT = document.getElementById('docAcessoTodos');
+  const btnR = document.getElementById('docAcessoRestrito');
+  const box  = document.getElementById('docPermMembros');
+  if (!btnT || !btnR || !box) return;
+  if (tipo === 'todos') {
+    btnT.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid #4F46E5;background:#EEF0FF;color:#4F46E5;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;';
+    btnR.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:#F8F9FB;color:#64748B;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;';
+    box.style.display = 'none'; _docAcesso = [];
+  } else {
+    btnR.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid #4F46E5;background:#EEF0FF;color:#4F46E5;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;';
+    btnT.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:#F8F9FB;color:#64748B;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;';
+    box.style.display = 'block';
+    box.innerHTML = memb.map(m => {
+      const checked = _docAcesso.length === 0 || _docAcesso.includes(m.av);
+      return '<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #F1F5F9;" onmouseover="this.style.background=\'#F8F9FB\'" onmouseout="this.style.background=\'\'">' +
+        '<input type="checkbox" data-av="' + m.av + '" ' + (checked?'checked':'') + ' style="accent-color:#4F46E5;width:16px;height:16px;">' +
+        '<div style="width:30px;height:30px;border-radius:8px;background:' + (m.cor||'#4F46E5') + '22;color:' + (m.cor||'#4F46E5') + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">' + m.av + '</div>' +
+        '<div><div style="font-size:12px;font-weight:700;color:#1E2A3B;">' + m.nome + '</div></div></label>';
+    }).join('');
+  }
+}
+
+async function salvarPermDoc() {
+  const box = document.getElementById('docPermMembros');
+  const btnT = document.getElementById('docAcessoTodos');
+  const isTodos = btnT && btnT.style.borderColor === 'rgb(79, 70, 229)';
+  if (isTodos || !box || box.style.display === 'none') {
+    _docAcesso = [];
+  } else {
+    _docAcesso = [...box.querySelectorAll('input[data-av]:checked')].map(cb => cb.dataset.av);
+  }
+  window._docAcesso = _docAcesso;
+  try {
+    if (_docId) {
+      await safeDb.from('documentos').update({ acesso: _docAcesso }).eq('id', _docId);
+      const doc = _docsCache.find(d => d.id === _docId);
+      if (doc) doc.acesso = _docAcesso;
+    }
+    _docAtualizarBadgeAcesso();
+    fecharPermDoc();
+    showToast('🔒 ' + (_docAcesso.length === 0 ? 'Visível para todos' : 'Restrito: ' + _docAcesso.length + ' membro(s)'));
+  } catch(e) { showToast('❌ Erro ao salvar permissões'); }
+}
+
+async function _docPopularPastas(pastaSelecionada) {
+  const sel = document.getElementById('docPastaSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">📂 Sem pasta</option>';
+  // Usar pastas já carregadas + tentar carregar mais em background
+  const pastasAtuais = arqPastas || [];
+  pastasAtuais.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = '📁 ' + p;
+    if (pastaSelecionada && p === pastaSelecionada) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  // Se a pasta selecionada não está na lista, adicionar
+  if (pastaSelecionada && !pastasAtuais.includes(pastaSelecionada)) {
+    const opt = document.createElement('option');
+    opt.value = pastaSelecionada;
+    opt.textContent = '📁 ' + pastaSelecionada;
+    opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+async function abrirDoc(id) {
+  // 1. Buscar dados frescos do banco
+  let doc = _docsCache.find(d => d.id === id);
+  if (!doc) return;
+  try {
+    const { data: fresh } = await safeDb.from('documentos').select('*').eq('id', id).single();
+    if (fresh) { Object.assign(doc, fresh); }
+  } catch(e) {}
+
+  _docId = id;
+  _docAcesso = doc.acesso || [];
+  window._docAcesso = _docAcesso;
+
+  const modal = document.getElementById('docModal');
+  const tituloInput = document.getElementById('docTituloInput');
+  if (!modal || !tituloInput) return;
+
+  // 2. Preencher título
+  tituloInput.value = doc.titulo || '';
+
+  // 3. Popular pastas
+  await _docPopularPastas(doc.pasta);
+
+  // 4. Badge de acesso
+  _docAtualizarBadgeAcesso();
+
+  // 5. Abrir modal
   modal.classList.add('on');
 
-  // Inicializar Quill se necessário
-  if(!_quill && typeof Quill!=='undefined') {
+  // 6. Inicializar Quill se necessário
+  if (!_quill && typeof Quill !== 'undefined') {
     _quill = new Quill('#docQuill', {
-      theme:'snow',
-      placeholder:'Comece a escrever aqui...',
-      modules:{toolbar:[
+      theme: 'snow',
+      placeholder: 'Comece a escrever aqui...',
+      modules: { toolbar: [
         [{header:[1,2,3,4,false]}],
         [{font:[]},{size:['small',false,'large','huge']}],
         ['bold','italic','underline','strike'],
@@ -10648,63 +10740,82 @@ async function abrirDoc(id) {
         ['clean']
       ]}
     });
-    _quill.on('text-change',()=>{
+
+    _quill.on('text-change', () => {
       docAgendar();
-      const txt=_quill.getText().trim();
-      const w=txt?txt.split(/\s+/).filter(x=>x).length:0;
-      const el=document.getElementById('docWords');
-      if(el) el.textContent=w+' palavra'+(w!==1?'s':'');
+      const txt = _quill.getText().trim();
+      const w = txt ? txt.split(/\s+/).filter(x=>x).length : 0;
+      const el = document.getElementById('docWords');
+      if (el) el.textContent = w + ' palavra' + (w !== 1 ? 's' : '');
     });
 
-    // Salvar ao perder foco do editor (ex: clicar fora)
-    _quill.root.addEventListener('blur', function() {
-      clearTimeout(_docTimer);
-      docSalvar();
+    // Salvar ao perder foco do editor — MAS não quando o foco vai para o select de pasta
+    _quill.root.addEventListener('blur', function(e) {
+      // Verificar se o foco foi para o select de pasta ou titulo (nesse caso onchange/onblur já salva)
+      setTimeout(() => {
+        const focused = document.activeElement;
+        const isPastaSelect = focused && focused.id === 'docPastaSelect';
+        const isTituloInput = focused && focused.id === 'docTituloInput';
+        if (!isPastaSelect && !isTituloInput) {
+          clearTimeout(_docTimer);
+          docSalvar();
+        }
+      }, 50);
     });
 
-    // Salvar ao soltar o mouse (após arrastar texto)
     _quill.root.addEventListener('mouseup', function() {
       clearTimeout(_docTimer);
       _docTimer = setTimeout(docSalvar, 300);
     });
 
-    // Prevenir que arrastar texto para fora do editor feche o modal
-    _quill.root.addEventListener('dragstart', function(e) {
+    _quill.root.addEventListener('dragstart', function() {
       _docDragStartedInside = true;
     });
     document.addEventListener('dragend', function() {
       _docDragStartedInside = false;
     });
 
-    // ── Ao pressionar Enter dentro de um bloco colorido, a próxima linha sai da tarja ──
     _quill.root.addEventListener('keydown', function(e) {
       if (e.key !== 'Enter') return;
-      // Pequeno delay para o Quill processar o Enter primeiro
       setTimeout(() => {
         const sel = _quill.getSelection();
         if (!sel) return;
-        // Pega o elemento de parágrafo onde o cursor está
         const [leaf] = _quill.getLeaf(sel.index);
         if (!leaf) return;
         let node = leaf.domNode;
-        // Sobe até o <p> ou elemento de bloco
-        while (node && node.parentNode !== _quill.root) {
-          node = node.parentNode;
-        }
+        while (node && node.parentNode !== _quill.root) node = node.parentNode;
         if (!node) return;
         const blocoClasses = ['bloco-dark','bloco-info','bloco-warn','bloco-success','bloco-danger'];
-        // Se o parágrafo atual herdou classe de bloco, remove
-        if (blocoClasses.some(c => node.classList && node.classList.contains(c))) {
-          node.className = '';
-        }
+        if (blocoClasses.some(c => node.classList && node.classList.contains(c))) node.className = '';
       }, 0);
     });
   }
-  if(_quill) _quill.root.innerHTML = doc.conteudo||'';
-  titulo.focus();
-  _docStatus('');
-}
 
+  // 7. Setar conteúdo usando a API correta do Quill
+  if (_quill) {
+    const conteudo = doc.conteudo || '';
+    if (conteudo && conteudo !== '<p><br></p>') {
+      // clipboard.dangerouslyPasteHTML é o método correto para inserir HTML no Quill
+      try {
+        _quill.clipboard.dangerouslyPasteHTML(0, conteudo);
+      } catch(e) {
+        // fallback para innerHTML direto
+        _quill.root.innerHTML = conteudo;
+      }
+    } else {
+      _quill.root.innerHTML = '';
+      _quill.setText('');
+    }
+    // Atualizar contador de palavras
+    const txt = _quill.getText().trim();
+    const w = txt ? txt.split(/\s+/).filter(x => x).length : 0;
+    const wEl = document.getElementById('docWords');
+    if (wEl) wEl.textContent = w + ' palavra' + (w !== 1 ? 's' : '');
+  }
+
+  _docStatus('');
+  tituloInput.focus();
+}
 // Protege o modal de fechar ao arrastar texto para fora do editor
 let _docDragStartedInside = false;
 function _docModalMouseDown(e) {
@@ -10735,23 +10846,23 @@ document.addEventListener('keydown', function(e) {
 
 function fecharDoc() {
   clearTimeout(_docTimer);
-  // Salvar imediatamente antes de fechar
+  // Salvar e aguardar o save completar ANTES de fechar e recarregar
   docSalvar().then(() => {
     document.getElementById('docModal')?.classList.remove('on');
     _docId = null;
-    _renderDocs(_docPastaFiltro);
+    // Pequeno delay para garantir que o Supabase processou o save
+    setTimeout(() => _renderDocs(_docPastaFiltro), 300);
   }).catch(() => {
-    // Mesmo com erro, fechar
     document.getElementById('docModal')?.classList.remove('on');
     _docId = null;
-    _renderDocs(_docPastaFiltro);
+    setTimeout(() => _renderDocs(_docPastaFiltro), 300);
   });
 }
 
 function docAgendar() {
   _docStatus('editando');
   clearTimeout(_docTimer);
-  _docTimer = setTimeout(docSalvar, 800); // salvar mais rápido
+  _docTimer = setTimeout(docSalvar, 300);
 }
 
 function docImprimirPDF() {
@@ -10812,25 +10923,79 @@ function docImprimirPDF() {
 }
 
 
-async function docSalvar() {
-  if(!_docId) return;
-  const tituloInput = document.getElementById('docTituloInput');
-  const tituloDigitado = tituloInput?.value?.trim() || '';
-  // Preservar título existente — não sobrescrever com 'Sem título' se input estiver vazio
-  const docAtual = _docsCache.find(d => d.id === _docId);
-  const titulo = tituloDigitado || docAtual?.titulo || 'Sem título';
-  const conteudo = _quill ? _quill.root.innerHTML : (docAtual?.conteudo || '');
-  const pastaSelect = document.getElementById('docPastaSelect');
-  const pasta = pastaSelect?.value !== undefined ? pastaSelect.value : (docAtual?.pasta || '');
+// Salva APENAS a pasta — chamada direto pelo onchange do select
+// Independente do docSalvar para evitar race conditions
+async function docSalvarPastaAgora(novaPasta) {
+  if (!_docId) return;
+  // Atualizar cache imediatamente
+  const doc = _docsCache.find(d => d.id === _docId);
+  if (doc) doc.pasta = novaPasta;
+  // Salvar no banco
   try {
-    const acesso = window._docAcesso || docAtual?.acesso || [];
-    await safeDb.from('documentos').update({titulo,conteudo,pasta,acesso,updated_at:new Date().toISOString()}).eq('id',_docId);
-    if(docAtual){docAtual.titulo=titulo;docAtual.conteudo=conteudo;docAtual.pasta=pasta;docAtual.acesso=acesso;}
-    // Sincronizar o campo de título se estava vazio
-    if (tituloInput && !tituloDigitado && titulo !== 'Sem título') tituloInput.value = titulo;
+    await safeDb.from('documentos').update({ pasta: novaPasta, updated_at: new Date().toISOString() }).eq('id', _docId);
+    showToast('📁 ' + (novaPasta || 'Sem pasta'));
+  } catch(e) {
+    showToast('❌ Erro ao salvar pasta');
+  }
+}
+
+// Salva APENAS o título — chamada pelo onblur do input de título
+async function docSalvarTituloAgora() {
+  if (!_docId) return;
+  const tituloInput = document.getElementById('docTituloInput');
+  const titulo = tituloInput?.value?.trim();
+  if (!titulo) return;
+  const doc = _docsCache.find(d => d.id === _docId);
+  if (doc) doc.titulo = titulo;
+  try {
+    await safeDb.from('documentos').update({ titulo, updated_at: new Date().toISOString() }).eq('id', _docId);
+  } catch(e) { console.error('Erro ao salvar título:', e); }
+}
+
+async function docSalvar() {
+  if (!_docId) return;
+  const tituloInput = document.getElementById('docTituloInput');
+  const pastaSelect  = document.getElementById('docPastaSelect');
+  const docAtual     = _docsCache.find(d => d.id === _docId);
+
+  // Título: usa o digitado, se vazio usa o salvo no cache
+  const tituloDigitado = tituloInput?.value?.trim() || '';
+  const titulo = tituloDigitado || docAtual?.titulo || 'Sem título';
+
+  // Conteúdo do Quill
+  const conteudo = _quill ? _quill.root.innerHTML : (docAtual?.conteudo || '');
+
+  // Pasta: usa EXATAMENTE o que está no select (mesmo que seja '' = sem pasta)
+  // NÃO usar || para não pular '' para o valor antigo
+  const pasta = pastaSelect != null ? pastaSelect.value : (docAtual?.pasta ?? '');
+
+  const acesso = window._docAcesso ?? docAtual?.acesso ?? [];
+
+  // Sincronizar campo de título se estava vazio mas havia título no cache
+  if (tituloInput && !tituloDigitado && titulo !== 'Sem título') {
+    tituloInput.value = titulo;
+  }
+
+  try {
+    _docStatus('editando');
+    await safeDb.from('documentos').update({
+      titulo, conteudo, pasta, acesso,
+      updated_at: new Date().toISOString()
+    }).eq('id', _docId);
+
+    if (docAtual) {
+      docAtual.titulo   = titulo;
+      docAtual.conteudo = conteudo;
+      docAtual.pasta    = pasta;
+      docAtual.acesso   = acesso;
+    }
+
     _docStatus('salvo');
-    setTimeout(()=>_docStatus(''),2500);
-  } catch(e){_docStatus('erro');}
+    setTimeout(() => _docStatus(''), 2500);
+  } catch(e) {
+    console.error('docSalvar error:', e);
+    _docStatus('erro');
+  }
 }
 
 function _docStatus(s) {
