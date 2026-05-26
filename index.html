@@ -3664,7 +3664,7 @@ select.sel{
   </div>
 </div>
 
-<div id="docModal" onclick="if(event.target===this)fecharDoc()">
+<div id="docModal" onmousedown="_docModalMouseDown(event)">
   <div id="docBox">
     <div id="docHeader">
       <span style="font-size:20px;flex-shrink:0">📝</span>
@@ -3675,8 +3675,8 @@ select.sel{
       <span id="docSaveStatus">✓ Salvo</span>
       <button onclick="docAbrirPermissoes()" title="Permissões de acesso" style="padding:6px 14px;border-radius:8px;background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">🔒 Acesso</button>
       <button onclick="docImprimirPDF()" style="padding:6px 14px;border-radius:8px;background:#EF4444;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">📄 PDF</button>
-      <button onclick="docSalvar()" style="padding:6px 14px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Salvar</button>
-      <button onclick="fecharDoc()" style="width:30px;height:30px;border:none;border-radius:8px;background:#F1F5F9;color:#64748B;cursor:pointer;font-size:15px;">✕</button>
+      <button onclick="docSalvar().then(()=>showToast('💾 Salvo!'))" style="padding:6px 14px;border-radius:8px;background:#10B981;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;" title="Salvar (Ctrl+S)">💾 Salvar</button>
+      <button onclick="docSalvar().then(()=>fecharDoc())" style="width:30px;height:30px;border:none;border-radius:8px;background:#F1F5F9;color:#64748B;cursor:pointer;font-size:15px;" title="Salvar e fechar">✕</button>
     </div>
     <!-- Barra de highlight e blocos especiais -->
     <div class="doc-hl-bar">
@@ -10656,6 +10656,26 @@ async function abrirDoc(id) {
       if(el) el.textContent=w+' palavra'+(w!==1?'s':'');
     });
 
+    // Salvar ao perder foco do editor (ex: clicar fora)
+    _quill.root.addEventListener('blur', function() {
+      clearTimeout(_docTimer);
+      docSalvar();
+    });
+
+    // Salvar ao soltar o mouse (após arrastar texto)
+    _quill.root.addEventListener('mouseup', function() {
+      clearTimeout(_docTimer);
+      _docTimer = setTimeout(docSalvar, 300);
+    });
+
+    // Prevenir que arrastar texto para fora do editor feche o modal
+    _quill.root.addEventListener('dragstart', function(e) {
+      _docDragStartedInside = true;
+    });
+    document.addEventListener('dragend', function() {
+      _docDragStartedInside = false;
+    });
+
     // ── Ao pressionar Enter dentro de um bloco colorido, a próxima linha sai da tarja ──
     _quill.root.addEventListener('keydown', function(e) {
       if (e.key !== 'Enter') return;
@@ -10685,11 +10705,45 @@ async function abrirDoc(id) {
   _docStatus('');
 }
 
+// Protege o modal de fechar ao arrastar texto para fora do editor
+let _docDragStartedInside = false;
+function _docModalMouseDown(e) {
+  // Se o mousedown foi DENTRO do docBox, marcar como drag interno
+  const box = document.getElementById('docBox');
+  _docDragStartedInside = box && box.contains(e.target);
+}
+
+// Fechar com Escape — pede confirmação se tem conteúdo
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('docModal');
+    if (modal && modal.classList.contains('on')) {
+      // Salvar antes de fechar com ESC
+      docSalvar().then(() => { fecharDoc(); });
+      e.preventDefault();
+    }
+  }
+  // Ctrl+S para salvar sem fechar
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    const modal = document.getElementById('docModal');
+    if (modal && modal.classList.contains('on')) {
+      e.preventDefault();
+      docSalvar().then(() => showToast('💾 Salvo!'));
+    }
+  }
+});
+
 function fecharDoc() {
   clearTimeout(_docTimer);
-  docSalvar().then(()=>{
+  // Salvar imediatamente antes de fechar
+  docSalvar().then(() => {
     document.getElementById('docModal')?.classList.remove('on');
-    _docId=null;
+    _docId = null;
+    _renderDocs(_docPastaFiltro);
+  }).catch(() => {
+    // Mesmo com erro, fechar
+    document.getElementById('docModal')?.classList.remove('on');
+    _docId = null;
     _renderDocs(_docPastaFiltro);
   });
 }
@@ -10697,7 +10751,7 @@ function fecharDoc() {
 function docAgendar() {
   _docStatus('editando');
   clearTimeout(_docTimer);
-  _docTimer=setTimeout(docSalvar,1500);
+  _docTimer = setTimeout(docSalvar, 800); // salvar mais rápido
 }
 
 function docImprimirPDF() {
@@ -10760,14 +10814,20 @@ function docImprimirPDF() {
 
 async function docSalvar() {
   if(!_docId) return;
-  const titulo=document.getElementById('docTituloInput')?.value.trim()||'Sem título';
-  const conteudo=_quill?_quill.root.innerHTML:'';
-  const pasta=document.getElementById('docPastaSelect')?.value||'';
+  const tituloInput = document.getElementById('docTituloInput');
+  const tituloDigitado = tituloInput?.value?.trim() || '';
+  // Preservar título existente — não sobrescrever com 'Sem título' se input estiver vazio
+  const docAtual = _docsCache.find(d => d.id === _docId);
+  const titulo = tituloDigitado || docAtual?.titulo || 'Sem título';
+  const conteudo = _quill ? _quill.root.innerHTML : (docAtual?.conteudo || '');
+  const pastaSelect = document.getElementById('docPastaSelect');
+  const pasta = pastaSelect?.value !== undefined ? pastaSelect.value : (docAtual?.pasta || '');
   try {
-    const acesso = window._docAcesso || [];
+    const acesso = window._docAcesso || docAtual?.acesso || [];
     await safeDb.from('documentos').update({titulo,conteudo,pasta,acesso,updated_at:new Date().toISOString()}).eq('id',_docId);
-    const doc=_docsCache.find(d=>d.id===_docId);
-    if(doc){doc.titulo=titulo;doc.conteudo=conteudo;doc.pasta=pasta;doc.acesso=acesso;}
+    if(docAtual){docAtual.titulo=titulo;docAtual.conteudo=conteudo;docAtual.pasta=pasta;docAtual.acesso=acesso;}
+    // Sincronizar o campo de título se estava vazio
+    if (tituloInput && !tituloDigitado && titulo !== 'Sem título') tituloInput.value = titulo;
     _docStatus('salvo');
     setTimeout(()=>_docStatus(''),2500);
   } catch(e){_docStatus('erro');}
