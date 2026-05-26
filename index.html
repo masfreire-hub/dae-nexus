@@ -6275,7 +6275,7 @@ async function togTask(id) {
   const t = tar.find(x => x.id===id);
   if (!t) return;
   const novoOk = !t.ok;
-  const novoStatus = novoOk ? 'feito' : 'to do';
+  const novoStatus = novoOk ? 'concluído' : 'to do';
   const { error } = await safeDb.from('tarefas').update({ ok: novoOk, status: novoStatus, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   t.ok = novoOk; t.status = novoStatus;
@@ -6680,6 +6680,17 @@ async function openDet(type, id) {
       const { data: tFresh } = await safeDb.from('tarefas').select('*').eq('id', id).single();
       if (tFresh) {
         Object.assign(t, tFresh);
+        // Corrigir inconsistência: se ok=true mas status não é 'concluído', forçar
+        const statusFechados = ['concluído','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
+        if (t.ok && !statusFechados.includes((t.status||'').toLowerCase().trim())) {
+          t.status = 'concluído';
+          safeDb.from('tarefas').update({ status: 'concluído' }).eq('id', id).then(() => {});
+        }
+        // Inverso: se status é concluído mas ok=false, forçar ok=true
+        if (!t.ok && statusFechados.includes((t.status||'').toLowerCase().trim())) {
+          t.ok = true;
+          safeDb.from('tarefas').update({ ok: true }).eq('id', id).then(() => {});
+        }
         const idx = tar.findIndex(x => x.id===id);
         if (idx > -1) tar[idx] = t;
       }
@@ -6830,7 +6841,8 @@ async function openDet(type, id) {
             {s:'teste aprovado',              icon:'🟤', label:'Teste Aprovado',              cor:'#92400E'},
             {s:'publicado em produção',       icon:'🟢', label:'Publicado em Produção',       cor:'#10B981'},
           ].map(({s, icon, label, cor}) => {
-            const isActive = (t.status||'').toLowerCase() === s;
+            // Se tarefa está ok (concluída), nenhum status ativo deve ficar destacado
+            const isActive = !t.ok && (t.status||'').toLowerCase() === s;
             return '<button onclick="salvarStatus(\'' + id + '\',\'' + s + '\')" style="width:100%;padding:7px 10px;border-radius:9px;border:1.5px solid ' + (isActive?cor:'#EAEFF6') + ';background:' + (isActive?cor+'14':'#fff') + ';color:' + (isActive?cor:'#475569') + ';font-size:11px;font-weight:' + (isActive?'800':'600') + ';cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;transition:all .15s;text-align:left;"><span style="font-size:13px">' + icon + '</span>' + label + (isActive?'<span style="margin-left:auto;font-size:10px;opacity:.7">✓</span>':'') + '</button>';
           }).join('')}
           <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;padding:8px 2px 2px;">Fechado</div>
