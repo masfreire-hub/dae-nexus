@@ -2563,34 +2563,31 @@ select.sel{
 
     <!-- ESTAÇÕES -->
     <div class="tab" id="t-proj">
-      <div class="page-header">
-        <div class="page-title" id="proj-page-title">Estações &amp; Setores</div>
-        <div class="page-sub">Hierarquia de estações, setores e projetos</div>
-      </div>
-      <div class="ph">
+
+      <!-- Header limpo -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;padding-top:4px;">
         <div>
-          <div class="pt">ESTAÇÕES</div>
-          <div class="ps" id="pcount">— estações ativas</div>
+          <div style="font-size:18px;font-weight:700;color:var(--tx)" id="proj-page-title">Estações &amp; Setores</div>
+          <div style="font-size:12px;color:var(--tx3);margin-top:3px;">Mapa organizacional da operação</div>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btnadd" onclick="openM('mEstacao')">+ ESTAÇÃO</button>
-          <button class="btnadd" onclick="openM('mEspaco')">+ SETOR</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <!-- Tabs Ativos/Concluídos -->
+          <div style="display:flex;border:0.5px solid var(--border);border-radius:8px;overflow:hidden;">
+            <button id="tabProjAtivos" onclick="switchProjTab('ativos')" style="padding:6px 16px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--brand);background:var(--surface2);border-bottom:none;">Ativos</button>
+            <button id="tabProjConcluidos" onclick="switchProjTab('concluidos')" style="padding:6px 16px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3);background:transparent;border-bottom:none;">Concluídos</button>
+          </div>
+          <button onclick="openM('mEstacao')" style="padding:6px 14px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:12px;font-weight:500;cursor:pointer;color:var(--tx2);font-family:inherit;">+ Estação</button>
+          <button onclick="openM('mEspaco')" style="padding:6px 14px;border-radius:8px;border:0.5px solid #AFA9EC;background:transparent;font-size:12px;font-weight:500;cursor:pointer;color:#3C3489;font-family:inherit;">+ Setor</button>
         </div>
       </div>
 
-      <!-- TABS ATIVOS / CONCLUÍDOS -->
-      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0;">
-        <button id="tabProjAtivos" onclick="switchProjTab('ativos')" style="padding:8px 20px;border:none;border-bottom:3px solid var(--brand);background:transparent;font-family:var(--fb);font-size:13px;font-weight:700;color:var(--brand);cursor:pointer;">🏗 Ativos</button>
-        <button id="tabProjConcluidos" onclick="switchProjTab('concluidos')" style="padding:8px 20px;border:none;border-bottom:3px solid transparent;background:transparent;font-family:var(--fb);font-size:13px;font-weight:600;color:var(--tx3);cursor:pointer;">✅ Concluídos</button>
-      </div>
-
-      <!-- FILTRO POR ESTAÇÃO (só na aba Ativos) -->
+      <!-- Filtro por estação -->
       <div id="estacaoChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
-      <!-- VISÃO HIERÁRQUICA (ativos) -->
+      <!-- Visão hierárquica (ativos) -->
       <div id="hierarquiaView"></div>
 
-      <!-- VISÃO CONCLUÍDOS -->
+      <!-- Visão concluídos -->
       <div id="hierarquiaConcluidos" style="display:none;"></div>
     </div>
     <!-- TAREFAS / KANBAN -->
@@ -12857,306 +12854,243 @@ function renderHierarquia() {
   if (!el) return;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
-  // Normalizar: trim + deduplicar case-insensitive mantendo primeira ocorrência
-  // Normalizar todas as estações para MAIÚSCULO e deduplicar
-  const rawEstacoes = [
-    ...(cadastros?.estacao||[]),
-    ...proj.map(function(p){ return p.dept; }).filter(Boolean),
-    ...espacos.map(function(e){ return e.estacao; }).filter(Boolean)
-  ].map(function(e){ return e.trim().toUpperCase(); });
+  const rawEst = [...(cadastros?.estacao||[]),...proj.map(p=>p.dept).filter(Boolean),...espacos.map(e=>e.estacao).filter(Boolean)].map(e=>e.trim().toUpperCase());
   const seenEst = new Set();
-  const todasEstacoes = rawEstacoes.filter(function(e){
-    if (seenEst.has(e)) return false;
-    seenEst.add(e); return true;
-  }).sort();
-
-  const estacoesFiltradas = estacaoFiltroAtual === 'todas' ? todasEstacoes : [estacaoFiltroAtual];
-
-  const GRADS = [
-    'linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%)',
-    'linear-gradient(135deg,#0369A1 0%,#0891B2 100%)',
-    'linear-gradient(135deg,#047857 0%,#059669 100%)',
-    'linear-gradient(135deg,#B45309 0%,#D97706 100%)',
-    'linear-gradient(135deg,#9D174D 0%,#BE185D 100%)',
-    'linear-gradient(135deg,#1D4ED8 0%,#3B82F6 100%)',
-    'linear-gradient(135deg,#0F172A 0%,#1E293B 100%)',
-  ];
-
-  if (estacoesFiltradas.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:80px 40px;color:#94A3B8"><div style="font-size:48px;margin-bottom:16px">🏗️</div><div style="font-size:16px;font-weight:700;color:#475569;margin-bottom:8px">Nenhum departamento ainda</div><div style="font-size:13px">Clique em <strong>+ ESTAÇÃO</strong> para criar o DAE</div></div>';
-    const pc = document.getElementById('pcount'); if(pc) pc.textContent = '0 estações';
-    renderEstacaoChips(); return;
-  }
+  const todasEstacoes = rawEst.filter(e=>{if(seenEst.has(e))return false;seenEst.add(e);return true;}).sort();
+  const estFiltradas = estacaoFiltroAtual==='todas' ? todasEstacoes : [estacaoFiltroAtual];
 
   el.innerHTML = '';
 
-  estacoesFiltradas.forEach(function(estacao, idx) {
-    const grad = GRADS[idx % GRADS.length];
-    const estNorm = estacao.toUpperCase();
-    const setores = espacos.filter(function(e){ return (e.estacao||'').trim().toUpperCase() === estNorm; });
+  if (!estFiltradas.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px;color:var(--tx3);"><div style="font-size:40px;margin-bottom:12px;opacity:.3">🏗</div><div style="font-size:14px;font-weight:600;">Nenhuma estação cadastrada</div><button onclick="openM(\'mEstacao\')" style="margin-top:16px;padding:8px 20px;border-radius:8px;background:#534AB7;color:#fff;border:none;font-size:12px;cursor:pointer;font-family:inherit;">+ Criar primeira estação</button></div>';
+    const pc=document.getElementById('pcount'); if(pc) pc.textContent='0 estações';
+    renderEstacaoChips(); return;
+  }
 
-    // Todos projetos desta estação
-    const idsSetores = setores.map(function(e){ return e.id; });
-    const _isProjFechado = function(p){ const s=(p.status||'').toLowerCase().trim(); return s.startsWith('conclu') || s==='cancelado' || s==='finalizado' || s==='done'; };
-    const projEstacao = proj.filter(function(p){ return !_isProjFechado(p) && (idsSetores.includes(p.espaco_id) || (!p.espaco_id && (p.dept||'').trim().toUpperCase() === estNorm)); });
+  const _isProjFechado = p=>{const s=(p.status||'').toLowerCase();return s.startsWith('conclu')||s==='cancelado'||s==='finalizado'||s==='done';};
+  const projAtivos = proj.filter(p=>!_isProjFechado(p));
+  const totalAb  = tar.filter(t=>!t.ok).length;
+  const totalFt  = tar.filter(t=>t.ok).length;
+  const mediaPG  = projAtivos.length ? Math.round(projAtivos.reduce((a,p)=>a+(p.prog||0),0)/projAtivos.length) : 0;
 
-    // Atividades desta estação (sem projeto_id = atividade de setor)
-    const ativsEstacao = ativs.filter(function(a){
-      if (!a.projeto_id) {
-        // atividade sem projeto — tenta casar pelo espaco_id ou dept
-        return setores.some(function(s){ return s.id === a.espaco_id; }) || a.dept === estacao;
-      }
-      return projEstacao.some(function(p){ return p.id === a.projeto_id; });
-    });
+  // ── KPI CARDS coloridos ──
+  const kpiEl = document.createElement('div');
+  kpiEl.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem;';
+  kpiEl.innerHTML = `
+    <div style="background:#534AB7;border-radius:14px;padding:20px 22px;">
+      <div style="font-size:28px;font-weight:600;color:#fff;line-height:1;margin-bottom:5px;">${projAtivos.length}</div>
+      <div style="font-size:12px;color:#CEC9F8;text-transform:uppercase;letter-spacing:.06em;">Projetos ativos</div>
+    </div>
+    <div style="background:#185FA5;border-radius:14px;padding:20px 22px;">
+      <div style="font-size:28px;font-weight:600;color:#fff;line-height:1;margin-bottom:5px;">${totalAb}</div>
+      <div style="font-size:12px;color:#B5D4F4;text-transform:uppercase;letter-spacing:.06em;">Tarefas abertas</div>
+    </div>
+    <div style="background:#3B6D11;border-radius:14px;padding:20px 22px;">
+      <div style="font-size:28px;font-weight:600;color:#fff;line-height:1;margin-bottom:5px;">${totalFt}</div>
+      <div style="font-size:12px;color:#C0DD97;text-transform:uppercase;letter-spacing:.06em;">Concluídas</div>
+    </div>
+    <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:20px 22px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
+        <div style="font-size:28px;font-weight:600;color:#BA7517;line-height:1;">${mediaPG}%</div>
+        <div style="flex:1;height:6px;background:#FAEEDA;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${mediaPG}%;background:#BA7517;border-radius:3px;"></div></div>
+      </div>
+      <div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;">Progresso geral</div>
+    </div>`;
+  el.appendChild(kpiEl);
 
-    // Métricas gerais
-    const todasTar = tar.filter(function(t){ return projEstacao.some(function(p){ return p.id === t.projeto_id; }); });
-    const nAb  = todasTar.filter(function(t){ return !t.ok; }).length;
-    const nFt  = todasTar.filter(function(t){ return t.ok; }).length;
-    const nVc  = todasTar.filter(function(t){ 
-    const s = (t.status||'').toLowerCase().trim();
-    const fechada = t.ok || ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'].includes(s);
-    return !fechada && t.prazo && new Date(t.prazo) < hoje; 
-  }).length;
-    const mediaProg = projEstacao.length > 0 ? Math.round(projEstacao.reduce(function(a,p){ return a+(p.prog||0); },0)/projEstacao.length) : 0;
-
-    // Membros únicos
-    const mbIds = [...new Set(projEstacao.flatMap(function(p){ return p.eq||[]; }))].slice(0,6);
-    const mbHtml = mbIds.map(function(av){
-      const m = memb.find(function(x){ return x.av===av; });
-      return m ? '<div style="width:28px;height:28px;border-radius:8px;background:'+(m.cor||'#4F46E5')+';border:2px solid rgba(255,255,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;margin-right:-6px" title="'+m.nome+'">'+m.av+'</div>' : '';
+  estFiltradas.forEach(estacao => {
+    const estNorm  = estacao.toUpperCase();
+    const setores  = espacos.filter(e=>(e.estacao||'').trim().toUpperCase()===estNorm);
+    const projEst  = projAtivos.filter(p=>setores.some(s=>s.id===p.espaco_id)||(!p.espaco_id&&(p.dept||'').trim().toUpperCase()===estNorm));
+    const mpEst    = projEst.length ? Math.round(projEst.reduce((a,p)=>a+(p.prog||0),0)/projEst.length) : 0;
+    const mbIds    = [...new Set(projEst.flatMap(p=>p.eq||[]))].slice(0,5);
+    const mbHtml   = mbIds.map(av=>{
+      const m=memb.find(x=>x.av===av);
+      return m?`<div style="width:32px;height:32px;border-radius:50%;background:${m.cor||'#534AB7'}33;color:${m.cor||'#534AB7'};border:2.5px solid #534AB7;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:-8px;" title="${m.nome}">${m.av}</div>`:'';
     }).join('');
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'setor-card';
+    wrapper.style.cssText = 'background:var(--surface);border:0.5px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;';
 
-    // ── BANNER ──
-    var h = '';
-    h += '<div class="setor-banner" style="background:'+grad+'">';
-    h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1;">';
-    h += '<div><div class="setor-titulo">'+estacao+'</div>';
-    h += '<div class="setor-sub">'+setores.length+' setor'+(setores.length!==1?'es':'')+' · '+projEstacao.length+' projeto'+(projEstacao.length!==1?'s':'')+' · '+ativsEstacao.length+' atividade'+(ativsEstacao.length!==1?'s':'')+'</div></div>';
-    h += '<div style="display:flex;gap:6px;flex-shrink:0">';
-    h += '<button class="setor-btn-add" onclick="abrirNovoEspaco(\''+estacao.replace(/'/g,"\\'")+'\')" style="flex-shrink:0">+ Setor</button>';
-    h += '<button onclick="excluirEstacaoNome(this)" data-est="'+estacao+'" style="width:32px;height:32px;border-radius:8px;background:rgba(239,68,68,.2);border:none;color:#fff;cursor:pointer;font-size:14px;flex-shrink:0;" title="Excluir estação">🗑</button>';
-    h += '</div>';
-    h += '</div>';
-    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;position:relative;z-index:1;">';
-    h += '<div style="display:flex;align-items:center;">'+mbHtml+(mbIds.length ? '<span style="font-size:10px;color:rgba(255,255,255,.7);margin-left:14px;font-weight:600;">'+mbIds.length+' membro'+(mbIds.length!==1?'s':'')+'</span>' : '<span style="font-size:10px;color:rgba(255,255,255,.5);">Sem membros</span>')+'</div>';
-    h += '<div style="text-align:right"><div style="font-size:28px;font-weight:900;color:#fff;line-height:1;">'+mediaProg+'<span style="font-size:16px">%</span></div><div style="font-size:9px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">progresso</div></div>';
-    h += '</div></div>';
+    let h = `
+      <div style="background:#534AB7;padding:22px 28px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:24px;">🏢</div>
+            <div>
+              <div style="font-size:24px;font-weight:700;color:#fff;letter-spacing:-.02em;">${estacao}</div>
+              <div style="font-size:13px;color:#CEC9F8;margin-top:3px;">${setores.length} setor${setores.length!==1?'es':''} &middot; ${projEst.length} projeto${projEst.length!==1?'s':''} &middot; ${mbIds.length} membro${mbIds.length!==1?'s':''}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:24px;">
+            <div style="display:flex;">${mbHtml}</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                <div style="width:110px;height:6px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${mpEst}%;background:#fff;border-radius:3px;"></div></div>
+                <div style="font-size:14px;font-weight:600;color:#fff;">${mpEst}%</div>
+              </div>
+              <div style="font-size:11px;color:#CEC9F8;">progresso geral</div>
+            </div>
+            <button onclick="abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}\')" style="padding:7px 18px;border-radius:8px;border:0.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);font-size:13px;cursor:pointer;color:#fff;font-family:inherit;font-weight:500;">+ Setor</button>
+          </div>
+        </div>
+      </div>`;
 
-    // ── MÉTRICAS ──
-    h += '<div class="setor-metricas">';
-    h += '<div class="setor-metrica"><div class="setor-metrica-val">'+projEstacao.length+'</div><div class="setor-metrica-lbl">Projetos</div></div>';
-    h += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#3B82F6">'+nAb+'</div><div class="setor-metrica-lbl">Tarefas abertas</div></div>';
-    h += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:#10B981">'+nFt+'</div><div class="setor-metrica-lbl">Concluídas</div></div>';
-    h += '<div class="setor-metrica"><div class="setor-metrica-val" style="color:'+(nVc>0?'#EF4444':'#94A3B8')+'">'+nVc+'</div><div class="setor-metrica-lbl">Vencidas</div></div>';
-    h += '</div>';
-
-    // ── BODY: setores ──
-    h += '<div class="setor-body">';
-
-    if (setores.length === 0 && projEstacao.length === 0) {
-      h += '<div style="text-align:center;padding:40px;color:#94A3B8"><div style="font-size:32px;margin-bottom:10px;opacity:.4">📭</div><div style="font-size:13px;font-weight:600">Nenhum setor cadastrado</div><div style="font-size:11px;margin-top:6px">Clique em "+ Setor" para criar MKT, Qualidade, Projetos...</div></div>';
+    if (!setores.length && !projEst.length) {
+      h += `<div style="padding:40px;text-align:center;color:var(--tx3);font-size:13px;">Nenhum setor ainda.<button onclick="abrirNovoEspaco('${estacao.replace(/'/g,"\\'")}\')" style="margin-left:10px;padding:6px 16px;border-radius:8px;background:#534AB7;color:#fff;border:none;font-size:12px;cursor:pointer;font-family:inherit;">+ Criar setor</button></div>`;
     }
 
-    setores.forEach(function(setor, si) {
-      const projSetor = proj.filter(function(p){ const s=(p.status||'').toLowerCase().trim(); const _fechado=s.startsWith('conclu')||s==='cancelado'||s==='finalizado'||s==='done'; return !_fechado && p.espaco_id === setor.id; });
-      // Atividades diretas deste setor (sem projeto_id)
-      const ativsSetor = ativs.filter(function(a){ return !a.projeto_id && a.espaco_id === setor.id; });
+    setores.forEach((setor, si) => {
+      const projSetor  = projAtivos.filter(p=>p.espaco_id===setor.id);
+      const ativsSetor = ativs.filter(a=>!a.projeto_id&&a.espaco_id===setor.id);
+      const _tarSetor  = tar.filter(t=>projSetor.some(p=>p.id===t.projeto_id));
+      const _nAbS  = _tarSetor.filter(t=>!t.ok).length;
+      const _mpS   = projSetor.length ? Math.round(projSetor.reduce((a,p)=>a+(p.prog||0),0)/projSetor.length) : 0;
+      const _sId   = 'sb_'+setor.id.replace(/-/g,'');
+      const divider = si>0 ? 'border-top:0.5px solid var(--border);' : '';
 
-      h += '<div style="margin-top:'+(si>0?'24px':'0')+';padding-bottom:20px;border-bottom:'+(si<setores.length-1?'1px solid #F1F5F9':'none')+'">';
+      // Icon background por ordem do setor
+      const iconBgs = ['#EEEDFE','#E6F1FB','#FAEEDA','#EAF3DE','#FBEAF0','#FCEBEB'];
+      const iconFgs = ['#534AB7','#185FA5','#854F0B','#3B6D11','#72243E','#A32D2D'];
+      const setorBgs = ['rgba(83,74,183,.04)','rgba(24,95,165,.04)','rgba(133,79,11,.04)','rgba(59,109,17,.04)','rgba(114,36,62,.04)','rgba(163,45,45,.04)'];
+      const setorBorders = ['rgba(83,74,183,.18)','rgba(24,95,165,.18)','rgba(133,79,11,.18)','rgba(59,109,17,.18)','rgba(114,36,62,.18)','rgba(163,45,45,.18)'];
+      const iIdx = si % iconBgs.length;
 
-      // Header do setor
-      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">';
-      h += '<div style="display:flex;align-items:center;gap:10px;">';
-      h += '<span style="font-size:22px">'+(setor.icone||'📁')+'</span>';
-      h += '<div><div style="font-size:14px;font-weight:800;color:#1E293B;">'+setor.nome+'</div>';
-      h += '<div style="font-size:10px;color:#94A3B8;font-weight:600;">'+projSetor.length+' projeto'+(projSetor.length!==1?'s':'')+' · '+ativsSetor.length+' atividade'+(ativsSetor.length!==1?'s':'')+'</div></div>';
-      h += '</div>';
-      h += '<div style="display:flex;gap:6px;align-items:center;">';
-      h += '<button onclick="abrirNovoProjEspaco(\''+setor.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')" style="padding:6px 12px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">📌 + Projeto</button>';
-      h += '<button onclick="abrirNovaAtivSetor(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="padding:6px 12px;border-radius:8px;background:#10B981;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">⚡ + Atividade</button>';
-      h += '<span onclick="gerenciarMembrosEspaco(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;" title="Membros">👥</span>';
-      h += '<span onclick="editarEspaco(\''+setor.id+'\')" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;" title="Editar">✏️</span>';
-      h += '<span onclick="excluirEspacoById(\''+setor.id+'\')" style="width:30px;height:30px;border-radius:8px;background:#FEF2F2;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;" title="Excluir setor">🗑️</span>';
-      h += '</div></div>';
+      h += `<div style="${divider}">
+        <div onclick="toggleSetorBody('${_sId}')" style="display:flex;align-items:center;gap:14px;padding:16px 28px;cursor:pointer;background:${setorBgs[iIdx]};transition:filter .1s;" onmouseover="this.style.filter='brightness(.97)'" onmouseout="this.style.filter='none'">
+          <div style="width:44px;height:44px;border-radius:12px;background:${iconBgs[iIdx]};border:1.5px solid ${setorBorders[iIdx]};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">${setor.icone||'📁'}</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:var(--tx);">${setor.nome}</div>
+            <div style="font-size:12px;color:var(--tx3);margin-top:2px;">${projSetor.length} projeto${projSetor.length!==1?'s':''} &middot; ${ativsSetor.length} atividade${ativsSetor.length!==1?'s':''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:160px;">
+            <div style="flex:1;height:5px;background:${setorBorders[iIdx]};border-radius:0;overflow:hidden;"><div style="height:100%;width:${_mpS}%;background:${iconFgs[iIdx]};"></div></div>
+            <div style="font-size:13px;font-weight:600;color:${iconFgs[iIdx]};min-width:36px;text-align:right;">${_mpS}%</div>
+          </div>
+          <div style="font-size:12px;color:var(--tx3);min-width:84px;text-align:right;">${_nAbS} tarefa${_nAbS!==1?'s':''}</div>
+          <div style="display:flex;gap:5px;" onclick="event.stopPropagation()">
+            <button onclick="abrirNovoProjEspaco('${setor.id}','${estacao.replace(/'/g,"\\'")}\')" style="padding:5px 12px;border-radius:8px;border:0.5px solid ${setorBorders[iIdx]};background:transparent;font-size:11px;font-weight:600;cursor:pointer;color:${iconFgs[iIdx]};font-family:inherit;" onmouseover="this.style.background='${iconBgs[iIdx]}'" onmouseout="this.style.background='transparent'">+ Projeto</button>
+            <button onclick="abrirNovaAtivSetor('${setor.id}','${setor.nome.replace(/'/g,"\\'")}\')" style="padding:5px 12px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:11px;font-weight:500;cursor:pointer;color:var(--tx2);font-family:inherit;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">+ Atividade</button>
+            <span onclick="gerenciarMembrosEspaco('${setor.id}','${setor.nome.replace(/'/g,"\\'")}\')" style="width:32px;height:32px;border-radius:8px;border:0.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;" title="Membros" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">👥</span>
+            <span onclick="excluirEspacoById('${setor.id}')" style="width:32px;height:32px;border-radius:8px;border:0.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;" title="Excluir" onmouseover="this.style.background='#FCEBEB'" onmouseout="this.style.background='transparent'">🗑️</span>
+          </div>
+          <span id="${_sId}_ico" style="font-size:13px;color:${iconFgs[iIdx]};transition:transform .15s;margin-left:6px;">▶</span>
+        </div>
+        <div id="${_sId}" style="display:none;padding:16px 28px 20px 86px;border-top:0.5px solid ${setorBorders[iIdx]};background:${setorBgs[iIdx]};">`;
 
-      // Projetos do setor
-      if (projSetor.length > 0) {
-        h += '<div style="margin-bottom:12px;">';
-        h += '<div style="font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">📌 PROJETOS</div>';
-        h += '<div class="setor-projetos-grid">';
-        projSetor.forEach(function(p){ h += cardProjNovo(p, hoje, grad); });
-        h += '<div class="proj-card-novo" onclick="abrirNovoProjEspaco(\''+setor.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')">';
-        h += '<div style="font-size:28px;font-weight:200;opacity:.3">+</div><div style="font-size:11px;font-weight:700">Novo projeto</div></div>';
-        h += '</div></div>';
+      if (projSetor.length) {
+        h += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${ativsSetor.length?'14px':'0'};">`;
+        projSetor.forEach(p => { h += cardProjNovo(p, hoje, iconFgs[iIdx]); });
+        h += `</div>`;
       }
 
-      // Atividades do setor — bloco colapsável
-      if (ativsSetor.length > 0) {
-        var _ativSetorId = 'ativSetor_' + setor.id.replace(/-/g,'');
-        var ativsAtivas = ativsSetor.filter(function(a){ return (a.status||'').toLowerCase().trim() !== 'concluida'; });
-        var ativsConcluidas = ativsSetor.filter(function(a){ return (a.status||'').toLowerCase().trim() === 'concluida'; });
-        var _ativAtrasadasCount = ativsAtivas.filter(function(a){ return a.prazo && new Date(a.prazo+'T23:59') < hoje; }).length;
-
-        function _renderAtivRow(a) {
-          var cor = a.cor || '#4F46E5';
-          var autor = memb.find(function(m){ return m.av===a.autor; });
-          var _atrasada = a.prazo && (a.status||'').toLowerCase().trim() !== 'concluida' && new Date(a.prazo+'T23:59') < hoje;
-          var _concluida = (a.status||'').toLowerCase().trim() === 'concluida';
-          // Status badge colors
-          var _statusMap = {
-            'a fazer': {bg:'#F1F5F9',c:'#64748B'},
-            'em andamento': {bg:'#DBEAFE',c:'#2563EB'},
-            'em desenvolvimento': {bg:'#EDE9FE',c:'#7C3AED'},
-            'aguardando': {bg:'#FEF3C7',c:'#D97706'},
-            'concluida': {bg:'#D1FAE5',c:'#059669'},
-            'concluída': {bg:'#D1FAE5',c:'#059669'},
-            'cancelada': {bg:'#FEE2E2',c:'#DC2626'},
-          };
-          var _st = (a.status||'em andamento').toLowerCase().trim();
-          var _stStyle = _statusMap[_st] || {bg:'#F1F5F9',c:'#64748B'};
-          var _stLabel = a.status || 'Em andamento';
-          var row = '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(_concluida?'rgba(16,185,129,0.03)':_atrasada?'rgba(239,68,68,0.04)':'#fff')+';border-radius:10px;border:1px solid '+(_concluida?'#A7F3D0':_atrasada?'#FECACA':'#EAEFF6')+';transition:all .15s;cursor:pointer;opacity:'+(_concluida?'.72':'1')+';" onclick="abrirDetalheAtiv(\''+a.id+'\')">';
-          row += '<div style="width:4px;height:36px;border-radius:4px;background:'+(_concluida?'#10B981':_atrasada?'#EF4444':cor)+';flex-shrink:0"></div>';
-          row += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:'+(_concluida?'#059669':_atrasada?'#DC2626':'#1E293B')+';'+(_concluida?'text-decoration:line-through;':'')+'">';
-          if (_atrasada) row += '<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:4px;">⚠ ATRASADO</span>';
-          row += a.titulo+'</div>';
-          if (a.descricao) row += '<div style="font-size:10px;color:#64748B;margin-top:2px;">'+a.descricao.slice(0,60)+(a.descricao.length>60?'…':'')+'</div>';
-          row += '</div>';
-          // Status badge
-          row += '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;background:'+_stStyle.bg+';color:'+_stStyle.c+';">'+_stLabel+'</span>';
-          if (autor) row += '<div style="width:26px;height:26px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;" title="'+autor.nome+'">'+autor.av+'</div>';
-          row += '<div style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+cor+'14;color:'+cor+';">'+(a.tipo||'atividade')+'</div>';
-          row += '<button onclick="event.stopPropagation();excluirAtividade(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:#FEF2F2;border:none;cursor:pointer;font-size:11px;flex-shrink:0;">🗑</button>';
-          row += '</div>';
-          return row;
-        }
-
-        h += '<div style="margin-top:8px;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">';
-        // Header do acordeão
-        h += '<div onclick="toggleAtivSetor(\''+_ativSetorId+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#F8FAFC;cursor:pointer;user-select:none;" onmouseover="this.style.background=\'#F1F5F9\'" onmouseout="this.style.background=\'#F8FAFC\'">';
-        h += '<div style="display:flex;align-items:center;gap:8px;">';
-        h += '<span style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.8px;">⚡ Atividades</span>';
-        h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E0E7FF;color:#4F46E5;">'+ativsAtivas.length+' ativas</span>';
-        if (ativsConcluidas.length > 0) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#D1FAE5;color:#059669;">'+ativsConcluidas.length+' concluída'+(ativsConcluidas.length>1?'s':'')+'</span>';
-        if (_ativAtrasadasCount > 0) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#FEE2E2;color:#EF4444;">'+_ativAtrasadasCount+' atrasada'+(_ativAtrasadasCount>1?'s':'')+'</span>';
-        h += '</div>';
-        h += '<span id="'+_ativSetorId+'_ico" style="font-size:12px;color:#94A3B8;">▶</span>';
-        h += '</div>';
-
-        // Corpo colapsável (começa fechado — sem display:flex que sobrescreve)
-        h += '<div id="'+_ativSetorId+'" style="display:none;">';
-
-        // Abas internas: Em andamento | Concluídas
-        h += '<div style="display:flex;border-bottom:1px solid #E2E8F0;background:#FAFBFD;">';
-        h += '<button id="'+_ativSetorId+'_tabA" onclick="switchAtivTab(\''+_ativSetorId+'\',\'ativas\')" style="padding:7px 14px;font-size:10px;font-weight:700;border:none;background:transparent;cursor:pointer;color:#4F46E5;border-bottom:2px solid #4F46E5;font-family:inherit;">Em andamento ('+ativsAtivas.length+')</button>';
-        h += '<button id="'+_ativSetorId+'_tabC" onclick="switchAtivTab(\''+_ativSetorId+'\',\'concluidas\')" style="padding:7px 14px;font-size:10px;font-weight:700;border:none;background:transparent;cursor:pointer;color:#94A3B8;border-bottom:2px solid transparent;font-family:inherit;">✅ Concluídas ('+ativsConcluidas.length+')</button>';
-        h += '</div>';
-
-        // Painel ativas
-        h += '<div id="'+_ativSetorId+'_painelA" style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;">';
-        if (ativsAtivas.length > 0) {
-          ativsAtivas.forEach(function(a){ h += _renderAtivRow(a); });
-        } else {
-          h += '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:11px;">Nenhuma atividade em andamento</div>';
-        }
-        h += '</div>';
-
-        // Painel concluídas (começa oculto)
-        h += '<div id="'+_ativSetorId+'_painelC" style="display:none;padding:10px 14px;flex-direction:column;gap:6px;">';
-        if (ativsConcluidas.length > 0) {
-          ativsConcluidas.forEach(function(a){ h += _renderAtivRow(a); });
-        } else {
-          h += '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:11px;">Nenhuma atividade concluída ainda</div>';
-        }
-        h += '</div>';
-
-        h += '</div></div>'; // fim corpo + wrapper
+      if (ativsSetor.length) {
+        const _aId = 'as_'+setor.id.replace(/-/g,'');
+        const ativsAtivas = ativsSetor.filter(a=>(a.status||'').toLowerCase().trim()!=='concluida');
+        const ativsConcl  = ativsSetor.filter(a=>(a.status||'').toLowerCase().trim()==='concluida');
+        h += `<div style="border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:${projSetor.length?'0':'0'}">
+          <div onclick="toggleAtivSetor('${_aId}')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;font-weight:700;color:var(--tx2);">Atividades</span>
+              <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:#EEEDFE;color:#3C3489;">${ativsAtivas.length} ativas</span>
+              ${ativsConcl.length?`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:#EAF3DE;color:#27500A;">${ativsConcl.length} concluídas</span>`:''}
+            </div>
+            <span id="${_aId}_ico" style="font-size:11px;color:var(--tx3);">▶</span>
+          </div>
+          <div id="${_aId}" style="display:none;">
+            <div style="display:flex;border-bottom:0.5px solid var(--border);background:var(--surface2);">
+              <button id="${_aId}_tabA" onclick="switchAtivTab('${_aId}','ativas')" style="padding:6px 14px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:#534AB7;border-bottom:2px solid #534AB7;font-family:inherit;">Em andamento (${ativsAtivas.length})</button>
+              <button id="${_aId}_tabC" onclick="switchAtivTab('${_aId}','concluidas')" style="padding:6px 14px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--tx3);border-bottom:2px solid transparent;font-family:inherit;">Concluídas (${ativsConcl.length})</button>
+            </div>
+            <div id="${_aId}_painelA" style="padding:8px 12px;display:flex;flex-direction:column;gap:5px;">
+              ${ativsAtivas.length?ativsAtivas.map(a=>_renderAtivRowSimple(a,hoje)).join(''):'<div style="padding:12px;text-align:center;font-size:11px;color:var(--tx3);">Nenhuma atividade em andamento</div>'}
+            </div>
+            <div id="${_aId}_painelC" style="display:none;padding:8px 12px;flex-direction:column;gap:5px;">
+              ${ativsConcl.length?ativsConcl.map(a=>_renderAtivRowSimple(a,hoje)).join(''):'<div style="padding:12px;text-align:center;font-size:11px;color:var(--tx3);">Nenhuma atividade concluída</div>'}
+            </div>
+          </div>
+        </div>`;
       }
 
-      // Se setor vazio
-      if (projSetor.length === 0 && ativsSetor.length === 0) {
-        h += '<div style="border:1.5px dashed #E2E8F0;border-radius:12px;padding:24px;text-align:center;color:#94A3B8;">';
-        h += '<div style="font-size:11px;font-weight:600;margin-bottom:10px;">Setor vazio — adicione projetos ou atividades</div>';
-        h += '<div style="display:flex;gap:8px;justify-content:center;">';
-        h += '<button onclick="abrirNovoProjEspaco(\''+setor.id+'\',\''+estacao.replace(/'/g,"\\'")+'\')" style="padding:6px 14px;border-radius:8px;background:#4F46E5;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">📌 Novo projeto</button>';
-        h += '<button onclick="abrirNovaAtivSetor(\''+setor.id+'\',\''+setor.nome.replace(/'/g,"\\'")+'\')" style="padding:6px 14px;border-radius:8px;background:#10B981;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">⚡ Nova atividade</button>';
-        h += '</div></div>';
+      if (!projSetor.length && !ativsSetor.length) {
+        h += `<div style="font-size:12px;color:var(--tx3);">Nenhum projeto ou atividade ainda.</div>`;
       }
 
-      h += '</div>'; // fim setor
+      h += `</div></div>`;
     });
 
-    // Projetos sem setor (legados)
-    const projSemSetor = proj.filter(function(p){ return !p.espaco_id && p.dept === estacao; });
-    if (projSemSetor.length > 0) {
-      h += '<div style="margin-top:'+(setores.length>0?'24px':'0')+';padding-top:'+(setores.length>0?'20px':'0')+';border-top:'+(setores.length>0?'1px solid #F1F5F9':'none')+'">';
-      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
-      h += '<span style="font-size:22px">📂</span>';
-      h += '<div><div style="font-size:14px;font-weight:800;color:#475569">Sem setor definido</div>';
-      h += '<div style="font-size:10px;color:#94A3B8">Mova estes projetos para um setor</div></div>';
-      h += '<span style="font-size:10px;color:#F59E0B;background:#FEF3C7;padding:3px 10px;border-radius:20px;font-weight:700;margin-left:auto;">'+projSemSetor.length+' projeto'+(projSemSetor.length!==1?'s':'')+'</span>';
-      h += '</div>';
-      h += '<div class="setor-projetos-grid">';
-      projSemSetor.forEach(function(p){ h += cardProjNovo(p, hoje, grad); });
-      h += '</div></div>';
+    const projSemSetor = projAtivos.filter(p=>!p.espaco_id&&(p.dept||'').trim().toUpperCase()===estNorm);
+    if (projSemSetor.length) {
+      h += `<div style="border-top:0.5px solid var(--border);padding:16px 28px;">
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px;">Sem setor definido</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          ${projSemSetor.map(p=>cardProjNovo(p,hoje,'#534AB7')).join('')}
+        </div>
+      </div>`;
     }
 
-    h += '</div>'; // fim setor-body
     wrapper.innerHTML = h;
     el.appendChild(wrapper);
   });
 
   const pc = document.getElementById('pcount');
-  if (pc) pc.textContent = todasEstacoes.length + ' estação(ões) · ' + espacos.length + ' setores';
+  if (pc) pc.textContent = todasEstacoes.length+' estação(ões) · '+espacos.length+' setores';
   renderEstacaoChips();
 }
 
-function cardProjNovo(p, hoje, grad) {
-  const tf = tar.filter(function(t){ return t.projeto_id === p.id; });
-  const nAb  = tf.filter(function(t){ return !t.ok; }).length;
-  const nFt  = tf.filter(function(t){ return t.ok; }).length;
-  const nVc  = tf.filter(function(t){ return !t.ok && t.prazo && new Date(t.prazo) < hoje; }).length;
-  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje && p.status !== 'concluido';
-  const prog = p.prog || 0;
-  const PCORES = {urgente:'#EF4444',alta:'#F97316',media:'#3B82F6',baixa:'#10B981'};
-  const priorCor = PCORES[(p.prior||'').toLowerCase()] || '#6366F1';
-  const barCor = atrasado ? '#EF4444' : priorCor;
-  const eqHtml = (p.eq||[]).slice(0,3).map(function(av){
-    const m = memb.find(function(x){ return x.av===av; });
-    return m ? '<div style="width:22px;height:22px;border-radius:6px;background:'+(m.cor||'#4F46E5')+'22;color:'+(m.cor||'#4F46E5')+';display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1.5px solid #fff;margin-right:-4px" title="'+m.nome+'">'+m.av+'</div>' : '';
-  }).join('');
 
-  var _projBorder = atrasado ? 'border:2px solid #EF4444;background:rgba(239,68,68,0.06);box-shadow:0 0 0 3px rgba(239,68,68,0.08);' : '';
-  var h = '<div class="proj-card" style="--proj-cor:'+barCor+';'+_projBorder+'" onclick="openDet(\'proj\',\''+p.id+'\')">';
-  h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding-top:6px;">';
-  h += '<div class="proj-card-nome">'+p.nome+'</div>';
-  h += '<div class="proj-card-acoes">';
-  h += '<button class="proj-card-acao" onclick="event.stopPropagation();openEditProj(\''+p.id+'\')" title="Editar">✏️</button>';
-  h += '<button class="proj-card-acao" onclick="event.stopPropagation();delProj(\''+p.id+'\')" title="Excluir">🗑️</button>';
-  h += '</div></div>';
-  if (p.descricao) h += '<div class="proj-card-desc">'+p.descricao.slice(0,55)+(p.descricao.length>55?'…':'')+'</div>';
-  h += '<div class="proj-card-stats">';
-  h += '<span class="proj-card-stat" style="background:'+priorCor+'14;color:'+priorCor+'">'+(p.prior||'—').toUpperCase()+'</span>';
-  if (nAb>0)  h += '<span class="proj-card-stat" style="background:#EFF6FF;color:#3B82F6">📋 '+nAb+'</span>';
-  if (nVc>0)  h += '<span class="proj-card-stat" style="background:#FEF2F2;color:#EF4444">⚠ '+nVc+'</span>';
-  if (nFt>0)  h += '<span class="proj-card-stat" style="background:#F0FDF4;color:#10B981">✅ '+nFt+'</span>';
-  h += '</div>';
-  h += '<div><div class="proj-card-bar"><div class="proj-card-fill" style="width:'+prog+'%;background:'+barCor+'"></div></div>';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;">';
-  h += '<span style="font-size:10px;color:#94A3B8;">'+(p.fim ? (atrasado?'🔴 ':'📅 ')+new Date(p.fim+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : 'Sem prazo')+'</span>';
-  h += '<span style="font-size:12px;font-weight:800;color:'+barCor+'">'+prog+'%</span>';
-  h += '</div></div>';
-  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">';
-  h += '<div style="display:flex;align-items:center;">'+eqHtml+'</div>';
-  if (p.status) h += '<span style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.3px;">'+p.status+'</span>';
-  h += '</div></div>';
-  return h;
+function _renderAtivRowSimple(a, hoje) {
+  const cor = a.cor || '#534AB7';
+  const autor = memb.find(m=>m.av===a.autor);
+  const atrasada = a.prazo && (a.status||'').toLowerCase().trim()!=='concluida' && new Date(a.prazo+'T23:59')<hoje;
+  const statusMap = {'a fazer':['#F1EFE8','#5F5E5A'],'em andamento':['#E6F1FB','#185FA5'],'em desenvolvimento':['#EEEDFE','#534AB7'],'aguardando':['#FAEEDA','#854F0B'],'concluida':['#EAF3DE','#3B6D11'],'concluída':['#EAF3DE','#3B6D11'],'cancelada':['#FCEBEB','#A32D2D']};
+  const st = (a.status||'em andamento').toLowerCase().trim();
+  const [sbg,sc] = statusMap[st]||['#F1EFE8','#5F5E5A'];
+  return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border-radius:8px;border:0.5px solid ${atrasada?'#F09595':'var(--border)'};cursor:pointer;" onclick="abrirDetalheAtiv('${a.id}')">
+    <div style="width:3px;height:28px;border-radius:0;background:${atrasada?'#E24B4A':cor};flex-shrink:0;"></div>
+    <div style="flex:1;">
+      <div style="font-size:12px;font-weight:500;color:${atrasada?'#791F1F':'var(--tx)'};">${a.titulo}</div>
+      ${a.descricao?`<div style="font-size:10px;color:var(--tx3);">${a.descricao.slice(0,55)}${a.descricao.length>55?'…':''}</div>`:''}
+    </div>
+    <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${sbg};color:${sc};">${a.status||'Em andamento'}</span>
+    ${autor?`<div style="width:24px;height:24px;border-radius:50%;background:${autor.cor||'#534AB7'}22;color:${autor.cor||'#534AB7'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;" title="${autor.nome}">${autor.av}</div>`:''}
+    <button onclick="event.stopPropagation();excluirAtividade('${a.id}')" style="width:24px;height:24px;border-radius:6px;background:transparent;border:0.5px solid var(--border);cursor:pointer;font-size:11px;" onmouseover="this.style.background='#FCEBEB'" onmouseout="this.style.background='transparent'">🗑</button>
+  </div>`;
 }
 
+
+function cardProjNovo(p, hoje, cor) {
+  const tf = tar.filter(t => t.projeto_id === p.id);
+  const nAb = tf.filter(t => !t.ok).length;
+  const nFt = tf.filter(t =>  t.ok).length;
+  const prog = p.prog || 0;
+  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje && !['concluido','concluída'].includes((p.status||'').toLowerCase());
+  const barCor = atrasado ? '#A32D2D' : (cor||'#534AB7');
+  return `<div onclick="openDet('proj','${p.id}')" style="background:var(--surface);border:0.5px solid var(--border);border-top:3px solid ${barCor};border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .1s;" onmouseover="this.style.borderColor='${barCor}'" onmouseout="this.style.borderTopColor='${barCor}';this.style.borderRightColor='var(--border)';this.style.borderBottomColor='var(--border)';this.style.borderLeftColor='var(--border)'">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:8px;">
+      <div style="font-size:13px;font-weight:600;color:var(--tx);line-height:1.35;">${p.nome}</div>
+      <div style="display:flex;gap:3px;flex-shrink:0;">
+        <span onclick="event.stopPropagation();openEditProj('${p.id}')" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">✏️</span>
+        <span onclick="event.stopPropagation();delProj('${p.id}')" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;" onmouseover="this.style.background='#FCEBEB'" onmouseout="this.style.background='transparent'">🗑️</span>
+      </div>
+    </div>
+    <div style="height:4px;background:var(--border);border-radius:0;margin-bottom:6px;overflow:hidden;"><div style="height:100%;width:${prog}%;background:${barCor};"></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:11px;color:var(--tx3);">${nAb} aberta${nAb!==1?'s':''} &middot; ${nFt} concl.</div>
+      <div style="font-size:12px;font-weight:700;color:${barCor};">${prog}%</div>
+    </div>
+  </div>`;
+}
+
+
+function toggleSetorBody(id) {
+  const el = document.getElementById(id);
+  const ico = document.getElementById(id+'_ico');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (ico) ico.style.transform = open ? '' : 'rotate(90deg)';
+}
 
 function toggleEstacao(nome) {
   const key = safeId(nome);
