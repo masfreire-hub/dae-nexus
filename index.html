@@ -3299,6 +3299,21 @@ select.sel{
           🔄 Ver backups e restaurar dados
         </button>
       </div>
+      <!-- CARD CLAUDE API KEY -->
+      <div class="card" style="margin-bottom:14px;cursor:default;border:1.5px solid #534AB7;background:linear-gradient(135deg,#EEEDFE,#fff)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-family:var(--fh);font-size:14px;letter-spacing:.5px;color:#3C3489">🤖 CHAVE CLAUDE AI (Anthropic)</div>
+          <span id="claudeKeyStatus" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;background:#EEEDFE;color:#534AB7;"> carregando...</span>
+        </div>
+        <div style="font-size:11px;color:#6B7280;margin-bottom:10px">Necessária para IA do Relatório Gerencial, Chat IA e Painel Estratégico. Salva no Supabase (compartilhada com toda a equipe).</div>
+        <div style="display:flex;gap:8px;">
+          <input id="claudeKeyInput" type="password" placeholder="sk-ant-api03-..." 
+            style="flex:1;border:1.5px solid #AFA9EC;border-radius:8px;padding:9px 12px;font-size:12px;font-family:inherit;outline:none;background:#fff;color:var(--tx)"
+            onfocus="this.type='text'" onblur="this.type='password'">
+          <button onclick="salvarClaudeKey()" style="background:#534AB7;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">💾 Salvar</button>
+        </div>
+      </div>
+
       <div class="card" style="margin-bottom:14px;cursor:default;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div style="font-family:var(--fh);font-size:15px;letter-spacing:1px;">📌 ESTAÇÕES</div><button class="btnadd" onclick="openAddCadastro('estacao')">+ NOVA</button></div>
         <div id="estacaoList"></div>
@@ -4444,7 +4459,7 @@ function sw(name, el) {
       } catch(e) { console.error('meuespaco',e); }
     },
     migracao: () => {},
-    config:  () => { try{renderCadastros();}catch(e){} try{updateSelects();}catch(e){} },
+    config:  () => { try{renderCadastros();}catch(e){} try{updateSelects();}catch(e){} try{atualizarStatusClaudeKey();}catch(e){} },
     chat:    () => { const cw=document.getElementById('chatWin'); const ce=document.getElementById('chatEmpty'); if(!curChId){if(cw)cw.style.display='none';if(ce)ce.style.display='flex';} }
   };
   // Resetar scroll antes de renderizar
@@ -4467,6 +4482,9 @@ const DAE_LOGO_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAjAAAAKlCAYAAA
 const SUPA_URL='https://fjfggqdwlxmtpzhtdepq.supabase.co';
 const SUPA_KEY='sb_publishable_5TR5kH6RkI3wi8uz1k9S-Q_zqEMw5lF';
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// ── Chave Claude API (carregada do Supabase em loadAll) ───────────
+let CLAUDE_KEY = localStorage.getItem('dae_claude_key') || '';
 
 // Paleta de cores
 const CL = ['#4F46E5','#10B981','#F59E0B','#EF4444','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#06B6D4'];
@@ -4819,6 +4837,11 @@ async function loadAll() {
       if (am.data  && am.data.length)  { agenda  = norm(am.data);  }
       if (avm.data && avm.data.length) { ativs   = norm(avm.data); }
       if (espm.data && espm.data.length){ espacos = norm(espm.data);}
+      // Carregar chave Claude da tabela configuracoes
+      try {
+        const { data: ck } = await safeDb.from('configuracoes').select('valor').eq('chave','claude_api_key').single();
+        if (ck?.valor) { CLAUDE_KEY = ck.valor; localStorage.setItem('dae_claude_key', ck.valor); }
+      } catch(e) { /* usa chave do localStorage se disponível */ }
       // Sincronizar localStorage com dados do Supabase
       const projIds = new Set(proj.map(p => p.id));
       tar = tar.filter(t => !t.projeto_id || projIds.has(t.projeto_id));
@@ -12732,7 +12755,7 @@ async function sendNova() {
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:1200,
@@ -13274,6 +13297,11 @@ function abrirRelGer(projId) {
 async function gerarAnaliseIA() {
   const p = proj.find(x => x.id === _relGerProjId);
   if (!p) return;
+  if (!CLAUDE_KEY || !CLAUDE_KEY.startsWith('sk-ant')) {
+    const area = document.getElementById('relGerIAConteudo');
+    if (area) area.innerHTML = '<div style="color:#92400E;font-size:12px;background:#FFFBEB;padding:14px;border-radius:8px;border:1px solid #FCD34D;">⚠️ <strong>Chave da API Claude não configurada.</strong><br>Acesse <strong>Cadastros → Chave Claude AI</strong> e insira sua chave <code>sk-ant-...</code> para ativar a análise por IA.</div>';
+    return;
+  }
 
   const btn = document.getElementById('relGerIABtn');
   const area = document.getElementById('relGerIAConteudo');
@@ -13324,7 +13352,7 @@ ${abertas.filter(t=>t.prior==='urgente'||t.prior==='alta').slice(0,5).map(t=>`- 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'sk-ant-api03-placeholder',
+        'x-api-key': CLAUDE_KEY,
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
@@ -14411,7 +14439,7 @@ async function rodarPrevisaoIA() {
   try {
     const contexto = buildContexto();
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514', max_tokens:800,
         system: contexto,
@@ -15616,6 +15644,42 @@ try {
 } catch(e) {
   cadastros = JSON.parse(JSON.stringify(cadastrosPadrao));
 }
+// ── Salvar chave Claude no Supabase ─────────────────────────────
+async function salvarClaudeKey() {
+  const input = document.getElementById('claudeKeyInput');
+  const key = input ? input.value.trim() : '';
+  if (!key || !key.startsWith('sk-ant')) {
+    showToast('⚠️ Chave inválida. Deve começar com sk-ant-...');
+    return;
+  }
+  try {
+    await safeDb.from('configuracoes').upsert({ chave: 'claude_api_key', valor: key }, { onConflict: 'chave' });
+    CLAUDE_KEY = key;
+    localStorage.setItem('dae_claude_key', key);
+    if (input) input.value = '';
+    atualizarStatusClaudeKey();
+    showToast('✅ Chave Claude salva com sucesso!');
+  } catch(e) {
+    showToast('❌ Erro ao salvar: ' + (e.message || 'verifique conexão'));
+  }
+}
+
+function atualizarStatusClaudeKey() {
+  const el = document.getElementById('claudeKeyStatus');
+  const input = document.getElementById('claudeKeyInput');
+  if (!el) return;
+  if (CLAUDE_KEY && CLAUDE_KEY.startsWith('sk-ant')) {
+    el.textContent = '✅ Configurada';
+    el.style.background = '#ECFDF5';
+    el.style.color = '#059669';
+    if (input) input.placeholder = '••••••••••••••• (já configurada)';
+  } else {
+    el.textContent = '⚠️ Não configurada';
+    el.style.background = '#FEF3C7';
+    el.style.color = '#D97706';
+  }
+}
+
 function salvarCadastros() { try { localStorage.setItem('dae_cadastros', JSON.stringify(cadastros)); } catch(e){} }
 let corSelecionada='#22C55E';
 function selCor(el,cor){corSelecionada=cor;document.querySelectorAll('#corPicker div').forEach(d=>d.style.border='2px solid transparent');el.style.border='2px solid var(--gold)';}
