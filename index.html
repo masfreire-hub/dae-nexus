@@ -13365,7 +13365,40 @@ ${abertas.filter(t=>t.prior==='urgente'||t.prior==='alta').slice(0,5).map(t=>`- 
     });
     const data = await resp.json();
     const texto = data.content?.[0]?.text || 'Não foi possível gerar a análise.';
-    area.innerHTML = texto.split('\n').map(l => l.trim() ? `<p style="margin-bottom:8px;">${l}</p>` : '').join('');
+    // Formatar markdown para HTML limpo
+    const linhas = texto.split('\n');
+    let html = '';
+    for (const linha of linhas) {
+      let l = linha.trim();
+      if (!l) { html += '<div style="height:6px;"></div>'; continue; }
+      // Títulos
+      if (l.startsWith('### ')) {
+        l = l.replace(/^### /, '');
+        l = l.replace(/\*\*/g, '');
+        html += `<div style="font-size:12px;font-weight:800;color:var(--tx);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">${l}</div>`;
+      } else if (l.startsWith('## ')) {
+        l = l.replace(/^## /, '');
+        l = l.replace(/\*\*/g, '');
+        html += `<div style="font-size:13px;font-weight:800;color:#3C3489;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #EEEDFE;">${l}</div>`;
+      } else if (l.startsWith('# ')) {
+        l = l.replace(/^# /, '');
+        l = l.replace(/\*\*/g, '');
+        html += `<div style="font-size:14px;font-weight:900;color:#3C3489;margin:0 0 12px;">${l}</div>`;
+      } else {
+        // Negrito inline **texto**
+        l = l.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // Itálico *texto*
+        l = l.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        // Item de lista
+        if (l.startsWith('- ') || l.startsWith('• ')) {
+          l = l.replace(/^[-•] /, '');
+          html += `<div style="display:flex;gap:8px;margin-bottom:5px;font-size:13px;color:var(--tx2);line-height:1.6;"><span style="color:#534AB7;margin-top:2px;flex-shrink:0;">•</span><span>${l}</span></div>`;
+        } else {
+          html += `<p style="margin-bottom:7px;font-size:13px;color:var(--tx2);line-height:1.7;">${l}</p>`;
+        }
+      }
+    }
+    area.innerHTML = html;
     btn.textContent = '🔄 Regerar';
     btn.disabled = false;
   } catch(e) {
