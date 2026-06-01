@@ -13279,7 +13279,7 @@ async function gerarAnaliseIA() {
   const area = document.getElementById('relGerIAConteudo');
   btn.disabled = true;
   btn.textContent = '⏳ Analisando...';
-  area.innerHTML = '<div style="color:var(--tx3);font-size:12px;">🤖 Consultando a IA...</div>';
+  area.innerHTML = '<div style="color:var(--tx3);font-size:12px;font-style:italic;">⏳ Gerando análise estratégica...</div>';
 
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const tasks    = tar.filter(t => t.projeto_id === p.id);
@@ -13322,7 +13322,12 @@ ${abertas.filter(t=>t.prior==='urgente'||t.prior==='alta').slice(0,5).map(t=>`- 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': 'sk-ant-api03-placeholder',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -13337,7 +13342,7 @@ ${abertas.filter(t=>t.prior==='urgente'||t.prior==='alta').slice(0,5).map(t=>`- 
     btn.disabled = false;
   } catch(e) {
     console.error('gerarAnaliseIA error:', e);
-    area.innerHTML = '<div style="color:#854F0B;font-size:12px;background:#FAEEDA;padding:12px;border-radius:8px;">⚠️ <strong>A análise por IA requer conexão com a internet.</strong><br>Quando o sistema estiver hospedado online (não como arquivo local), a IA funcionará automaticamente.</div>';
+    area.innerHTML = '<div style="color:#854F0B;font-size:12px;background:#FAEEDA;padding:12px;border-radius:8px;">⚠️ Erro ao gerar análise: ' + (e.message||'verifique sua conexão') + '</div>';
     btn.textContent = '✨ Tentar novamente';
     btn.disabled = false;
   }
