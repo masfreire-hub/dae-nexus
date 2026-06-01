@@ -7104,8 +7104,16 @@ async function openDet(type, id) {
     const eqMembros = eqIds.map(av => memb.find(m => m.av===av)).filter(Boolean);
 
     document.getElementById('detTitle').textContent = p.nome;
+    // Adicionar botão de relatório gerencial
+    const _relBtn = document.getElementById('detRelGerBtn');
+    if (_relBtn) { _relBtn.style.display = 'inline-flex'; _relBtn.onclick = function(){ abrirRelGer(id); }; }
     document.getElementById('detContent').innerHTML = `
       <div style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Botão Relatório Gerencial -->
+        <button onclick="abrirRelGer('${id}')" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:12px;background:linear-gradient(135deg,#534AB7,#7C3AED);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;">
+          📊 Ver Relatório Gerencial Completo
+        </button>
 
         <!-- KPIs -->
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
@@ -10585,12 +10593,25 @@ async function _renderDocs(pastaFiltro) {
 }
 async function novoDocumento() {
   try {
-    const {data} = await safeDb.from('documentos').insert([{
-      titulo:'', conteudo:'', autor:curUser?.av||'',
-      created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+    const { data, error } = await safeDb.from('documentos').insert([{
+      titulo: 'Sem título',
+      conteudo: '',
+      autor: curUser?.av || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }]).select().single();
-    if(data) { _docsCache.unshift(data); abrirDoc(data.id); }
-  } catch(e) { showToast('❌ Erro ao criar documento'); }
+
+    if (error) throw error;
+    if (data) {
+      _docsCache.unshift(data);
+      await abrirDoc(data.id);
+    } else {
+      showToast('❌ Documento não foi criado — verifique a conexão');
+    }
+  } catch(e) {
+    console.error('novoDocumento error:', e);
+    showToast('❌ Erro ao criar documento: ' + (e.message || e));
+  }
 }
 
 function _docAtualizarBadgeAcesso() {
@@ -10788,20 +10809,22 @@ async function abrirDoc(id) {
     });
   }
 
-  // 7. Setar conteúdo usando a API correta do Quill
+  // 7. Setar conteúdo — limpar PRIMEIRO, depois setar
   if (_quill) {
     const conteudo = doc.conteudo || '';
-    if (conteudo && conteudo !== '<p><br></p>') {
-      // clipboard.dangerouslyPasteHTML é o método correto para inserir HTML no Quill
+    // SEMPRE limpar antes de setar — evita acumular conteúdo de docs anteriores
+    _quill.setText('');
+    _quill.root.innerHTML = '';
+    if (conteudo && conteudo !== '<p><br></p>' && conteudo.trim() !== '') {
       try {
-        _quill.clipboard.dangerouslyPasteHTML(0, conteudo);
+        // Setar innerHTML diretamente é mais confiável para restaurar HTML do Quill
+        _quill.root.innerHTML = conteudo;
+        // Mover cursor para o início
+        _quill.setSelection(0, 0);
       } catch(e) {
-        // fallback para innerHTML direto
+        console.warn('Quill set error:', e);
         _quill.root.innerHTML = conteudo;
       }
-    } else {
-      _quill.root.innerHTML = '';
-      _quill.setText('');
     }
     // Atualizar contador de palavras
     const txt = _quill.getText().trim();
@@ -10991,17 +11014,26 @@ async function docSalvar() {
     setTimeout(() => _docStatus(''), 2500);
   } catch(e) {
     console.error('docSalvar error:', e);
-    _docStatus('erro');
+    _docStatus('erro', e?.message || 'Falha ao salvar');
   }
 }
 
-function _docStatus(s) {
-  const el=document.getElementById('docSaveStatus');
-  const st=document.getElementById('docStatus');
-  const m={salvo:{txt:'✓ Salvo',bg:'#F0FDF4',cor:'#10B981',footer:'✅ Salvo'},editando:{txt:'...',bg:'#FEF3C7',cor:'#D97706',footer:'✏️ Salvando...'},erro:{txt:'⚠',bg:'#FEF2F2',cor:'#EF4444',footer:'⚠️ Erro'}};
-  const d=m[s];
-  if(el){el.textContent=d?d.txt:'';el.style.opacity=d?'1':'0';if(d){el.style.background=d.bg;el.style.color=d.cor;}}
-  if(st&&d) st.textContent=d.footer;
+function _docStatus(s, msg) {
+  const el = document.getElementById('docSaveStatus');
+  const st = document.getElementById('docStatus');
+  const m = {
+    salvo:   { txt:'✓ Salvo',     bg:'#F0FDF4', cor:'#059669', footer:'✅ Salvo' },
+    editando:{ txt:'⏳ Salvando', bg:'#FEF3C7', cor:'#D97706', footer:'⏳ Salvando...' },
+    erro:    { txt:'⚠ Erro',      bg:'#FEF2F2', cor:'#EF4444', footer:'⚠️ Erro ao salvar' }
+  };
+  const d = m[s];
+  if (el) {
+    el.textContent  = d ? (msg || d.txt) : '✓ Salvo';
+    el.style.opacity = '1';
+    if (d) { el.style.background = d.bg; el.style.color = d.cor; }
+    if (s === 'erro' && msg) showToast('❌ ' + msg);
+  }
+  if (st && d) st.textContent = d.footer;
 }
 
 function docHL(cor,textCor) {
@@ -12860,6 +12892,19 @@ function renderHierarquia() {
   const estFiltradas = estacaoFiltroAtual==='todas' ? todasEstacoes : [estacaoFiltroAtual];
 
   el.innerHTML = '';
+  // Event delegation — adicionar só uma vez
+  // Use document-level listener to bypass any overflow/pointer-events issues
+  if (!window._projCardClickBound) {
+    window._projCardClickBound = true;
+    document.addEventListener('click', function(e) {
+      const card    = e.target.closest('.proj-card-rel');
+      const editBtn = e.target.closest('.proj-edit-btn');
+      const delBtn  = e.target.closest('.proj-del-btn');
+      if (delBtn)  { e.stopPropagation(); delProj(delBtn.dataset.delprojid); return; }
+      if (editBtn) { e.stopPropagation(); openEditProj(editBtn.dataset.editprojid); return; }
+      if (card)    { openDet('proj', card.getAttribute('data-projid')); }
+    });
+  }
 
   if (!estFiltradas.length) {
     el.innerHTML = '<div style="text-align:center;padding:60px;color:var(--tx3);"><div style="font-size:40px;margin-bottom:12px;opacity:.3">🏗</div><div style="font-size:14px;font-weight:600;">Nenhuma estação cadastrada</div><button onclick="openM(\'mEstacao\')" style="margin-top:16px;padding:8px 20px;border-radius:8px;background:#534AB7;color:#fff;border:none;font-size:12px;cursor:pointer;font-family:inherit;">+ Criar primeira estação</button></div>';
@@ -12979,9 +13024,9 @@ function renderHierarquia() {
         <div id="${_sId}" style="display:none;padding:16px 28px 20px 86px;border-top:0.5px solid ${setorBorders[iIdx]};background:${setorBgs[iIdx]};">`;
 
       if (projSetor.length) {
-        h += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${ativsSetor.length?'14px':'0'};">`;
+        h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:' + (ativsSetor.length?'14px':'0') + ';">';
         projSetor.forEach(p => { h += cardProjNovo(p, hoje, iconFgs[iIdx]); });
-        h += `</div>`;
+        h += '</div>';
       }
 
       if (ativsSetor.length) {
@@ -13066,22 +13111,331 @@ function cardProjNovo(p, hoje, cor) {
   const prog = p.prog || 0;
   const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje && !['concluido','concluída'].includes((p.status||'').toLowerCase());
   const barCor = atrasado ? '#A32D2D' : (cor||'#534AB7');
-  return `<div onclick="openDet('proj','${p.id}')" style="background:var(--surface);border:0.5px solid var(--border);border-top:3px solid ${barCor};border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .1s;" onmouseover="this.style.borderColor='${barCor}'" onmouseout="this.style.borderTopColor='${barCor}';this.style.borderRightColor='var(--border)';this.style.borderBottomColor='var(--border)';this.style.borderLeftColor='var(--border)'">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:8px;">
-      <div style="font-size:13px;font-weight:600;color:var(--tx);line-height:1.35;">${p.nome}</div>
-      <div style="display:flex;gap:3px;flex-shrink:0;">
-        <span onclick="event.stopPropagation();openEditProj('${p.id}')" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">✏️</span>
-        <span onclick="event.stopPropagation();delProj('${p.id}')" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;" onmouseover="this.style.background='#FCEBEB'" onmouseout="this.style.background='transparent'">🗑️</span>
-      </div>
-    </div>
-    <div style="height:4px;background:var(--border);border-radius:0;margin-bottom:6px;overflow:hidden;"><div style="height:100%;width:${prog}%;background:${barCor};"></div></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:11px;color:var(--tx3);">${nAb} aberta${nAb!==1?'s':''} &middot; ${nFt} concl.</div>
-      <div style="font-size:12px;font-weight:700;color:${barCor};">${prog}%</div>
-    </div>
-  </div>`;
+  var html = '<div data-projid="' + p.id + '" class="proj-card-rel"';
+  html += ' style="background:var(--surface);border:0.5px solid var(--border);border-top:3px solid ' + barCor + ';border-radius:12px;padding:14px 16px;cursor:pointer;">';
+  html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:8px;">';
+  html += '<div style="font-size:13px;font-weight:600;color:var(--tx);line-height:1.35;">' + p.nome + '</div>';
+  html += '<div style="display:flex;gap:3px;flex-shrink:0;">';
+  html += '<span data-editprojid="' + p.id + '" class="proj-edit-btn" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;">✏️</span>';
+  html += '<span data-delprojid="' + p.id + '" class="proj-del-btn" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;">🗑️</span>';
+  html += '</div></div>';
+  html += '<div style="height:4px;background:var(--border);border-radius:0;margin-bottom:6px;overflow:hidden;"><div style="height:100%;width:' + prog + '%;background:' + barCor + ';"></div></div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+  html += '<div style="font-size:11px;color:var(--tx3);">' + nAb + ' aberta' + (nAb!==1?'s':'') + ' &middot; ' + nFt + ' concl.</div>';
+  html += '<div style="font-size:12px;font-weight:700;color:' + barCor + ';">' + prog + '%</div>';
+  html += '</div></div>';
+  return html;
 }
 
+
+// ═══════════════════════════════════════════════════════════
+// RELATÓRIO GERENCIAL DE PROJETO
+// ═══════════════════════════════════════════════════════════
+let _relGerProjId = null;
+
+function fecharRelGer() {
+  const m = document.getElementById('relGerModal');
+  if (m) m.style.display = 'none';
+  _relGerProjId = null;
+}
+
+function abrirRelGer(projId) {
+  console.log('[RelGer] abrirRelGer chamado, projId:', projId);
+  const p = proj.find(x => x.id === projId);
+  if (!p) { showToast('❌ Projeto não encontrado: ' + projId); return; }
+  _relGerProjId = projId;
+
+  const modal = document.getElementById('relGerModal');
+  if (!modal) { showToast('❌ Modal não encontrado'); return; }
+  
+  // Forçar display flex com z-index altíssimo
+  modal.style.cssText = 'display:flex !important;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:999999;align-items:center;justify-content:center;padding:16px;';
+  // Mover para o topo do body para garantir que está acima de tudo
+  document.body.appendChild(modal);
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const tasks   = tar.filter(t => t.projeto_id === projId);
+  const abertas = tasks.filter(t => !t.ok);
+  const concl   = tasks.filter(t =>  t.ok);
+  const vencidas = abertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const espaco  = espacos.find(e => e.id === p.espaco_id);
+  const eqMembros = (p.eq||[]).map(av => memb.find(m => m.av===av)).filter(Boolean);
+  const prog    = p.prog || 0;
+  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje;
+  const diasRestantes = p.fim ? Math.ceil((new Date(p.fim+'T12:00') - hoje)/(1000*60*60*24)) : null;
+
+  // Header
+  document.getElementById('relGerNome').textContent = p.nome;
+  document.getElementById('relGerMeta').textContent =
+    (espaco ? espaco.nome + ' · ' : '') +
+    (p.prior ? p.prior.toUpperCase() + ' · ' : '') +
+    (p.fim ? 'Prazo: ' + new Date(p.fim+'T12:00').toLocaleDateString('pt-BR') : 'Sem prazo definido');
+
+  // ── KPIs ──
+  const pc = prog>=70?'#3B6D11':prog>=40?'#854F0B':'#A32D2D';
+  const pcBg = prog>=70?'#EAF3DE':prog>=40?'#FAEEDA':'#FCEBEB';
+  document.getElementById('relGerKpis').innerHTML = [
+    { v: prog+'%',       l:'Progresso',     c:'#534AB7', bg:'#EEEDFE' },
+    { v: tasks.length,   l:'Total tarefas', c:'var(--tx)', bg:'var(--surface2)' },
+    { v: abertas.length, l:'Em aberto',     c:'#185FA5', bg:'#E6F1FB' },
+    { v: concl.length,   l:'Concluídas',    c:'#3B6D11', bg:'#EAF3DE' },
+    { v: vencidas.length,l:'Vencidas',      c: vencidas.length>0?'#A32D2D':'#3B6D11', bg: vencidas.length>0?'#FCEBEB':'#EAF3DE' },
+  ].map(k => `
+    <div style="background:${k.bg};border-radius:12px;padding:14px 16px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:${k.c};line-height:1;margin-bottom:4px;">${k.v}</div>
+      <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;">${k.l}</div>
+    </div>`).join('');
+
+  // ── Progresso + Prazo ──
+  const prazoHtml = diasRestantes !== null
+    ? `<span style="font-size:12px;font-weight:600;color:${atrasado?'#A32D2D':diasRestantes<=7?'#854F0B':'#3B6D11'};">
+        ${atrasado ? '🔴 Prazo vencido há ' + Math.abs(diasRestantes) + ' dia(s)' : diasRestantes===0 ? '🟡 Vence hoje' : '🟢 ' + diasRestantes + ' dia(s) restantes'}
+       </span>`
+    : '<span style="font-size:12px;color:var(--tx3);">Sem prazo definido</span>';
+
+  document.getElementById('relGerProg').innerHTML = `
+    <div style="background:var(--surface2);border:0.5px solid var(--border);border-radius:12px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:700;color:var(--tx);">Progresso do projeto</span>
+        ${prazoHtml}
+      </div>
+      <div style="height:12px;background:var(--border);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+        <div style="height:100%;width:${prog}%;background:${prog>=70?'#3B6D11':prog>=40?'#BA7517':'#A32D2D'};border-radius:6px;transition:width .4s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx3);">
+        <span>${concl.length} tarefas concluídas</span>
+        <span>${abertas.length} tarefas restantes</span>
+      </div>
+    </div>`;
+
+  // ── Status das tarefas ──
+  const statusCount = {};
+  abertas.forEach(t => {
+    const s = (t.status||'a fazer').toLowerCase().trim();
+    statusCount[s] = (statusCount[s]||0) + 1;
+  });
+  const statusCores = {
+    'a fazer':'#888780','em desenvolvimento':'#534AB7','em andamento':'#185FA5',
+    'pronto para desenvolver':'#3B6D11','em teste':'#854F0B','teste reprovado':'#A32D2D',
+    'especif. em análise (po)':'#72243E','pronto p/ testar (qa/po)':'#0C447C'
+  };
+  const statusRows = Object.entries(statusCount)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([s,n]) => {
+      const cor = statusCores[s] || '#888780';
+      const pct = abertas.length ? Math.round(n/abertas.length*100) : 0;
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:${cor};flex-shrink:0;"></div>
+        <div style="font-size:12px;color:var(--tx);flex:1;text-transform:capitalize;">${s}</div>
+        <div style="flex:2;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${cor};border-radius:3px;"></div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:${cor};min-width:28px;text-align:right;">${n}</div>
+      </div>`;
+    }).join('');
+
+  document.getElementById('relGerStatus').innerHTML = `
+    <div style="background:var(--surface2);border:0.5px solid var(--border);border-radius:12px;padding:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px;">Distribuição por status</div>
+      ${statusRows || '<div style="font-size:12px;color:var(--tx3);">Nenhuma tarefa aberta</div>'}
+    </div>`;
+
+  // ── Equipe ──
+  const equipeHtml = eqMembros.length
+    ? eqMembros.map(m => {
+        const nTar = abertas.filter(t => t.resp===m.av || (t.co_responsaveis||[]).includes(m.av)).length;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);">
+          <div style="width:34px;height:34px;border-radius:10px;background:${m.cor||'#534AB7'}22;color:${m.cor||'#534AB7'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${m.av}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;color:var(--tx);">${m.nome}</div>
+            <div style="font-size:11px;color:var(--tx3);">${m.cargo||m.dept||'Membro'}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:14px;font-weight:700;color:#534AB7;">${nTar}</div>
+            <div style="font-size:10px;color:var(--tx3);">tarefas</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:12px;color:var(--tx3);">Nenhum membro na equipe</div>';
+
+  document.getElementById('relGerEquipe').innerHTML = `
+    <div style="background:var(--surface2);border:0.5px solid var(--border);border-radius:12px;padding:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px;">Equipe do projeto</div>
+      ${equipeHtml}
+    </div>`;
+
+  // Reset área da IA
+  document.getElementById('relGerIAConteudo').innerHTML =
+    '<div style="color:var(--tx3);font-size:12px;font-style:italic;">Clique em "✨ Gerar análise" para obter uma análise estratégica automática do projeto.</div>';
+  document.getElementById('relGerIABtn').disabled = false;
+  document.getElementById('relGerIABtn').textContent = '✨ Gerar análise';
+}
+
+async function gerarAnaliseIA() {
+  const p = proj.find(x => x.id === _relGerProjId);
+  if (!p) return;
+
+  const btn = document.getElementById('relGerIABtn');
+  const area = document.getElementById('relGerIAConteudo');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analisando...';
+  area.innerHTML = '<div style="color:var(--tx3);font-size:12px;">🤖 Consultando a IA...</div>';
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const tasks    = tar.filter(t => t.projeto_id === p.id);
+  const abertas  = tasks.filter(t => !t.ok);
+  const concl    = tasks.filter(t =>  t.ok);
+  const vencidas = abertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const espaco   = espacos.find(e => e.id === p.espaco_id);
+  const eqMembros = (p.eq||[]).map(av => memb.find(m => m.av===av)).filter(Boolean);
+  const diasRestantes = p.fim ? Math.ceil((new Date(p.fim+'T12:00') - hoje)/(1000*60*60*24)) : null;
+
+  const statusCount = {};
+  abertas.forEach(t => {
+    const s = (t.status||'a fazer').toLowerCase().trim();
+    statusCount[s] = (statusCount[s]||0)+1;
+  });
+
+  const contexto = `
+PROJETO: ${p.nome}
+SETOR: ${espaco?.nome || 'Não definido'}
+PRIORIDADE: ${p.prior || 'Não definida'}
+PROGRESSO: ${p.prog||0}%
+PRAZO: ${p.fim || 'Não definido'}${diasRestantes!==null ? ` (${diasRestantes < 0 ? 'VENCIDO há '+Math.abs(diasRestantes)+' dias' : diasRestantes+' dias restantes'})` : ''}
+EQUIPE: ${eqMembros.map(m=>m.nome).join(', ') || 'Não definida'}
+DESCRIÇÃO: ${p.descricao || 'Sem descrição'}
+
+TAREFAS:
+- Total: ${tasks.length}
+- Concluídas: ${concl.length}
+- Em aberto: ${abertas.length}
+- Vencidas: ${vencidas.length}
+- Distribuição por status: ${Object.entries(statusCount).map(([s,n])=>`${s}: ${n}`).join(' | ')}
+
+TAREFAS VENCIDAS (até 5):
+${vencidas.slice(0,5).map(t=>`- ${t.titulo||t.tit} (prazo: ${t.prazo})`).join('\n') || 'Nenhuma'}
+
+TAREFAS ABERTAS COM MAIOR PRIORIDADE (até 5):
+${abertas.filter(t=>t.prior==='urgente'||t.prior==='alta').slice(0,5).map(t=>`- [${t.prior?.toUpperCase()}] ${t.titulo||t.tit}`).join('\n') || 'Nenhuma urgente/alta'}
+`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'Você é um consultor estratégico especializado em gestão de projetos. Analise os dados do projeto e gere um relatório gerencial objetivo, prático e estratégico em português. Use linguagem executiva. Formate com seções claras usando emojis como marcadores. Seja direto e foque em: situação atual, riscos, o que falta para concluir, e recomendações de ação. Máximo 400 palavras.',
+        messages: [{ role: 'user', content: 'Gere uma análise estratégica deste projeto:\n\n' + contexto }]
+      })
+    });
+    const data = await resp.json();
+    const texto = data.content?.[0]?.text || 'Não foi possível gerar a análise.';
+    area.innerHTML = texto.split('\n').map(l => l.trim() ? `<p style="margin-bottom:8px;">${l}</p>` : '').join('');
+    btn.textContent = '🔄 Regerar';
+    btn.disabled = false;
+  } catch(e) {
+    console.error('gerarAnaliseIA error:', e);
+    area.innerHTML = '<div style="color:#854F0B;font-size:12px;background:#FAEEDA;padding:12px;border-radius:8px;">⚠️ <strong>A análise por IA requer conexão com a internet.</strong><br>Quando o sistema estiver hospedado online (não como arquivo local), a IA funcionará automaticamente.</div>';
+    btn.textContent = '✨ Tentar novamente';
+    btn.disabled = false;
+  }
+}
+
+function relGerPDF() {
+  const p = proj.find(x => x.id === _relGerProjId);
+  if (!p) return;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const tasks   = tar.filter(t => t.projeto_id === p.id);
+  const abertas = tasks.filter(t => !t.ok);
+  const concl   = tasks.filter(t =>  t.ok);
+  const vencidas = abertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const espaco  = espacos.find(e => e.id === p.espaco_id);
+  const prog    = p.prog || 0;
+  const pc      = prog>=70?'#27500A':prog>=40?'#633806':'#791F1F';
+  const logoSrc = typeof DAE_LOGO_SRC !== 'undefined' ? DAE_LOGO_SRC : '';
+  const emissao = new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const iaTexto = document.getElementById('relGerIAConteudo')?.innerText || '';
+
+  const statusCount = {};
+  abertas.forEach(t => { const s=(t.status||'a fazer').toLowerCase().trim(); statusCount[s]=(statusCount[s]||0)+1; });
+
+  const w = window.open('','_blank');
+  if (!w) { showToast('⚠️ Permita pop-ups'); return; }
+  const d = w.document;
+  d.open();
+  d.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório — '+p.nome+'</title>');
+  d.write('<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">');
+  d.write('<style>');
+  d.write('*{margin:0;padding:0;box-sizing:border-box;}');
+  d.write('body{font-family:Nunito,sans-serif;color:#1E2A3B;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}');
+  d.write('@page{size:A4;margin:15mm 18mm;}');
+  d.write('.cover{background:#534AB7;padding:32px;color:#fff;}');
+  d.write('.tag{font-size:9pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#CEC9F8;margin-bottom:8px;}');
+  d.write('.title{font-size:22pt;font-weight:800;color:#fff;margin-bottom:6px;}');
+  d.write('.sub{font-size:11pt;color:#CEC9F8;}');
+  d.write('.meta{display:flex;gap:20px;margin-top:14px;border-top:0.5px solid rgba(255,255,255,.2);padding-top:12px;}');
+  d.write('.mi{display:flex;flex-direction:column;}');
+  d.write('.ml{font-size:8pt;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;}');
+  d.write('.mv{font-size:11pt;font-weight:700;color:#fff;}');
+  d.write('.body{padding:24px 32px;}');
+  d.write('.section{margin-bottom:20px;}');
+  d.write('.sh{font-size:11pt;font-weight:800;color:#534AB7;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #EEEDFE;padding-bottom:5px;margin-bottom:10px;}');
+  d.write('.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:6px;}');
+  d.write('.kpi{border-radius:8px;padding:10px;text-align:center;}');
+  d.write('.kn{font-size:18pt;font-weight:800;line-height:1;margin-bottom:2px;}');
+  d.write('.kl{font-size:8pt;text-transform:uppercase;letter-spacing:.05em;}');
+  d.write('.prog-bar{height:10px;background:#E2E8F0;border-radius:5px;overflow:hidden;margin:8px 0;}');
+  d.write('.prog-fill{height:100%;border-radius:5px;}');
+  d.write('.st-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}');
+  d.write('.st-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}');
+  d.write('.st-bar{flex:1;height:5px;background:#E2E8F0;border-radius:2px;overflow:hidden;}');
+  d.write('.ia-box{background:#F8F7FF;border:1pt solid #AFA9EC;border-radius:8px;padding:14px;font-size:10pt;line-height:1.8;color:#1E2A3B;}');
+  d.write('p{margin-bottom:6px;}');
+  d.write('</style></head><body>');
+  d.write('<div class="cover">');
+  d.write('<div class="tag">📊 Relatório Gerencial de Projeto</div>');
+  d.write('<div class="title">'+p.nome+'</div>');
+  d.write('<div class="sub">'+(espaco?espaco.nome+' · ':'')+('Prioridade: '+(p.prior||'Não definida'))+'</div>');
+  d.write('<div class="meta">');
+  d.write('<div class="mi"><div class="ml">Progresso</div><div class="mv">'+prog+'%</div></div>');
+  d.write('<div class="mi"><div class="ml">Prazo</div><div class="mv">'+(p.fim?new Date(p.fim+'T12:00').toLocaleDateString('pt-BR'):'Não definido')+'</div></div>');
+  d.write('<div class="mi"><div class="ml">Emissão</div><div class="mv">'+emissao+'</div></div>');
+  d.write('<div class="mi"><div class="ml">Tarefas abertas</div><div class="mv">'+abertas.length+'</div></div>');
+  d.write('</div></div>');
+  d.write('<div class="body">');
+
+  d.write('<div class="section"><div class="sh">Indicadores do projeto</div>');
+  d.write('<div class="kpi-grid">');
+  d.write('<div class="kpi" style="background:#EEEDFE;"><div class="kn" style="color:#534AB7;">'+prog+'%</div><div class="kl" style="color:#534AB7;">Progresso</div></div>');
+  d.write('<div class="kpi" style="background:#F1EFE8;"><div class="kn" style="color:#5F5E5A;">'+tasks.length+'</div><div class="kl" style="color:#888780;">Total</div></div>');
+  d.write('<div class="kpi" style="background:#E6F1FB;"><div class="kn" style="color:#185FA5;">'+abertas.length+'</div><div class="kl" style="color:#185FA5;">Abertas</div></div>');
+  d.write('<div class="kpi" style="background:#EAF3DE;"><div class="kn" style="color:#3B6D11;">'+concl.length+'</div><div class="kl" style="color:#3B6D11;">Concluídas</div></div>');
+  d.write('<div class="kpi" style="background:'+(vencidas.length>0?'#FCEBEB':'#EAF3DE')+'"><div class="kn" style="color:'+(vencidas.length>0?'#A32D2D':'#3B6D11')+'">'+vencidas.length+'</div><div class="kl" style="color:'+(vencidas.length>0?'#A32D2D':'#3B6D11')+'">Vencidas</div></div>');
+  d.write('</div>');
+  d.write('<div class="prog-bar"><div class="prog-fill" style="width:'+prog+'%;background:'+(prog>=70?'#3B6D11':prog>=40?'#BA7517':'#A32D2D')+'"></div></div>');
+  d.write('</div>');
+
+  if (Object.keys(statusCount).length) {
+    d.write('<div class="section"><div class="sh">Distribuição por status</div>');
+    Object.entries(statusCount).sort((a,b)=>b[1]-a[1]).forEach(([s,n]) => {
+      const pct = Math.round(n/abertas.length*100);
+      d.write('<div class="st-row"><div class="st-dot" style="background:#534AB7;"></div><div style="flex:1;font-size:10pt;text-transform:capitalize;">'+s+'</div><div class="st-bar"><div style="height:100%;width:'+pct+'%;background:#534AB7;"></div></div><div style="font-size:10pt;font-weight:700;color:#534AB7;min-width:24px;text-align:right;">'+n+'</div></div>');
+    });
+    d.write('</div>');
+  }
+
+  if (iaTexto && iaTexto.length > 10) {
+    d.write('<div class="section"><div class="sh">Análise Estratégica — IA</div>');
+    d.write('<div class="ia-box">'+iaTexto.split('\n').map(l=>l.trim()?'<p>'+l+'</p>':'').join('')+'</div>');
+    d.write('</div>');
+  }
+
+  d.write('</div></body></html>');
+  d.close();
+  setTimeout(function(){ w.print(); }, 700);
+}
 
 function toggleSetorBody(id) {
   const el = document.getElementById(id);
@@ -15938,5 +16292,55 @@ function _lbKeyClose(e) { if (e.key === 'Escape') fecharLightbox(); }
 // sw integrado abaixo
 
 </script>
+
+<!-- ═══════════ MODAL RELATÓRIO GERENCIAL ═══════════ -->
+<div id="relGerModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:999999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--surface);border-radius:18px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3);">
+
+    <!-- Header -->
+    <div id="relGerHeader" style="padding:20px 24px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#534AB7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">📊 RELATÓRIO GERENCIAL</div>
+        <div id="relGerNome" style="font-size:18px;font-weight:700;color:var(--tx);"></div>
+        <div id="relGerMeta" style="font-size:12px;color:var(--tx3);margin-top:2px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="relGerPDF()" style="padding:7px 16px;border-radius:8px;background:#EF4444;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📄 Exportar PDF</button>
+        <button onclick="fecharRelGer()" style="width:32px;height:32px;border-radius:8px;background:var(--surface2);border:0.5px solid var(--border);cursor:pointer;font-size:16px;color:var(--tx3);">✕</button>
+      </div>
+    </div>
+
+    <!-- Body scrollável -->
+    <div id="relGerBody" style="overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- KPIs -->
+      <div id="relGerKpis" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;"></div>
+
+      <!-- Progresso + Prazo -->
+      <div id="relGerProg"></div>
+
+      <!-- Status das tarefas -->
+      <div id="relGerStatus"></div>
+
+      <!-- Equipe -->
+      <div id="relGerEquipe"></div>
+
+      <!-- Análise IA -->
+      <div id="relGerIA" style="border:0.5px solid #AFA9EC;border-radius:12px;overflow:hidden;">
+        <div style="background:#EEEDFE;padding:12px 16px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">🤖</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#3C3489;">Análise Estratégica — IA</div>
+            <div style="font-size:11px;color:#534AB7;">Gerada automaticamente com base nos dados do projeto</div>
+          </div>
+          <button id="relGerIABtn" onclick="gerarAnaliseIA()" style="margin-left:auto;padding:6px 16px;border-radius:8px;background:#534AB7;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✨ Gerar análise</button>
+        </div>
+        <div id="relGerIAConteudo" style="padding:16px;font-size:13px;color:var(--tx2);line-height:1.8;min-height:60px;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
