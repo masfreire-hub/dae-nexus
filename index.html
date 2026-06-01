@@ -1202,7 +1202,8 @@ tbody tr:last-child td{border-bottom:none;}
    NOVA IA (Assistente)
 ═══════════════════════════════════════════════════════════════ */
 .nova-wrap{
-  display:flex;flex-direction:column;height:calc(100dvh - var(--topbar-h) - 48px - 80px);
+  display:flex;flex-direction:column;
+  height:calc(100dvh - var(--topbar-h) - 48px);
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--rl);overflow:hidden;box-shadow:var(--sh1);
 }
@@ -3722,7 +3723,7 @@ select.sel{
 </div><!-- /t-arquivos -->
 
 <div class="tab" id="t-nova">
-  <div class="nova-wrap" style="display:flex;flex-direction:column;height:calc(100dvh - var(--topbar-h));overflow:hidden">
+  <div class="nova-wrap">
     <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--surface)">
       <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>
       <div>
@@ -12692,7 +12693,7 @@ async function logAtividade(tipo, titulo, descricao, autor, projetoId, tarefaId,
 function renderNova() {
   document.getElementById('novaMsgs').innerHTML = novaM.map(m => `<div class="nmsg ${m.r==='user'?'u':''}">
     ${m.r==='ai'?'<div class="naai">✨</div>':''}
-    <div class="nbub ${m.r==='ai'?'ai':'u'}">${m.t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}</div>
+    <div class="nbub ${m.r==='ai'?'ai':'u'}">${m.r==='ai' ? renderMd(m.t) : m.t.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
     ${m.r==='user'?`<div class="nau">${curUser?.av||curUser?.av||'?'}</div>`:''}
   </div>`).join('');
   document.getElementById('novaMsgs').scrollTop = 9999;
@@ -12788,9 +12789,7 @@ Só inclua ACTION se o usuário explicitamente pedir para criar algo.`,
               if (bubEl) {
                 // Remove ACTION block da exibição
                 const display = fullText.replace(/<ACTION>[\s\S]*?<\/ACTION>/g, '').trim();
-                bubEl.innerHTML = display
-                  .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-                  .replace(/\n/g,'<br>');
+                bubEl.innerHTML = renderMd(display);
                 bubEl.classList.add('streaming');
                 el.scrollTop = 9999;
               }
@@ -13292,6 +13291,65 @@ function abrirRelGer(projId) {
     '<div style="color:var(--tx3);font-size:12px;font-style:italic;">Clique em "✨ Gerar análise" para obter uma análise estratégica automática do projeto.</div>';
   document.getElementById('relGerIABtn').disabled = false;
   document.getElementById('relGerIABtn').textContent = '✨ Gerar análise';
+}
+
+// ── Renderizador Markdown para chat ─────────────────────────────
+function renderMd(text) {
+  const lines = text.split('\n');
+  let html = '';
+  let inTable = false;
+  let tableRows = [];
+
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    let th = '';
+    let tb = '';
+    tableRows.forEach((row, i) => {
+      const cells = row.split('|').map(c => c.trim()).filter(c => c && !c.match(/^[-:]+$/));
+      if (!cells.length) return;
+      if (i === 0) {
+        th = '<tr>' + cells.map(c => `<th style="padding:6px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;border-bottom:2px solid var(--border);background:var(--surface2)">${c}</th>`).join('') + '</tr>';
+      } else if (cells.every(c => c.match(/^[-:]+$/))) {
+        // separator row, skip
+      } else {
+        tb += '<tr>' + cells.map(c => `<td style="padding:6px 10px;font-size:12px;color:var(--tx2);border-bottom:1px solid var(--border)">${c.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</td>`).join('') + '</tr>';
+      }
+    });
+    html += `<div style="overflow-x:auto;margin:8px 0"><table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden">${th}${tb}</table></div>`;
+    tableRows = [];
+    inTable = false;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    let l = lines[i];
+    
+    // Table detection
+    if (l.includes('|')) {
+      inTable = true;
+      tableRows.push(l);
+      continue;
+    }
+    if (inTable) flushTable();
+
+    const t = l.trim();
+    if (!t) { html += '<div style="height:6px"></div>'; continue; }
+
+    if (t.startsWith('### ')) {
+      html += `<div style="font-size:12px;font-weight:800;color:var(--tx);margin:10px 0 4px">${t.slice(4).replace(/\*\*/g,'')}</div>`;
+    } else if (t.startsWith('## ')) {
+      html += `<div style="font-size:13px;font-weight:800;color:#3C3489;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid #EEEDFE">${t.slice(3).replace(/\*\*/g,'')}</div>`;
+    } else if (t.startsWith('# ')) {
+      html += `<div style="font-size:14px;font-weight:900;color:var(--tx);margin:0 0 8px">${t.slice(2).replace(/\*\*/g,'')}</div>`;
+    } else if (t.startsWith('- ') || t.startsWith('• ') || t.startsWith('* ')) {
+      const txt = t.slice(2).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+      html += `<div style="display:flex;gap:6px;margin-bottom:3px;font-size:13px;color:var(--tx2);line-height:1.6"><span style="color:#534AB7;flex-shrink:0;margin-top:2px">•</span><span>${txt}</span></div>`;
+    } else {
+      const txt = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+      html += `<p style="margin-bottom:6px;font-size:13px;color:var(--tx2);line-height:1.7">${txt}</p>`;
+    }
+  }
+  if (inTable) flushTable();
+  return html;
 }
 
 async function gerarAnaliseIA() {
