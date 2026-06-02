@@ -4486,6 +4486,7 @@ const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 // ── Chave Claude API (carregada do Supabase em loadAll) ───────────
 let CLAUDE_KEY = localStorage.getItem('dae_claude_key') || '';
+let _docCarregando = false; // bloqueia autosave durante abertura do doc
 
 // Paleta de cores
 const CL = ['#4F46E5','#10B981','#F59E0B','#EF4444','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#06B6D4'];
@@ -10807,7 +10808,7 @@ async function abrirDoc(id) {
 
     _quill.root.addEventListener('mouseup', function() {
       clearTimeout(_docTimer);
-      _docTimer = setTimeout(docSalvar, 300);
+      _docTimer = setTimeout(docSalvar, 1500);
     });
 
     _quill.root.addEventListener('dragstart', function() {
@@ -10858,6 +10859,9 @@ async function abrirDoc(id) {
   }
 
   _docStatus('');
+  // Bloquear saves por 800ms enquanto o documento carrega
+  _docCarregando = true;
+  setTimeout(() => { _docCarregando = false; }, 800);
   tituloInput.focus();
 }
 // Protege o modal de fechar ao arrastar texto para fora do editor
@@ -10906,7 +10910,7 @@ function fecharDoc() {
 function docAgendar() {
   _docStatus('editando');
   clearTimeout(_docTimer);
-  _docTimer = setTimeout(docSalvar, 300);
+  _docTimer = setTimeout(docSalvar, 1500);
 }
 
 function docImprimirPDF() {
@@ -10998,6 +11002,7 @@ async function docSalvarTituloAgora() {
 
 async function docSalvar() {
   if (!_docId) return;
+  if (_docCarregando) return; // não salvar durante carregamento
   const tituloInput = document.getElementById('docTituloInput');
   const pastaSelect  = document.getElementById('docPastaSelect');
   const docAtual     = _docsCache.find(d => d.id === _docId);
@@ -11008,6 +11013,13 @@ async function docSalvar() {
 
   // Conteúdo do Quill
   const conteudo = _quill ? _quill.root.innerHTML : (docAtual?.conteudo || '');
+  // Não salvar se conteúdo for vazio ou apenas parágrafo vazio do Quill
+  const conteudoVazio = !conteudo || conteudo === '<p><br></p>' || conteudo.trim() === '';
+  if (conteudoVazio && docAtual?.conteudo && docAtual.conteudo !== '<p><br></p>') {
+    // Conteúdo parece ter sido perdido, não sobrescrever
+    console.warn('docSalvar: conteúdo vazio ignorado para preservar dados existentes');
+    return;
+  }
 
   // Pasta: usa EXATAMENTE o que está no select (mesmo que seja '' = sem pasta)
   // NÃO usar || para não pular '' para o valor antigo
