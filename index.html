@@ -10980,8 +10980,13 @@ async function docSalvarPastaAgora(novaPasta) {
   if (doc) doc.pasta = novaPasta;
   // Salvar no banco
   try {
-    await safeDb.from('documentos').update({ pasta: novaPasta, updated_at: new Date().toISOString() }).eq('id', _docId);
-    showToast('📁 ' + (novaPasta || 'Sem pasta'));
+    const r = await fetch(SUPA_URL + '/rest/v1/documentos?id=eq.' + _docId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ pasta: novaPasta, updated_at: new Date().toISOString() })
+    });
+    if (r.ok) showToast('📁 ' + (novaPasta || 'Sem pasta'));
+    else showToast('❌ Erro ao salvar pasta');
   } catch(e) {
     showToast('❌ Erro ao salvar pasta');
   }
@@ -10996,7 +11001,11 @@ async function docSalvarTituloAgora() {
   const doc = _docsCache.find(d => d.id === _docId);
   if (doc) doc.titulo = titulo;
   try {
-    await safeDb.from('documentos').update({ titulo, updated_at: new Date().toISOString() }).eq('id', _docId);
+    await fetch(SUPA_URL + '/rest/v1/documentos?id=eq.' + _docId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ titulo, updated_at: new Date().toISOString() })
+    });
   } catch(e) { console.error('Erro ao salvar título:', e); }
 }
 
@@ -11034,10 +11043,28 @@ async function docSalvar() {
 
   try {
     _docStatus('editando');
-    await safeDb.from('documentos').update({
-      titulo, conteudo, pasta, acesso,
-      updated_at: new Date().toISOString()
-    }).eq('id', _docId);
+    // Usar fetch direto com anon key para evitar problemas com Publishable key
+    const resp = await fetch(SUPA_URL + '/rest/v1/documentos?id=eq.' + _docId, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        titulo, conteudo, pasta,
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      console.error('docSalvar HTTP error:', resp.status, txt);
+      _docStatus('erro', 'HTTP ' + resp.status);
+      showToast('Erro ao salvar: ' + resp.status + ' - ' + txt);
+      return;
+    }
 
     if (docAtual) {
       docAtual.titulo   = titulo;
@@ -11051,6 +11078,7 @@ async function docSalvar() {
   } catch(e) {
     console.error('docSalvar error:', e);
     _docStatus('erro', e?.message || 'Falha ao salvar');
+    showToast('Erro ao salvar: ' + (e?.message || String(e)));
   }
 }
 
