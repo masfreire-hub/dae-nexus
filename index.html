@@ -1605,6 +1605,11 @@ select,input[type="checkbox"]{accent-color:var(--brand);}
 .bmtgp{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 2px 8px rgba(79,70,229,0.3);}
 .bmtgs{background:var(--surface2);color:var(--tx2);border:1px solid var(--border);}
 .atabox{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px;display:none;}
+#ata-editor-wrap .ql-toolbar{display:none!important;}
+[id^="ata-editor-"] .ql-editor{min-height:180px;max-height:380px;overflow-y:auto;font-size:12px;font-family:var(--fb);color:var(--tx);line-height:1.7;padding:10px 14px;}
+[id^="ata-editor-"] .ql-editor.ql-blank::before{color:var(--tx3);font-style:normal;}
+[id^="ata-editor-"] .ql-container{border:none!important;}
+[id^="ata-toolbar-"] button:hover{background:var(--surface2)!important;}
 .atainp{width:100%;background:none;border:none;color:var(--tx2);font-family:var(--fb);font-size:12px;resize:vertical;height:180px;outline:none;line-height:1.6;}
 .ata-gerada{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--tx2);max-height:400px;overflow-y:auto;}
 
@@ -4614,6 +4619,52 @@ function makeSafeDb() {
   };
 }
 const safeDb = db ? db : makeSafeDb();
+
+// ── Mapa de instâncias Quill para editor de ata ──
+const _ataQuills = {};
+function getAtaQuill(id) {
+  if (_ataQuills[id]) return _ataQuills[id];
+  const el = document.getElementById('ata-editor-' + id);
+  if (!el) return null;
+  const toolbarEl = document.getElementById('ata-toolbar-' + id);
+  const q = new Quill(el, {
+    modules: { toolbar: toolbarEl },
+    theme: 'snow',
+    readOnly: false,
+    placeholder: 'Clique aqui para editar a ata...'
+  });
+  q.enable(true);
+  // hide default quill toolbar injected by quill (we use our custom toolbar)
+  const defaultTb = el.previousSibling;
+  if (defaultTb && defaultTb.classList && defaultTb.classList.contains('ql-toolbar')) defaultTb.style.display = 'none';
+  // make sure editor div is not read-only
+  const editorDiv = el.querySelector('.ql-editor');
+  if (editorDiv) {
+    editorDiv.setAttribute('contenteditable', 'true');
+    editorDiv.style.cursor = 'text';
+  }
+  _ataQuills[id] = q;
+  return q;
+}
+function getAtaHtml(id) {
+  const q = _ataQuills[id];
+  return q ? q.root.innerHTML : '';
+}
+function setAtaHtml(id, html) {
+  const q = getAtaQuill(id);
+  if (!q) return;
+  if (html && html.trim()) {
+    if (!html.includes('<')) {
+      q.root.innerHTML = '<pre style="font-family:monospace;font-size:11px;white-space:pre-wrap">' + html.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
+    } else {
+      q.root.innerHTML = html;
+    }
+  }
+  // Garante que o editor permita edição
+  q.enable(true);
+  q.root.setAttribute('contenteditable', 'true');
+}
+
 
 // ── ESTADO LOCAL (cache em memória) ───────────────────────────────
 let proj = [], tar = [], memb = [], ferias = [], riscos = [], reun = [], agenda = [], ativs = [], notifs = [], espacos = [];
@@ -9733,7 +9784,33 @@ function renderMeet() {
       </div>
       <div class="atabox" id="ata-${r.id}">
         <div id="ata-status-${r.id}" style="display:none;font-size:11px;color:var(--gold2);margin-bottom:6px;align-items:center;gap:6px"><span style="animation:pulse 1s infinite">✨</span> <span id="ata-status-txt-${r.id}">Gerando ata com IA...</span></div>
-        <textarea class="atainp" placeholder="Abra a ata para ver o conteúdo..." id="atat-${r.id}"></textarea>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div id="ata-toolbar-${r.id}" style="border-bottom:1px solid var(--border);padding:4px 8px;background:#F8F9FB;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+            <button class="ql-bold" title="Negrito" style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:4px;font-weight:700;font-size:13px;color:var(--tx)">B</button>
+            <button class="ql-italic" title="Itálico" style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:4px;font-style:italic;font-size:13px;color:var(--tx)">I</button>
+            <button class="ql-underline" title="Sublinhado" style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:4px;text-decoration:underline;font-size:13px;color:var(--tx)">U</button>
+            <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+            <select class="ql-background" title="Destaque" style="height:26px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:11px;cursor:pointer;padding:0 4px">
+              <option value="">🎨 Cor</option>
+              <option value="#FEF08A">🟡 Amarelo</option>
+              <option value="#BBF7D0">🟢 Verde</option>
+              <option value="#BAE6FD">🔵 Azul</option>
+              <option value="#FECACA">🔴 Vermelho</option>
+              <option value="#E9D5FF">🟣 Roxo</option>
+              <option value="false">Remover</option>
+            </select>
+            <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+            <button class="ql-list" value="ordered" title="Lista numerada" style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:4px;font-size:13px;color:var(--tx)">1.</button>
+            <button class="ql-list" value="bullet" title="Lista" style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:4px;font-size:13px;color:var(--tx)">•</button>
+            <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+            <select class="ql-header" style="height:26px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:11px;cursor:pointer;padding:0 4px">
+              <option value="">Normal</option>
+              <option value="2">Título</option>
+              <option value="3">Subtítulo</option>
+            </select>
+          </div>
+          <div id="ata-editor-${r.id}" style="min-height:200px;max-height:400px;overflow-y:auto;padding:10px 14px;font-size:12px;color:var(--tx);line-height:1.7;"></div>
+        </div>
         <div style="display:flex;gap:6px;margin-top:6px">
           <button class="btnp" style="padding:8px 12px;font-size:11px;flex:1" onclick="saveAta('${r.id}')">💾 SALVAR ATA</button>
         </div>
@@ -9751,9 +9828,11 @@ function togAta(id) {
   b.style.display = isOpen ? 'none' : 'block';
   if (!isOpen) {
     const r = reun.find(x => x.id === id);
-    const ta = document.getElementById('atat-'+id);
-    if (!ta) return;
-    const rawAta = (r ? r.ata : '') || '';
+    // Initialize quill if not yet done
+    setTimeout(() => {
+      const q = getAtaQuill(id);
+      if (!q) return;
+      const rawAta = (r ? r.ata : '') || '';
     // Strip metadata tags
     const limpa = rawAta
       .replace(/\[Tipo:[^\]]*\]\n*/g, '')
@@ -9761,7 +9840,7 @@ function togAta(id) {
       .replace(/\[Externos:[^\]]*\]\n*/g, '')
       .trim();
     if (limpa) {
-      ta.value = limpa;
+      setAtaHtml(id, limpa);
       return;
     }
     // Build structured header template
@@ -9837,7 +9916,8 @@ function togAta(id) {
     linhas.push(SEP2);
     linhas.push('  Gerado pelo DAE Nexus.AI - Sudoeste TI');
     linhas.push(SEP2);
-    ta.value = linhas.join('\n');
+      setAtaHtml(id, linhas.join('\n'));
+    }, 50);
   }
 }
 
@@ -9850,12 +9930,14 @@ async function gerarAtaIA(id) {
 
   const statusEl = document.getElementById('ata-status-'+id);
   const statusTxt = document.getElementById('ata-status-txt-'+id);
-  const textarea = document.getElementById('atat-'+id);
 
   if (statusEl) statusEl.style.display = 'flex';
   if (statusTxt) statusTxt.textContent = 'Gerando ata com IA...';
-  textarea.value = '';
-  textarea.placeholder = 'Gerando...';
+  // Initialize quill and clear
+  setTimeout(() => {
+    const qInit = getAtaQuill(id);
+    if (qInit) qInit.root.innerHTML = '';
+  }, 50);
 
   const participantesNomes = (r.participantes||[])
     .map(av => memb.find(m => m.av === av)?.nome || av)
@@ -9958,18 +10040,11 @@ ${allPartics.split(',').slice(0,6).map(n=>('   '+n.trim().split('(')[0].trim()).
 
     if (!texto) throw new Error('Resposta vazia da IA');
 
-    // Simular efeito de digitação
     if (statusTxt) statusTxt.textContent = 'Escrevendo ata...';
-    textarea.value = '';
-    for (let i = 0; i < texto.length; i += 8) {
-      textarea.value = texto.slice(0, i + 8);
-      textarea.scrollTop = textarea.scrollHeight;
-      await new Promise(r => setTimeout(r, 10));
-    }
-    textarea.value = texto;
+    // Set text in quill editor
+    setAtaHtml(id, texto);
 
     if (statusEl) statusEl.style.display = 'none';
-    textarea.placeholder = 'Ata gerada pela IA...';
     showToast('✨ Ata gerada! Revise e salve.');
 
     // Salvar automaticamente
@@ -9977,15 +10052,19 @@ ${allPartics.split(',').slice(0,6).map(n=>('   '+n.trim().split('(')[0].trim()).
 
   } catch(e) {
     if (statusEl) statusEl.style.display = 'none';
-    textarea.value = '';
-    textarea.placeholder = 'Erro: ' + e.message;
+    const qErr = _ataQuills[id];
+    if (qErr) qErr.root.innerHTML = '';
     showToast('❌ ' + e.message.slice(0, 80));
   }
 }
 
 async function saveAtaTexto(id, texto) {
-  const { error } = await safeDb.from('reunioes').update({ ata: texto }).eq('id', id);
-  if (!error) {
+  const resp = await fetch(SUPA_URL + '/rest/v1/reunioes?id=eq.' + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ ata: texto })
+  });
+  if (resp.ok) {
     const r = reun.find(x => x.id === id);
     if (r) r.ata = texto;
     showToast('💾 Ata salva automaticamente!');
@@ -9993,10 +10072,14 @@ async function saveAtaTexto(id, texto) {
 }
 
 async function saveAta(id) {
-  const t = document.getElementById('atat-'+id);
-  const { error } = await safeDb.from('reunioes').update({ ata: t.value }).eq('id', id);
-  if (error) { showToast('❌ Erro ao salvar ata'); return; }
-  const r = reun.find(x => x.id===id); if (r) r.ata = t.value;
+  const ataHtml = getAtaHtml(id);
+  const resp = await fetch(SUPA_URL + '/rest/v1/reunioes?id=eq.' + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ ata: ataHtml })
+  });
+  if (!resp.ok) { showToast('❌ Erro ao salvar ata'); return; }
+  const r = reun.find(x => x.id===id); if (r) r.ata = ataHtml;
   showToast('✅ Ata salva!');
 }
 
@@ -11034,8 +11117,6 @@ async function docSalvar() {
   // NÃO usar || para não pular '' para o valor antigo
   const pasta = pastaSelect != null ? pastaSelect.value : (docAtual?.pasta ?? '');
 
-  const acesso = window._docAcesso ?? docAtual?.acesso ?? [];
-
   // Sincronizar campo de título se estava vazio mas havia título no cache
   if (tituloInput && !tituloDigitado && titulo !== 'Sem título') {
     tituloInput.value = titulo;
@@ -11043,7 +11124,6 @@ async function docSalvar() {
 
   try {
     _docStatus('editando');
-    // Usar fetch direto com anon key para evitar problemas com Publishable key
     const resp = await fetch(SUPA_URL + '/rest/v1/documentos?id=eq.' + _docId, {
       method: 'PATCH',
       headers: {
@@ -11070,7 +11150,6 @@ async function docSalvar() {
       docAtual.titulo   = titulo;
       docAtual.conteudo = conteudo;
       docAtual.pasta    = pasta;
-      docAtual.acesso   = acesso;
     }
 
     _docStatus('salvo');
@@ -11280,7 +11359,7 @@ function triggerAnexoInput(tarefaId) {
   if (!inp) {
     inp = document.createElement('input');
     inp.type = 'file'; inp.id = '_anexoInputGlobal'; inp.multiple = true;
-    inp.accept = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mp3,.wav,.zip,.txt';
+    inp.accept = '.pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mp3,.wav,.zip,.txt';
     inp.style.display = 'none';
     document.body.appendChild(inp);
   }
@@ -11383,18 +11462,26 @@ async function excluirAnexoTarefa(tarefaId, nome, btn) {
 }
 
 function copiarAta(id) {
-  const t = document.getElementById('atat-'+id);
-  if (!t?.value) { showToast('⚠️ Nenhuma ata para copiar'); return; }
-  navigator.clipboard.writeText(t.value).then(() => showToast('📋 Ata copiada!')).catch(() => showToast('❌ Erro ao copiar'));
+  const ataHtml = getAtaHtml(id);
+  if (!ataHtml || ataHtml === '<p><br></p>') { showToast('⚠️ Nenhuma ata para copiar'); return; }
+  // Converte HTML para texto puro para copiar
+  const tmp = document.createElement('div');
+  tmp.innerHTML = ataHtml;
+  const textoPlano = tmp.innerText || tmp.textContent || '';
+  navigator.clipboard.writeText(textoPlano).then(() => showToast('📋 Ata copiada!')).catch(() => showToast('❌ Erro ao copiar'));
 }
 
 // Copiar ata com formatação WhatsApp (*negrito*, emojis, separadores)
 function copiarAtaFormatada(id) {
-  const t = document.getElementById('atat-'+id);
-  if (!t?.value?.trim()) { showToast('⚠️ Nenhuma ata para copiar'); return; }
+  const ataHtml = getAtaHtml(id);
+  if (!ataHtml || ataHtml === '<p><br></p>') { showToast('⚠️ Nenhuma ata para copiar'); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = ataHtml;
+  const ataTexto = tmp.innerText || tmp.textContent || '';
+  if (!ataTexto.trim()) { showToast('⚠️ Nenhuma ata para copiar'); return; }
   const r = reun.find(x => x.id === id);
   const par = (r?.participantes||[]).map(av => { const m = memb.find(x => x.av === av); return m ? m.nome.split(' ')[0] : av; }).join(', ');
-  const texto = formatarAtaWhatsapp(r, t.value, par);
+  const texto = formatarAtaWhatsapp(r, ataTexto, par);
   navigator.clipboard.writeText(texto)
     .then(() => showToast('📋 Ata copiada com formatação WhatsApp!'))
     .catch(() => {
@@ -11409,11 +11496,15 @@ function copiarAtaFormatada(id) {
 
 // Compartilhar ata via WhatsApp (abre modal de disparo individual)
 function compartilharAtaWpp(id) {
-  const t = document.getElementById('atat-'+id);
-  if (!t?.value?.trim()) { showToast('⚠️ Gere ou escreva a ata antes de compartilhar'); return; }
+  const ataHtml = getAtaHtml(id);
+  if (!ataHtml || ataHtml === '<p><br></p>') { showToast('⚠️ Gere ou escreva a ata antes de compartilhar'); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = ataHtml;
+  const ataTexto = tmp.innerText || tmp.textContent || '';
+  if (!ataTexto.trim()) { showToast('⚠️ Gere ou escreva a ata antes de compartilhar'); return; }
   const r = reun.find(x => x.id === id);
   const par = (r?.participantes||[]).map(av => { const m = memb.find(x => x.av === av); return m ? m.nome.split(' ')[0] : av; }).join(', ');
-  const texto = formatarAtaWhatsapp(r, t.value, par);
+  const texto = formatarAtaWhatsapp(r, ataTexto, par);
   const msgEncoded = encodeURIComponent(texto);
 
   // Participantes com WhatsApp cadastrado
@@ -11432,8 +11523,10 @@ function compartilharAtaWpp(id) {
 
 // Formatar ata no padrão WhatsApp
 function baixarAtaPDF(id) {
-  const t = document.getElementById('atat-'+id);
-  const ataTexto = t?.value?.trim() || '';
+  const ataHtml = getAtaHtml(id);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = ataHtml || '';
+  const ataTexto = (tmp.innerText || tmp.textContent || '').trim();
   if (!ataTexto) { showToast('Nenhuma ata para exportar'); return; }
   const r = reun.find(x => x.id === id);
   if (!r) return;
