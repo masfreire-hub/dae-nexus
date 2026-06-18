@@ -10777,13 +10777,12 @@ async function abrirDoc(id) {
 
     // Salvar ao perder foco do editor — MAS não quando o foco vai para o select de pasta
     _quill.root.addEventListener('blur', function(e) {
-      // Só salvar se o foco saiu COMPLETAMENTE do docBox (modal inteiro)
-      // Toolbar, selects, botões internos = foco ainda dentro do modal = NÃO salvar aqui
+      // Não salvar durante carregamento ou se foco ainda está dentro do modal
       setTimeout(() => {
+        if (window._docCarregando) return;
         const focused = document.activeElement;
         const docBox = document.getElementById('docBox');
         const foiParaDentroDoModal = docBox && docBox.contains(focused);
-        // Se o foco ainda está dentro do modal, não salvar — o text-change já agenda
         if (!foiParaDentroDoModal) {
           clearTimeout(_docTimer);
           docSalvar();
@@ -10817,28 +10816,38 @@ async function abrirDoc(id) {
     });
   }
 
-  // 7. Setar conteúdo — limpar PRIMEIRO, depois setar
+  // 7. Setar conteúdo — suspender saves durante o carregamento
   if (_quill) {
     const conteudo = doc.conteudo || '';
-    // SEMPRE limpar antes de setar — evita acumular conteúdo de docs anteriores
+    // SUSPENDER o agendamento de saves enquanto carregamos o conteúdo
+    // Qualquer setText/innerHTML dispara text-change — sem isso, salva vazio e apaga o doc
+    window._docCarregando = true;
+    clearTimeout(_docTimer);
+
+    // Limpar e restaurar
     _quill.setText('');
     _quill.root.innerHTML = '';
     if (conteudo && conteudo !== '<p><br></p>' && conteudo.trim() !== '') {
       try {
-        // Setar innerHTML diretamente é mais confiável para restaurar HTML do Quill
         _quill.root.innerHTML = conteudo;
-        // Mover cursor para o início
         _quill.setSelection(0, 0);
       } catch(e) {
         console.warn('Quill set error:', e);
         _quill.root.innerHTML = conteudo;
       }
     }
+
     // Atualizar contador de palavras
     const txt = _quill.getText().trim();
     const w = txt ? txt.split(/\s+/).filter(x => x).length : 0;
     const wEl = document.getElementById('docWords');
     if (wEl) wEl.textContent = w + ' palavra' + (w !== 1 ? 's' : '');
+
+    // Liberar saves após 500ms — tempo suficiente para o Quill estabilizar
+    setTimeout(() => {
+      window._docCarregando = false;
+      clearTimeout(_docTimer); // cancelar qualquer save agendado durante o carregamento
+    }, 500);
   }
 
   _docStatus('');
@@ -10874,11 +10883,12 @@ document.addEventListener('keydown', function(e) {
 
 function fecharDoc() {
   clearTimeout(_docTimer);
-  // Salvar e aguardar o save completar ANTES de fechar e recarregar
+  // Garantir que o modo de carregamento está desligado antes de salvar
+  window._docCarregando = false;
+  // Salvar o conteúdo atual e fechar
   docSalvar().then(() => {
     document.getElementById('docModal')?.classList.remove('on');
     _docId = null;
-    // Pequeno delay para garantir que o Supabase processou o save
     setTimeout(() => _renderDocs(_docPastaFiltro), 300);
   }).catch(() => {
     document.getElementById('docModal')?.classList.remove('on');
@@ -10888,10 +10898,11 @@ function fecharDoc() {
 }
 
 function docAgendar() {
+  // Não agendar save enquanto o documento está sendo carregado
+  if (window._docCarregando) return;
   _docStatus('editando');
   clearTimeout(_docTimer);
   // 800ms: garante que o Quill terminou de aplicar formatação (alinhamento, negrito, etc.)
-  // antes de salvar — evita salvar sem o formato quando clica na toolbar
   _docTimer = setTimeout(docSalvar, 800);
 }
 
@@ -10992,8 +11003,15 @@ async function docSalvar() {
   const tituloDigitado = tituloInput?.value?.trim() || '';
   const titulo = tituloDigitado || docAtual?.titulo || 'Sem título';
 
-  // Conteúdo do Quill
-  const conteudo = _quill ? _quill.root.innerHTML : (docAtual?.conteudo || '');
+  // Conteúdo do Quill — proteção anti-apagamento
+  // Se o editor está vazio mas o cache tem conteúdo, NÃO sobrescrever
+  // Isso evita salvar conteúdo vazio durante carregamento ou falha do Quill
+  const conteudoEditor = _quill ? _quill.root.innerHTML : '';
+  const conteudoCache = docAtual?.conteudo || '';
+  const editorVazio = !conteudoEditor || conteudoEditor === '<p><br></p>' || conteudoEditor.trim() === '';
+  const cacheTemConteudo = conteudoCache && conteudoCache !== '<p><br></p>' && conteudoCache.trim() !== '';
+  // Se editor vazio mas cache tem conteúdo = carregando ou bug — usar cache
+  const conteudo = (editorVazio && cacheTemConteudo) ? conteudoCache : conteudoEditor;
 
   // Pasta: usa EXATAMENTE o que está no select (mesmo que seja '' = sem pasta)
   // NÃO usar || para não pular '' para o valor antigo
