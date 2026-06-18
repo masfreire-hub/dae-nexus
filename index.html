@@ -10767,7 +10767,13 @@ async function abrirDoc(id) {
       ]}
     });
 
-    _quill.on('text-change', () => {
+    _quill.on('text-change', (delta, old, source) => {
+      // Atualizar cache em tempo real com o conteúdo atual do editor
+      // Isso garante que fecharDoc sempre tem o conteúdo mais recente no cache
+      if (!window._docCarregando && _docId) {
+        const docAtual = _docsCache.find(d => d.id === _docId);
+        if (docAtual) docAtual.conteudo = _quill.root.innerHTML;
+      }
       docAgendar();
       const txt = _quill.getText().trim();
       const w = txt ? txt.split(/\s+/).filter(x=>x).length : 0;
@@ -10843,11 +10849,12 @@ async function abrirDoc(id) {
     const wEl = document.getElementById('docWords');
     if (wEl) wEl.textContent = w + ' palavra' + (w !== 1 ? 's' : '');
 
-    // Liberar saves após 500ms — tempo suficiente para o Quill estabilizar
+    // Liberar saves após 400ms e agendar um save do estado atual
     setTimeout(() => {
       window._docCarregando = false;
-      clearTimeout(_docTimer); // cancelar qualquer save agendado durante o carregamento
-    }, 500);
+      // Não cancelar timer aqui — pode ter conteúdo digitado que precisa ser salvo
+      // O editor agora está estável, qualquer text-change pendente pode prosseguir
+    }, 400);
   }
 
   _docStatus('');
@@ -10883,9 +10890,19 @@ document.addEventListener('keydown', function(e) {
 
 function fecharDoc() {
   clearTimeout(_docTimer);
-  // Garantir que o modo de carregamento está desligado antes de salvar
   window._docCarregando = false;
-  // Salvar o conteúdo atual e fechar
+
+  // Capturar conteúdo AGORA, antes de qualquer coisa fechar
+  const snapshotConteudo = _quill ? _quill.root.innerHTML : '';
+  const snapshotTitulo   = document.getElementById('docTituloInput')?.value?.trim() || '';
+  const docAtual = _docsCache.find(d => d.id === _docId);
+
+  // Se o editor tem conteúdo, garantir que o cache tem esse conteúdo para o docSalvar usar
+  if (snapshotConteudo && snapshotConteudo !== '<p><br></p>' && snapshotConteudo.trim() !== '') {
+    if (docAtual) docAtual.conteudo = snapshotConteudo;
+  }
+  if (snapshotTitulo && docAtual) docAtual.titulo = snapshotTitulo;
+
   docSalvar().then(() => {
     document.getElementById('docModal')?.classList.remove('on');
     _docId = null;
@@ -10995,34 +11012,28 @@ async function docSalvarTituloAgora() {
 
 async function docSalvar() {
   if (!_docId) return;
+  // Nunca salvar enquanto estamos carregando conteúdo no editor
+  if (window._docCarregando) return;
+
   const tituloInput = document.getElementById('docTituloInput');
   const pastaSelect  = document.getElementById('docPastaSelect');
   const docAtual     = _docsCache.find(d => d.id === _docId);
 
-  // Título: usa o digitado, se vazio usa o salvo no cache
+  // Título
   const tituloDigitado = tituloInput?.value?.trim() || '';
   const titulo = tituloDigitado || docAtual?.titulo || 'Sem título';
 
-  // Conteúdo do Quill — proteção anti-apagamento
-  // Se o editor está vazio mas o cache tem conteúdo, NÃO sobrescrever
-  // Isso evita salvar conteúdo vazio durante carregamento ou falha do Quill
+  // Conteúdo — regra de ouro: NUNCA sobrescrever conteúdo salvo com vazio
   const conteudoEditor = _quill ? _quill.root.innerHTML : '';
-  const conteudoCache = docAtual?.conteudo || '';
-  const editorVazio = !conteudoEditor || conteudoEditor === '<p><br></p>' || conteudoEditor.trim() === '';
+  const conteudoCache  = docAtual?.conteudo || '';
+  const editorVazio    = !conteudoEditor || conteudoEditor === '<p><br></p>' || conteudoEditor.trim() === '';
   const cacheTemConteudo = conteudoCache && conteudoCache !== '<p><br></p>' && conteudoCache.trim() !== '';
-  // Se editor vazio mas cache tem conteúdo = carregando ou bug — usar cache
   const conteudo = (editorVazio && cacheTemConteudo) ? conteudoCache : conteudoEditor;
 
-  // Pasta: usa EXATAMENTE o que está no select (mesmo que seja '' = sem pasta)
-  // NÃO usar || para não pular '' para o valor antigo
-  const pasta = pastaSelect != null ? pastaSelect.value : (docAtual?.pasta ?? '');
-
+  const pasta  = pastaSelect != null ? pastaSelect.value : (docAtual?.pasta ?? '');
   const acesso = window._docAcesso ?? docAtual?.acesso ?? [];
 
-  // Sincronizar campo de título se estava vazio mas havia título no cache
-  if (tituloInput && !tituloDigitado && titulo !== 'Sem título') {
-    tituloInput.value = titulo;
-  }
+  if (tituloInput && !tituloDigitado && titulo !== 'Sem título') tituloInput.value = titulo;
 
   try {
     _docStatus('editando');
@@ -11037,7 +11048,6 @@ async function docSalvar() {
       docAtual.pasta    = pasta;
       docAtual.acesso   = acesso;
     }
-
     _docStatus('salvo');
     setTimeout(() => _docStatus(''), 2500);
   } catch(e) {
