@@ -10777,22 +10777,22 @@ async function abrirDoc(id) {
 
     // Salvar ao perder foco do editor — MAS não quando o foco vai para o select de pasta
     _quill.root.addEventListener('blur', function(e) {
-      // Verificar se o foco foi para o select de pasta ou titulo (nesse caso onchange/onblur já salva)
+      // Só salvar se o foco saiu COMPLETAMENTE do docBox (modal inteiro)
+      // Toolbar, selects, botões internos = foco ainda dentro do modal = NÃO salvar aqui
       setTimeout(() => {
         const focused = document.activeElement;
-        const isPastaSelect = focused && focused.id === 'docPastaSelect';
-        const isTituloInput = focused && focused.id === 'docTituloInput';
-        if (!isPastaSelect && !isTituloInput) {
+        const docBox = document.getElementById('docBox');
+        const foiParaDentroDoModal = docBox && docBox.contains(focused);
+        // Se o foco ainda está dentro do modal, não salvar — o text-change já agenda
+        if (!foiParaDentroDoModal) {
           clearTimeout(_docTimer);
           docSalvar();
         }
-      }, 50);
+      }, 80);
     });
 
-    _quill.root.addEventListener('mouseup', function() {
-      clearTimeout(_docTimer);
-      _docTimer = setTimeout(docSalvar, 300);
-    });
+    // mouseup removido — evita salvar ANTES do Quill aplicar formato (alinhamento, negrito)
+    // O text-change já cuida de agendar o save após qualquer alteração
 
     _quill.root.addEventListener('dragstart', function() {
       _docDragStartedInside = true;
@@ -10890,7 +10890,9 @@ function fecharDoc() {
 function docAgendar() {
   _docStatus('editando');
   clearTimeout(_docTimer);
-  _docTimer = setTimeout(docSalvar, 300);
+  // 800ms: garante que o Quill terminou de aplicar formatação (alinhamento, negrito, etc.)
+  // antes de salvar — evita salvar sem o formato quando clica na toolbar
+  _docTimer = setTimeout(docSalvar, 800);
 }
 
 function docImprimirPDF() {
