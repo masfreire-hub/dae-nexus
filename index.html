@@ -2393,6 +2393,7 @@ select.sel{
     <div class="ni" id="navRadarDesktop" onclick="sw('risk',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nilb">Radar</span></div>
     <div class="ni" onclick="sw('gantt',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nilb">Timeline</span></div>
     <div class="ni" onclick="sw('painel',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nilb">Estratégico</span></div>
+    <div class="ni" id="navPremiacao" onclick="sw('premiacao',this)" style="display:none;"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span><span class="nilb">Premiação</span></div>
     <div class="ni" onclick="sw('nova',this)"><span class="niic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="nilb">Nova IA</span></div>
     <div class="sb-group" style="margin-top:8px;color:#EC4899;">MEU ESPAÇO</div>
     <div class="ni" onclick="sw('meuespaco',this)" style="background:linear-gradient(135deg,rgba(236,72,153,0.08),rgba(168,85,247,0.05));border:1px solid rgba(236,72,153,0.18);border-radius:10px;margin:2px 8px;">
@@ -3352,6 +3353,56 @@ select.sel{
   <div class="section-card">
     <div class="sec-header"><span class="sec-title">⚠️ Projetos em Risco</span></div>
     <div id="painelRisco"></div>
+  </div>
+</div>
+
+<div class="tab" id="t-premiacao">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+    <div>
+      <div class="page-title">🏆 Premiação Mensal</div>
+      <div class="page-sub">Ranking de desempenho — visível apenas para a gestão</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select id="premMesSelect" onchange="renderPremiacao()" style="padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:600;color:var(--tx);cursor:pointer;"></select>
+      <button onclick="abrirConfigPesos()" style="padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--tx2);cursor:pointer;display:flex;align-items:center;gap:6px;">⚙️ Critérios</button>
+    </div>
+  </div>
+
+  <div id="premBanner" style="margin-bottom:18px;"></div>
+
+  <!-- PÓDIO -->
+  <div id="premPodio" style="margin-bottom:18px;"></div>
+
+  <!-- RANKING COMPLETO -->
+  <div class="section-card" style="margin-bottom:14px;">
+    <div class="sec-header"><span class="sec-title">📋 Ranking Completo do Mês</span></div>
+    <div id="premRanking"></div>
+  </div>
+
+  <!-- SEM ENTREGAS NO MÊS -->
+  <div id="premSemEntregas"></div>
+
+  <!-- DETALHE DO SCORE -->
+  <div class="section-card">
+    <div class="sec-header"><span class="sec-title">🧮 Como o Score é Calculado</span></div>
+    <div style="padding:14px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:#4F46E5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Volume — 30%</div>
+        <div style="font-size:11px;color:var(--tx3);line-height:1.5;">Tarefas concluídas no mês, comparado ao maior volume da equipe.</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:#10B981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">No prazo — 35%</div>
+        <div style="font-size:11px;color:var(--tx3);line-height:1.5;">% de tarefas entregues dentro do prazo (atrasos justificados não contam contra).</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:#F59E0B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Prioridade — 20%</div>
+        <div style="font-size:11px;color:var(--tx3);line-height:1.5;">Peso extra para tarefas urgentes e de alta prioridade entregues.</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:#EC4899;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Consistência — 15%</div>
+        <div style="font-size:11px;color:var(--tx3);line-height:1.5;">Atualiza a tarefa com comentários e preenche a descrição corretamente.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4391,7 +4442,7 @@ function sw(name, el) {
   if (!tabEl) return;
   tabEl.classList.add('on');
   if (el) el.classList.add('on');
-  const titles = {home:'Dashboard',atividades:'⚡ Atividades',migracao:'🔄 Migração ClickUp',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos',procedimentos:'📋 Procedimentos',meuespaco:'Meu Espaço'};
+  const titles = {home:'Dashboard',atividades:'⚡ Atividades',migracao:'🔄 Migração ClickUp',proj:'Estações & Setores',tasks:'Tarefas',chat:'Chat',meet:'Agenda',risk:'Radar da Operação',gantt:'Timeline',painel:'Painel Estratégico',premiacao:'🏆 Premiação Mensal',nova:'Nova IA',team:'Equipe',horas:'Horas da Equipe',config:'Cadastros',arquivos:'Arquivos & Documentos',procedimentos:'📋 Procedimentos',meuespaco:'Meu Espaço'};
   const ttEl = document.getElementById('topbar-page-title');
   if (ttEl) ttEl.textContent = titles[name] || '';
   // Renderizar aba ativa
@@ -4414,6 +4465,7 @@ function sw(name, el) {
     risk:    () => { if(curUser?.av !== 'MA'){ showToast('⛔ Acesso restrito à gestora'); sw('home'); return; } try{renderRiscos();}catch(e){} },
     gantt:   () => { try{renderGantt();}catch(e){} },
     painel:  () => { try{renderPainel();}catch(e){} },
+    premiacao: () => { if(curUser?.av !== 'MA'){ showToast('⛔ Acesso restrito à gestora'); sw('home'); return; } try{renderPremiacao();}catch(e){console.error('renderPremiacao',e)} },
     meuespaco: () => {
       // Limpar backups antigos pesados do localStorage na primeira abertura
       try {
@@ -14443,7 +14495,303 @@ function renderPainel() {
   }
 }
 
-// ══ IA EXPANDIDA ════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// 🏆 PREMIAÇÃO MENSAL — Score composto de desempenho
+// ══════════════════════════════════════════════════════════════
+// Pesos padrão (ajustáveis via abrirConfigPesos)
+window._premPesos = window._premPesos || { volume: 30, prazo: 35, prioridade: 20, consistencia: 15 };
+
+function _premMesesDisponiveis() {
+  // Gera lista de meses com base nas tarefas concluídas existentes
+  const meses = new Set();
+  tar.forEach(t => {
+    const ref = t.updated_at || t.created_at;
+    if (t.ok && ref) {
+      const d = new Date(ref);
+      meses.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+  });
+  const hoje = new Date();
+  meses.add(`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`);
+  return [...meses].sort().reverse();
+}
+
+function _premLabelMes(chave) {
+  const [ano, mes] = chave.split('-').map(Number);
+  const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return `${nomes[mes-1]} / ${ano}`;
+}
+
+function _premPopularSelectMes() {
+  const sel = document.getElementById('premMesSelect');
+  if (!sel) return;
+  const meses = _premMesesDisponiveis();
+  const valorAtual = sel.value;
+  sel.innerHTML = meses.map(m => `<option value="${m}">${_premLabelMes(m)}</option>`).join('');
+  if (valorAtual && meses.includes(valorAtual)) sel.value = valorAtual;
+}
+
+// Calcula o score de cada membro para um mês específico (formato 'YYYY-MM')
+async function calcularScorePremiacao(mesChave) {
+  const [ano, mesNum] = mesChave.split('-').map(Number);
+  const inicioMes = new Date(ano, mesNum-1, 1);
+  const fimMes = new Date(ano, mesNum, 0, 23, 59, 59);
+
+  // Tarefas concluídas DENTRO do mês selecionado (com base na data de conclusão)
+  const tarefasDoMes = tar.filter(t => {
+    if (!t.ok) return false;
+    const ref = t.updated_at || t.created_at;
+    if (!ref) return false;
+    const d = new Date(ref);
+    return d >= inicioMes && d <= fimMes;
+  });
+
+  // Buscar contagem de comentários por tarefa (só das tarefas do mês, em lote)
+  // Mapa: tarefa_id -> quantidade de comentários
+  const mapaComentarios = {};
+  try {
+    const idsDoMes = tarefasDoMes.map(t => t.id).filter(Boolean);
+    if (idsDoMes.length) {
+      const { data: comsData } = await safeDb.from('comentarios').select('tarefa_id').in('tarefa_id', idsDoMes);
+      if (Array.isArray(comsData)) {
+        comsData.forEach(c => {
+          mapaComentarios[c.tarefa_id] = (mapaComentarios[c.tarefa_id] || 0) + 1;
+        });
+      }
+    }
+  } catch(e) {
+    console.warn('Não foi possível buscar comentários para o cálculo de premiação:', e);
+  }
+
+  // Teto de comentários para nota máxima nesse critério (configurável)
+  const TETO_COMENTARIOS = window._premTetoComentarios || 3;
+  // Tamanho mínimo de caracteres para a descrição contar como "preenchida"
+  const MIN_CHARS_DESCRICAO = window._premMinCharsDescricao || 15;
+
+  const dadosCompletos = memb.map(m => {
+    const minhas = tarefasDoMes.filter(t => t.resp === m.av);
+    const total = minhas.length;
+
+    // 1. Tarefas no prazo (atraso justificado não conta contra)
+    const noPrazo = minhas.filter(t => {
+      if (!t.prazo) return true; // sem prazo definido = não penaliza
+      const concl = new Date(t.updated_at || t.created_at);
+      const prazo = new Date(t.prazo + 'T23:59:59');
+      if (concl <= prazo) return true;
+      if (t.atraso_justificado) return true; // atraso não foi culpa do colaborador
+      return false;
+    }).length;
+    const taxaPrazo = total > 0 ? (noPrazo / total) : 0;
+
+    // 2. Prioridade — peso extra para urgente/alta
+    const altaPrior = minhas.filter(t => ['urgente','alta'].includes((t.prior||'').toLowerCase())).length;
+    const taxaPrioridade = total > 0 ? (altaPrior / total) : 0;
+
+    // 3. Consistência — agora composta por DUAS coisas:
+    //    a) Comentários/atualizações: quanto mais comentários na tarefa, melhor (até um teto)
+    //    b) Descrição preenchida: a tarefa tem descrição com conteúdo real, não vazia
+    let somaNotaComentarios = 0;
+    let descricoesPreenchidas = 0;
+    minhas.forEach(t => {
+      const qtdComentarios = mapaComentarios[t.id] || 0;
+      const notaComentario = Math.min(qtdComentarios / TETO_COMENTARIOS, 1); // 0 a 1
+      somaNotaComentarios += notaComentario;
+
+      const descTexto = (t.descricao || t.desc || '').trim();
+      if (descTexto.length >= MIN_CHARS_DESCRICAO) descricoesPreenchidas++;
+    });
+    const notaMediaComentarios = total > 0 ? (somaNotaComentarios / total) : 0;
+    const taxaDescricao = total > 0 ? (descricoesPreenchidas / total) : 0;
+    // Consistência final = 50% comentários + 50% descrição preenchida
+    const taxaConsistencia = (notaMediaComentarios * 0.5) + (taxaDescricao * 0.5);
+
+    return {
+      av: m.av, nome: m.nome, cor: m.cor, cargo: m.cargo, total,
+      noPrazo, taxaPrazo, altaPrior, taxaPrioridade,
+      notaMediaComentarios, descricoesPreenchidas, taxaDescricao, taxaConsistencia
+    };
+  });
+
+  const dados = dadosCompletos.filter(d => d.total > 0); // só entra no ranking quem entregou algo no mês
+  const semEntregas = dadosCompletos.filter(d => d.total === 0); // membros cadastrados sem nenhuma entrega no mês
+
+  const maxVolume = Math.max(...dados.map(d => d.total), 1);
+  const pesos = window._premPesos;
+
+  const ranking = dados.map(d => {
+    const scoreVolume      = (d.total / maxVolume) * pesos.volume;
+    const scorePrazo       = d.taxaPrazo * pesos.prazo;
+    const scorePrioridade  = d.taxaPrioridade * pesos.prioridade;
+    const scoreConsistencia= d.taxaConsistencia * pesos.consistencia;
+    const scoreFinal = scoreVolume + scorePrazo + scorePrioridade + scoreConsistencia;
+    return {
+      ...d,
+      scoreVolume: Math.round(scoreVolume*10)/10,
+      scorePrazo: Math.round(scorePrazo*10)/10,
+      scorePrioridade: Math.round(scorePrioridade*10)/10,
+      scoreConsistencia: Math.round(scoreConsistencia*10)/10,
+      scoreFinal: Math.round(scoreFinal*10)/10
+    };
+  }).sort((a,b) => b.scoreFinal - a.scoreFinal || b.taxaPrazo - a.taxaPrazo);
+
+  return { ranking, semEntregas };
+}
+
+async function renderPremiacao() {
+  _premPopularSelectMes();
+  const sel = document.getElementById('premMesSelect');
+  if (!sel || !sel.value) { setTimeout(renderPremiacao, 100); return; }
+  const mesChave = sel.value;
+
+  // Mostrar estado de carregamento enquanto busca comentários no banco
+  const rankEl0 = document.getElementById('premRanking');
+  if (rankEl0) rankEl0.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:24px 0;text-align:center;">⏳ Calculando pontuações...</div>';
+  const podioEl0 = document.getElementById('premPodio');
+  if (podioEl0) podioEl0.innerHTML = '';
+
+  const { ranking, semEntregas } = await calcularScorePremiacao(mesChave);
+
+  const banner = document.getElementById('premBanner');
+  if (banner) {
+    banner.innerHTML = `
+      <div style="background:linear-gradient(135deg,#FEF3C7,#FFFBEB);border:1.5px solid #FCD34D;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;">
+        <div style="font-size:24px;">🔒</div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#92400E;">Painel exclusivo da gestão</div>
+          <div style="font-size:11px;color:#A16207;">Este ranking não é visível para os colaboradores. Use-o para definir a premiação de ${_premLabelMes(mesChave)}.</div>
+        </div>
+      </div>`;
+  }
+
+  const podioEl = document.getElementById('premPodio');
+  if (podioEl) {
+    if (!ranking.length) {
+      podioEl.innerHTML = '<div class="section-card" style="text-align:center;padding:40px;color:var(--tx3);">Nenhuma tarefa concluída neste mês ainda.</div>';
+    } else {
+      const top3 = ranking.slice(0,3);
+      const medalhas = ['🥇','🥈','🥉'];
+      const cores = ['linear-gradient(135deg,#F59E0B,#FBBF24)','linear-gradient(135deg,#94A3B8,#CBD5E1)','linear-gradient(135deg,#B45309,#D97706)'];
+      const ordem = top3.length >= 3 ? [1,0,2] : top3.map((_,i)=>i); // 2º-1º-3º visual de pódio
+      podioEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(${top3.length},1fr);gap:14px;align-items:end;">
+        ${ordem.map(idx => {
+          const p = top3[idx];
+          if (!p) return '';
+          const alturaExtra = idx === 0 ? '0px' : idx === 1 ? '18px' : '30px';
+          return `
+          <div style="background:${cores[idx]};border-radius:16px;padding:${20-Number(alturaExtra.replace('px',''))/2}px 18px;text-align:center;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.12);margin-top:${alturaExtra};position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-15px;right:-15px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.15);"></div>
+            <div style="font-size:32px;margin-bottom:6px;">${medalhas[idx]}</div>
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;margin:0 auto 8px;border:2px solid rgba(255,255,255,.4);">${p.av}</div>
+            <div style="font-size:14px;font-weight:800;margin-bottom:2px;">${p.nome.split(' ').slice(0,2).join(' ')}</div>
+            <div style="font-size:11px;opacity:.85;margin-bottom:8px;">${p.cargo||''}</div>
+            <div style="font-size:26px;font-weight:900;">${p.scoreFinal}</div>
+            <div style="font-size:10px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;">pontos</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+  }
+
+  const rankEl = document.getElementById('premRanking');
+  if (rankEl) {
+    if (!ranking.length) {
+      rankEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:16px 0;">Sem dados suficientes para este mês.</div>';
+    } else {
+      rankEl.innerHTML = `
+        <div style="display:grid;grid-template-columns:36px 1fr 90px 90px 90px 90px 70px;gap:8px;padding:8px 10px;font-size:10px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);">
+          <div>#</div><div>Colaborador</div><div style="text-align:center;">Volume</div><div style="text-align:center;">No Prazo</div><div style="text-align:center;">Prioridade</div><div style="text-align:center;">Consist.</div><div style="text-align:center;">Score</div>
+        </div>
+        ${ranking.map((r,i) => `
+        <div style="display:grid;grid-template-columns:36px 1fr 90px 90px 90px 90px 70px;gap:8px;padding:10px;align-items:center;border-bottom:1px solid var(--border);${i<3?'background:linear-gradient(90deg,rgba(245,158,11,.04),transparent);':''}">
+          <div style="font-weight:900;font-size:13px;color:${i===0?'#F59E0B':i===1?'#94A3B8':i===2?'#B45309':'var(--tx3)'};">${i+1}º</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:26px;height:26px;border-radius:50%;background:${r.cor||'#4F46E5'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">${r.av}</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--tx);">${r.nome}</div>
+              <div style="font-size:10px;color:var(--tx3);">${r.total} tarefas concluídas</div>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--tx2);">${r.scoreVolume}<span style="color:var(--tx3);font-size:9px;">/30</span></div>
+          <div style="text-align:center;font-size:11px;color:var(--tx2);">${r.scorePrazo}<span style="color:var(--tx3);font-size:9px;">/35</span></div>
+          <div style="text-align:center;font-size:11px;color:var(--tx2);">${r.scorePrioridade}<span style="color:var(--tx3);font-size:9px;">/20</span></div>
+          <div style="text-align:center;font-size:11px;color:var(--tx2);">${r.scoreConsistencia}<span style="color:var(--tx3);font-size:9px;">/15</span></div>
+          <div style="text-align:center;font-size:16px;font-weight:900;color:${i<3?'#F59E0B':'var(--tx)'};">${r.scoreFinal}</div>
+        </div>`).join('')}
+      `;
+    }
+  }
+
+  // Aviso de membros cadastrados sem nenhuma entrega no mês selecionado
+  const semEntregasEl = document.getElementById('premSemEntregas');
+  if (semEntregasEl) {
+    if (!semEntregas.length) {
+      semEntregasEl.innerHTML = '';
+    } else {
+      semEntregasEl.innerHTML = `
+        <div class="section-card" style="margin-bottom:14px;border:1.5px solid #FCA5A5;background:linear-gradient(135deg,#FEF2F2,#fff);">
+          <div class="sec-header"><span class="sec-title" style="color:#B91C1C;">⚠️ Sem entregas em ${_premLabelMes(mesChave)}</span></div>
+          <div style="font-size:11px;color:#991B1B;margin-bottom:10px;">Estes colaboradores estão cadastrados mas não têm nenhuma tarefa concluída neste mês. Verifique se é falta de entrega real ou um problema de cadastro (ex: tarefas atribuídas a outra sigla).</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${semEntregas.map(m => `
+              <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #FECACA;border-radius:10px;padding:8px 12px;">
+                <div style="width:24px;height:24px;border-radius:50%;background:${m.cor||'#9CA3AF'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;">${m.av}</div>
+                <div>
+                  <div style="font-size:12px;font-weight:700;color:var(--tx);">${m.nome}</div>
+                  <div style="font-size:10px;color:#B91C1C;">0 tarefas concluídas</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+  }
+}
+
+function abrirConfigPesos() {
+  const p = window._premPesos;
+  const overlay = document.createElement('div');
+  overlay.id = 'premPesosOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+      <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:4px;">⚙️ Critérios de Pontuação</div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:18px;">Ajuste o peso de cada critério. A soma deve totalizar 100%.</div>
+      ${['volume','prazo','prioridade','consistencia'].map(k => {
+        const labels = {volume:'📦 Volume de entregas', prazo:'✅ Entrega no prazo', prioridade:'🔥 Prioridade/urgência', consistencia:'🎯 Consistência (sem retrabalho)'};
+        return `<div style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px;">
+            <span>${labels[k]}</span><span id="pesoVal_${k}" style="font-weight:800;color:#4F46E5;">${p[k]}%</span>
+          </div>
+          <input type="range" min="0" max="100" value="${p[k]}" oninput="document.getElementById('pesoVal_${k}').textContent=this.value+'%'" id="pesoInput_${k}" style="width:100%;accent-color:#4F46E5;">
+        </div>`;
+      }).join('')}
+      <div style="display:flex;gap:8px;margin-top:18px;">
+        <button onclick="window._premPesos={volume:30,prazo:35,prioridade:20,consistencia:15};document.getElementById('premPesosOverlay').remove();renderPremiacao();" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--tx2);font-size:12px;font-weight:700;cursor:pointer;">Restaurar padrão</button>
+        <button onclick="salvarPesosPremiacao()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#4F46E5;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Salvar</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function salvarPesosPremiacao() {
+  const novo = {
+    volume: Number(document.getElementById('pesoInput_volume')?.value || 30),
+    prazo: Number(document.getElementById('pesoInput_prazo')?.value || 35),
+    prioridade: Number(document.getElementById('pesoInput_prioridade')?.value || 20),
+    consistencia: Number(document.getElementById('pesoInput_consistencia')?.value || 15)
+  };
+  const soma = novo.volume + novo.prazo + novo.prioridade + novo.consistencia;
+  if (soma !== 100) {
+    showToast(`⚠️ Os pesos somam ${soma}%, ajuste para totalizar 100%`);
+    return;
+  }
+  window._premPesos = novo;
+  document.getElementById('premPesosOverlay')?.remove();
+  renderPremiacao();
+  showToast('✅ Critérios atualizados!');
+}
+
 async function gerarTarefasIA() {
   const nomes = proj.filter(p=>p.status!=='concluido').map(p=>p.nome);
   if (!nomes.length) { showToast('⚠️ Nenhum projeto ativo'); return; }
@@ -15259,6 +15607,8 @@ async function entrarNoApp(usuario) {
   if (_rM) _rM.style.display = _isMa ? '' : 'none';
   if (_rK) _rK.style.display = _isMa ? '' : 'none';
   if (_rCard) _rCard.style.display = _isMa ? '' : 'none';
+  const _navPrem = document.getElementById('navPremiacao');
+  if (_navPrem) _navPrem.style.display = _isMa ? 'flex' : 'none';
   sw('home', document.querySelector('.ni.on'));
   try { renderNova(); } catch(e) {}
   // Forçar scroll no topo
