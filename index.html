@@ -5657,15 +5657,18 @@ function fmtTempoHMS(s) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 
-function toggleTimerAtiv() {
+async function toggleTimerAtiv() {
   const id = document.getElementById('mDetalheAtivId')?.value;
   if (!id) return;
   if (String(ativTimerId) === String(id) && ativTimerInicio) {
-    pararTimerAtiv(id);
+    await pararTimerAtiv(id);
+    // Atualiza o display do modal com o total acumulado
+    const a = ativs.find(x => x.id === id);
+    _atualizarUITimerAtiv(false, a?.tempo_gasto || 0);
   } else {
-    // Se há um timer de atividade em outra atividade, para antes
-    if (ativTimerId && ativTimerId !== id) pararTimerAtiv(ativTimerId);
-    iniciarTimerAtiv(id);
+    // Se há timer em outra atividade, para antes
+    if (ativTimerId && ativTimerId !== id) await pararTimerAtiv(ativTimerId);
+    await iniciarTimerAtiv(id);
   }
 }
 
@@ -5673,13 +5676,19 @@ async function iniciarTimerAtiv(ativId) {
   const a = ativs.find(x => x.id === ativId);
   if (!a) return;
 
-  // Buscar tempo acumulado atual
+  // Buscar tempo acumulado — prioridade: banco > objeto local > 0
+  // Nunca zerar o que ja foi acumulado
   let acumulado = a.tempo_gasto || 0;
   try {
     const { data } = await safeDb.from('atividades').select('tempo_gasto').eq('id', ativId).single();
-    acumulado = data?.tempo_gasto || 0;
+    const tempoNoBanco = data?.tempo_gasto || 0;
+    // Usar o maior valor entre banco e local (garante que nenhuma sessao se perca)
+    acumulado = Math.max(tempoNoBanco, a.tempo_gasto || 0);
     a.tempo_gasto = acumulado;
-  } catch(e) {}
+  } catch(e) {
+    // Banco falhou — manter o que tiver no objeto local
+    acumulado = a.tempo_gasto || 0;
+  }
 
   clearInterval(ativTimerInterval);
   ativTimerId = ativId;
@@ -5734,29 +5743,43 @@ async function pararTimerAtiv(ativId) {
   clearInterval(ativTimerInterval);
   ativTimerInterval = null;
 
-  const elapsed = Math.floor((Date.now() - ativTimerInicio) / 1000);
+  const agora = Date.now();
+  const elapsed = Math.max(1, Math.floor((agora - ativTimerInicio) / 1000));
+
+  // Acumulado vem do localStorage (fonte mais confiavel — salvo no inicio da sessao)
   let acumulado = 0;
-  try { acumulado = JSON.parse(localStorage.getItem('dae_atv_timer')||'{}').acumulado || 0; } catch(e) {}
+  try {
+    const salvo = JSON.parse(localStorage.getItem('dae_atv_timer') || '{}');
+    acumulado = salvo.acumulado || 0;
+  } catch(e) {}
+
+  // Se o localStorage falhou (acumulado=0), tenta pegar do objeto local como fallback
+  const a = ativs.find(x => x.id === ativId);
+  if (acumulado === 0 && a?.tempo_gasto > 0) {
+    acumulado = a.tempo_gasto;
+  }
+
   const novoTotal = acumulado + elapsed;
 
+  // Limpar estado do timer ANTES de qualquer render
   localStorage.removeItem('dae_atv_timer');
   ativTimerId = null;
   ativTimerInicio = null;
+
+  // Atualizar objeto local imediatamente (antes de qualquer re-render)
+  if (a) a.tempo_gasto = novoTotal;
 
   // Atualizar time_entry
   try {
     const entryId = localStorage.getItem('dae_atv_timer_entry_id');
     localStorage.removeItem('dae_atv_timer_entry_id');
     if (entryId && elapsed > 0) {
-      safeDb.from('time_entries').update({ fim: new Date().toISOString(), duracao: elapsed })
+      safeDb.from('time_entries').update({ fim: new Date(agora).toISOString(), duracao: elapsed })
         .eq('id', entryId).then(()=>{}).catch(()=>{});
     }
   } catch(e) {}
 
-  // Salvar tempo_gasto na atividade
-  const a = ativs.find(x => x.id === ativId);
-  if (a) a.tempo_gasto = novoTotal;
-
+  // Salvar tempo_gasto no banco
   if (!String(ativId).startsWith('local_')) {
     try {
       await safeDb.from('atividades').update({ tempo_gasto: novoTotal, updated_at: new Date().toISOString() }).eq('id', ativId);
@@ -5847,15 +5870,19 @@ function _restaurarTimerAtiv() {
   } catch(e) {}
 }
 
-function _toggleTimerAtivRow(ativId) {
+async function _toggleTimerAtivRow(ativId) {
   if (String(ativTimerId) === String(ativId) && ativTimerInicio) {
-    pararTimerAtiv(ativId);
+    // PARAR — espera salvar no banco antes de re-renderizar
+    await pararTimerAtiv(ativId);
+    try { renderHierarquia(); } catch(e) {}
   } else {
-    if (ativTimerId && ativTimerId !== ativId) pararTimerAtiv(ativTimerId);
-    iniciarTimerAtiv(ativId).then(() => {
-      // Re-renderizar lista após iniciar para atualizar botão
-      try { renderHierarquia(); } catch(e) {}
-    });
+    // Parar outro timer ativo, se houver
+    if (ativTimerId && ativTimerId !== ativId) {
+      await pararTimerAtiv(ativTimerId);
+    }
+    // INICIAR — espera buscar acumulado do banco antes de renderizar
+    await iniciarTimerAtiv(ativId);
+    try { renderHierarquia(); } catch(e) {}
   }
 }
 
