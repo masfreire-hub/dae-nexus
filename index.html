@@ -3974,6 +3974,15 @@ select.sel{
     <div style="font-size:11px;color:var(--tx3);text-align:center;padding:16px;">Nenhuma atualização ainda</div>
   </div>
 
+  <!-- Timer de atividade -->
+  <div id="ativTimerBlock" style="background:linear-gradient(135deg,#1E293B 0%,#334155 100%);border-radius:12px;padding:14px 16px;color:#fff;margin-bottom:14px;display:flex;align-items:center;gap:14px;">
+    <div style="flex:1;">
+      <div style="font-size:9px;font-weight:700;opacity:.6;letter-spacing:.9px;text-transform:uppercase;margin-bottom:4px;" id="ativTimerLabel">⏱ TEMPO REGISTRADO</div>
+      <div style="font-size:24px;font-weight:800;font-family:monospace;letter-spacing:2px;" id="ativTimerDisplay">00:00:00</div>
+    </div>
+    <button id="ativTimerBtn" onclick="toggleTimerAtiv()" style="padding:9px 18px;border-radius:10px;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;">▶ Iniciar</button>
+  </div>
+
   <div style="display:flex;gap:8px;">
     <button class="btncanc" onclick="closeM('mDetalheAtiv')" style="flex:1">Fechar</button>
     <button class="btnp" onclick="salvarDetalheAtiv()" style="flex:1">💾 Salvar</button>
@@ -4670,6 +4679,8 @@ let _tlMonitorInterval   = null;
 let _timerAutoSaveInterval = null;
 let _horasOffset         = 0;
 let timerTarefaId = null, timerInicio = null, timerInterval = null;
+// ── TIMER DE ATIVIDADE (independente do timer de tarefa) ──────────
+let ativTimerId = null, ativTimerInicio = null, ativTimerInterval = null;
 let curPF = 'todos', curTF = 'todas', curView = 'lista', curChId = null;
 let curChName = '', curTeamView = 'cards', curUser = null;
 
@@ -5324,7 +5335,8 @@ function renderAtivItem(a) {
     + (setor ? '<span style="font-size:10px;color:var(--tx3);">📁 '+setor.nome+'</span>' : '')
     + (a.prazo ? '<span style="font-size:10px;font-weight:600;color:'+(new Date(a.prazo)<new Date()&&st!=='concluida'?'#EF4444':'var(--tx3)')+'">📅 '+new Date(a.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</span>' : '')
     + '</div></div>'
-    + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+    + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'\
+    + (() => { const rodando = String(ativTimerId) === String(a.id) && !!ativTimerInicio; const tg = a.tempo_gasto||0; return (tg>0?'<span style="font-size:10px;font-weight:700;color:#059669;white-space:nowrap;">⏱'+fmtTempo(tg)+'</span>':'')+`<button onclick="event.stopPropagation();_toggleTimerAtivRow('${a.id}')" title="${rodando?'Parar':'Iniciar'} timer" style="width:28px;height:28px;border-radius:8px;background:${rodando?'rgba(239,68,68,.12)':'rgba(16,185,129,.12)'};border:1px solid ${rodando?'rgba(239,68,68,.35)':'rgba(16,185,129,.35)'};cursor:pointer;font-size:13px;color:${rodando?'#EF4444':'#059669'};display:flex;align-items:center;justify-content:center;">${rodando?'⏹':'▶'}</button>`; })()
     + '<span style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:'+stCor+'18;color:'+stCor+';border:1px solid '+stCor+'33;white-space:nowrap;">'+(statusLabel[st]||st)+'</span>'
     + (autor ? '<div style="width:28px;height:28px;border-radius:8px;background:'+(autor.cor||'#4F46E5')+'22;color:'+(autor.cor||'#4F46E5')+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;" title="'+autor.nome+'">'+autor.av+'</div>' : '')
     + '<button onclick="event.stopPropagation();abrirEditAtiv(\''+a.id+'\')" style="width:26px;height:26px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;font-size:11px;">✏️</button>'
@@ -5547,6 +5559,13 @@ function abrirDetalheAtiv(id) {
   });
   // Histórico
   _renderHistoricoAtiv(a);
+
+  // Timer de atividade
+  const rodando = String(ativTimerId) === String(id) && !!ativTimerInicio;
+  let tempoBase = a.tempo_gasto || 0;
+  if (rodando) tempoBase += Math.floor((Date.now() - ativTimerInicio) / 1000);
+  _atualizarUITimerAtiv(rodando, tempoBase);
+
   openM('mDetalheAtiv');
 }
 
@@ -5617,6 +5636,7 @@ async function salvarDetalheAtiv() {
   if (titulo) dados.titulo = titulo;
   dados.prazo = prazo;
   if (autor) dados.autor = autor;
+  // Nunca sobrescrever tempo_gasto no salvamento manual
   const { error } = await safeDb.from('atividades').update(dados).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
   Object.assign(a, dados);
@@ -5624,6 +5644,220 @@ async function salvarDetalheAtiv() {
   try { renderHierarquia(); } catch(e) {}
   try { renderDashAtividades(); } catch(e) {}
   showToast('✅ Atividade atualizada!');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TIMER DE ATIVIDADE — start/stop independente do timer de tarefas
+// ══════════════════════════════════════════════════════════════════
+
+function fmtTempoHMS(s) {
+  if (!s || s < 0) s = 0;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function toggleTimerAtiv() {
+  const id = document.getElementById('mDetalheAtivId')?.value;
+  if (!id) return;
+  if (String(ativTimerId) === String(id) && ativTimerInicio) {
+    pararTimerAtiv(id);
+  } else {
+    // Se há um timer de atividade em outra atividade, para antes
+    if (ativTimerId && ativTimerId !== id) pararTimerAtiv(ativTimerId);
+    iniciarTimerAtiv(id);
+  }
+}
+
+async function iniciarTimerAtiv(ativId) {
+  const a = ativs.find(x => x.id === ativId);
+  if (!a) return;
+
+  // Buscar tempo acumulado atual
+  let acumulado = a.tempo_gasto || 0;
+  try {
+    const { data } = await safeDb.from('atividades').select('tempo_gasto').eq('id', ativId).single();
+    acumulado = data?.tempo_gasto || 0;
+    a.tempo_gasto = acumulado;
+  } catch(e) {}
+
+  clearInterval(ativTimerInterval);
+  ativTimerId = ativId;
+  ativTimerInicio = Date.now();
+
+  // Persistir no localStorage
+  localStorage.setItem('dae_atv_timer', JSON.stringify({ ativId, inicio: ativTimerInicio, acumulado }));
+
+  // Salvar sessão no time_entries (atividade_id via tarefa_id=null + metadado)
+  try {
+    const { data: entry } = await safeDb.from('time_entries').insert([{
+      tarefa_id: null,
+      membro_av: curUser?.av || 'MA',
+      inicio: new Date(ativTimerInicio).toISOString(),
+      duracao: 0,
+      atividade_id: ativId   // coluna extra — silencia erro se não existir
+    }]).select().single();
+    if (entry) localStorage.setItem('dae_atv_timer_entry_id', entry.id);
+  } catch(e) {
+    // Coluna atividade_id pode não existir ainda — insere sem ela
+    try {
+      const { data: entry } = await safeDb.from('time_entries').insert([{
+        tarefa_id: null,
+        membro_av: curUser?.av || 'MA',
+        inicio: new Date(ativTimerInicio).toISOString(),
+        duracao: 0
+      }]).select().single();
+      if (entry) localStorage.setItem('dae_atv_timer_entry_id', entry.id);
+    } catch(e2) {}
+  }
+
+  // Atualizar UI do modal
+  _atualizarUITimerAtiv(true, acumulado);
+
+  // Interval — atualiza display a cada segundo
+  ativTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - ativTimerInicio) / 1000);
+    const display = document.getElementById('ativTimerDisplay');
+    if (display) display.textContent = fmtTempoHMS(acumulado + elapsed);
+    // Atualizar timer-bar flutuante se for esta atividade
+    _atualizarTimerBarAtiv(a.titulo, acumulado + elapsed);
+  }, 1000);
+
+  // Mostrar timer bar
+  _atualizarTimerBarAtiv(a.titulo, acumulado);
+  showToast('▶ Timer de atividade iniciado!');
+}
+
+async function pararTimerAtiv(ativId) {
+  if (!ativTimerInicio) return;
+
+  clearInterval(ativTimerInterval);
+  ativTimerInterval = null;
+
+  const elapsed = Math.floor((Date.now() - ativTimerInicio) / 1000);
+  let acumulado = 0;
+  try { acumulado = JSON.parse(localStorage.getItem('dae_atv_timer')||'{}').acumulado || 0; } catch(e) {}
+  const novoTotal = acumulado + elapsed;
+
+  localStorage.removeItem('dae_atv_timer');
+  ativTimerId = null;
+  ativTimerInicio = null;
+
+  // Atualizar time_entry
+  try {
+    const entryId = localStorage.getItem('dae_atv_timer_entry_id');
+    localStorage.removeItem('dae_atv_timer_entry_id');
+    if (entryId && elapsed > 0) {
+      safeDb.from('time_entries').update({ fim: new Date().toISOString(), duracao: elapsed })
+        .eq('id', entryId).then(()=>{}).catch(()=>{});
+    }
+  } catch(e) {}
+
+  // Salvar tempo_gasto na atividade
+  const a = ativs.find(x => x.id === ativId);
+  if (a) a.tempo_gasto = novoTotal;
+
+  if (!String(ativId).startsWith('local_')) {
+    try {
+      await safeDb.from('atividades').update({ tempo_gasto: novoTotal, updated_at: new Date().toISOString() }).eq('id', ativId);
+    } catch(e) {
+      console.error('Erro ao salvar tempo da atividade:', e);
+    }
+  }
+
+  // Esconder timer bar
+  _esconderTimerBarAtiv();
+
+  // Atualizar UI do modal (se ainda estiver aberto para esta atividade)
+  const modalId = document.getElementById('mDetalheAtivId')?.value;
+  if (String(modalId) === String(ativId)) {
+    _atualizarUITimerAtiv(false, novoTotal);
+  }
+
+  // Re-renderizar lista de atividades para atualizar o tempo exibido
+  try { renderHierarquia(); } catch(e) {}
+
+  showToast('⏹ +' + fmtTempo(elapsed) + ' | Total atividade: ' + fmtTempo(novoTotal));
+}
+
+function _atualizarUITimerAtiv(rodando, tempoBase) {
+  const block = document.getElementById('ativTimerBlock');
+  const label = document.getElementById('ativTimerLabel');
+  const display = document.getElementById('ativTimerDisplay');
+  const btn = document.getElementById('ativTimerBtn');
+  if (!block) return;
+
+  if (rodando) {
+    block.style.background = 'linear-gradient(135deg,#059669 0%,#10B981 100%)';
+    block.style.animation = 'timerPulse 2s ease-in-out infinite';
+    if (label) { label.innerHTML = '<span class="det-timer-dot"></span> EM ANDAMENTO'; }
+    if (btn) { btn.textContent = '⏹ Parar'; btn.style.background = 'rgba(239,68,68,.25)'; btn.style.borderColor = 'rgba(239,68,68,.6)'; }
+  } else {
+    block.style.background = 'linear-gradient(135deg,#1E293B 0%,#334155 100%)';
+    block.style.animation = '';
+    if (label) label.textContent = '⏱ TEMPO REGISTRADO';
+    if (btn) { btn.textContent = '▶ Iniciar'; btn.style.background = 'rgba(255,255,255,.15)'; btn.style.borderColor = 'rgba(255,255,255,.35)'; }
+  }
+  if (display) display.textContent = fmtTempoHMS(tempoBase || 0);
+}
+
+function _atualizarTimerBarAtiv(titulo, segundos) {
+  const bar = document.getElementById('timerBar');
+  const task = document.getElementById('timerTask');
+  const count = document.getElementById('timerCount');
+  if (!bar) return;
+  if (task) task.textContent = '⚡ ' + (titulo || 'Atividade').slice(0, 30);
+  if (count) count.textContent = fmtTempoHMS(segundos);
+  bar.classList.add('on');
+  // O botão PARAR da timer bar chama stopTimerGlobal
+  const btn = bar.querySelector('button');
+  if (btn) btn.onclick = () => { const id = ativTimerId; if (id) pararTimerAtiv(id); };
+}
+
+function _esconderTimerBarAtiv() {
+  // Só esconde se não há timer de tarefa ativo
+  if (!timerTarefaId) {
+    const bar = document.getElementById('timerBar');
+    if (bar) bar.classList.remove('on');
+  }
+}
+
+// Restaurar timer de atividade ao recarregar a página
+function _restaurarTimerAtiv() {
+  try {
+    const salvo = JSON.parse(localStorage.getItem('dae_atv_timer') || 'null');
+    if (!salvo || !salvo.ativId || !salvo.inicio) return;
+    const a = ativs.find(x => x.id === salvo.ativId);
+    if (!a) return;
+    ativTimerId = salvo.ativId;
+    ativTimerInicio = salvo.inicio;
+    const acumulado = salvo.acumulado || 0;
+    const elapsed = Math.floor((Date.now() - ativTimerInicio) / 1000);
+    _atualizarTimerBarAtiv(a.titulo, acumulado + elapsed);
+    ativTimerInterval = setInterval(() => {
+      const elps = Math.floor((Date.now() - ativTimerInicio) / 1000);
+      _atualizarTimerBarAtiv(a.titulo, acumulado + elps);
+      // Atualizar modal se aberto
+      const modalId = document.getElementById('mDetalheAtivId')?.value;
+      if (String(modalId) === String(ativTimerId)) {
+        const display = document.getElementById('ativTimerDisplay');
+        if (display) display.textContent = fmtTempoHMS(acumulado + elps);
+      }
+    }, 1000);
+  } catch(e) {}
+}
+
+function _toggleTimerAtivRow(ativId) {
+  if (String(ativTimerId) === String(ativId) && ativTimerInicio) {
+    pararTimerAtiv(ativId);
+  } else {
+    if (ativTimerId && ativTimerId !== ativId) pararTimerAtiv(ativTimerId);
+    iniciarTimerAtiv(ativId).then(() => {
+      // Re-renderizar lista após iniciar para atualizar botão
+      try { renderHierarquia(); } catch(e) {}
+    });
+  }
 }
 
 function openEditProj(id) {
@@ -13178,14 +13412,22 @@ function _renderAtivRowSimple(a, hoje) {
   const statusMap = {'a fazer':['#F1EFE8','#5F5E5A'],'em andamento':['#E6F1FB','#185FA5'],'em desenvolvimento':['#EEEDFE','#534AB7'],'aguardando':['#FAEEDA','#854F0B'],'concluida':['#EAF3DE','#3B6D11'],'concluída':['#EAF3DE','#3B6D11'],'cancelada':['#FCEBEB','#A32D2D']};
   const st = (a.status||'em andamento').toLowerCase().trim();
   const [sbg,sc] = statusMap[st]||['#F1EFE8','#5F5E5A'];
-  return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border-radius:8px;border:0.5px solid ${atrasada?'#F09595':'var(--border)'};cursor:pointer;" onclick="abrirDetalheAtiv('${a.id}')">
+  const rodando = String(ativTimerId) === String(a.id) && !!ativTimerInicio;
+  const tempoGasto = a.tempo_gasto || 0;
+  const btnTimerLabel = rodando ? '⏹' : '▶';
+  const btnTimerTitle = rodando ? 'Parar timer' : 'Iniciar timer';
+  const btnTimerBg = rodando ? 'rgba(239,68,68,.12)' : 'rgba(16,185,129,.12)';
+  const btnTimerColor = rodando ? '#EF4444' : '#059669';
+  return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border-radius:8px;border:0.5px solid ${atrasada?'#F09595':rodando?'#10B981':'var(--border)'};cursor:pointer;" onclick="abrirDetalheAtiv('${a.id}')">
     <div style="width:3px;height:28px;border-radius:0;background:${atrasada?'#E24B4A':cor};flex-shrink:0;"></div>
     <div style="flex:1;">
       <div style="font-size:12px;font-weight:500;color:${atrasada?'#791F1F':'var(--tx)'};">${a.titulo}</div>
       ${a.descricao?`<div style="font-size:10px;color:var(--tx3);">${a.descricao.slice(0,55)}${a.descricao.length>55?'…':''}</div>`:''}
+      ${tempoGasto>0?`<div style="font-size:9px;color:#059669;font-weight:700;margin-top:1px;">⏱ ${fmtTempo(tempoGasto)}</div>`:''}
     </div>
     <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${sbg};color:${sc};">${a.status||'Em andamento'}</span>
     ${autor?`<div style="width:24px;height:24px;border-radius:50%;background:${autor.cor||'#534AB7'}22;color:${autor.cor||'#534AB7'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;" title="${autor.nome}">${autor.av}</div>`:''}
+    <button onclick="event.stopPropagation();_toggleTimerAtivRow('${a.id}')" title="${btnTimerTitle}" style="width:28px;height:28px;border-radius:7px;background:${btnTimerBg};border:0.5px solid ${btnTimerColor}44;cursor:pointer;font-size:13px;color:${btnTimerColor};display:flex;align-items:center;justify-content:center;">${btnTimerLabel}</button>
     <button onclick="event.stopPropagation();excluirAtividade('${a.id}')" style="width:24px;height:24px;border-radius:6px;background:transparent;border:0.5px solid var(--border);cursor:pointer;font-size:11px;" onmouseover="this.style.background='#FCEBEB'" onmouseout="this.style.background='transparent'">🗑</button>
   </div>`;
 }
@@ -15656,6 +15898,8 @@ async function entrarNoApp(usuario) {
         localStorage.removeItem('dae_timer');
       }
     } catch(e) { localStorage.removeItem('dae_timer'); }
+    // Restaurar timer de atividade se estava ativo
+    setTimeout(_restaurarTimerAtiv, 200);
   }, 1500);
 }
 
@@ -16581,8 +16825,15 @@ function abrirDetalheHorasDia(av, dataStr, entriesJson) {
 
   const porTarefa = {};
   entries.forEach(e => {
-    const tid = e.tarefa_id;
-    if (!porTarefa[tid]) porTarefa[tid] = { titulo: e.tarefas?.titulo||'Sem título', segundos:0, sessoes:0 };
+    // Entradas de atividades têm tarefa_id null — usar chave especial
+    const tid = e.tarefa_id || ('atv_' + (e.atividade_id || 'avulso'));
+    let titulo = e.tarefas?.titulo || 'Sem título';
+    if (!e.tarefa_id) {
+      // Tentar achar o nome da atividade
+      const atv = ativs.find(x => String(x.id) === String(e.atividade_id));
+      titulo = '⚡ ' + (atv?.titulo || 'Atividade avulsa');
+    }
+    if (!porTarefa[tid]) porTarefa[tid] = { titulo, segundos:0, sessoes:0, isAtiv: !e.tarefa_id };
     porTarefa[tid].segundos += e.duracao||0;
     porTarefa[tid].sessoes++;
   });
@@ -16613,8 +16864,13 @@ function abrirDetalheHorasDia(av, dataStr, entriesJson) {
         ${Object.entries(porTarefa).map(([tid,info])=>{
           const pct = Math.round((info.segundos/total)*100);
           const cor = pct > 50 ? 'var(--brand)' : pct > 25 ? '#F59E0B' : '#10B981';
+          const isAtiv = info.isAtiv || tid.startsWith('atv_');
+          const clickAcao = isAtiv
+            ? `document.getElementById('horasDetalheModal').remove();abrirDetalheAtiv('${tid.replace('atv_','')}')`
+            : `document.getElementById('horasDetalheModal').remove();openDet('task','${tid}')`;
+          const verLabel = isAtiv ? 'Ver atividade →' : 'Ver tarefa →';
           return `<div style="margin-bottom:14px;padding:12px 14px;background:var(--surface2);border-radius:12px;cursor:pointer;border:1px solid var(--border);transition:border-color .15s;"
-            onclick="document.getElementById('horasDetalheModal').remove();openDet('task','${tid}')"
+            onclick="${clickAcao}"
             onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span style="font-size:13px;font-weight:700;color:var(--tx);flex:1;margin-right:12px;">${info.titulo}</span>
@@ -16625,7 +16881,7 @@ function abrirDetalheHorasDia(av, dataStr, entriesJson) {
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--tx3);">
               <span>${pct}% do tempo do dia</span>
-              <span>${info.sessoes} sessão${info.sessoes>1?'ões':''} · <span style="color:var(--brand);">Ver tarefa →</span></span>
+              <span>${info.sessoes} sessão${info.sessoes>1?'ões':''} · <span style="color:var(--brand);">${verLabel}</span></span>
             </div>
           </div>`;
         }).join('')}
