@@ -5619,6 +5619,10 @@ async function registrarUpdateAtiv() {
   a.updates = updates;
   document.getElementById('mDetalheAtivUpdate').value = '';
   _renderHistoricoAtiv(a);
+
+  // 🔔 Notificar MA sobre atualização de atividade
+  _notificarAtualizacaoAtividade(a, 'update', texto);
+
   showToast('✅ Atualização registrada!');
 }
 
@@ -5638,10 +5642,15 @@ async function salvarDetalheAtiv() {
   // Nunca sobrescrever tempo_gasto no salvamento manual
   const { error } = await safeDb.from('atividades').update(dados).eq('id', id);
   if (error) { showToast('❌ Erro: ' + error.message); return; }
+  const statusAnterior = a.status;
   Object.assign(a, dados);
   closeM('mDetalheAtiv');
   try { renderHierarquia(); } catch(e) {}
   try { renderDashAtividades(); } catch(e) {}
+
+  // 🔔 Notificar MA sobre mudança na atividade
+  _notificarAtualizacaoAtividade(a, 'status', statusAnterior !== status ? 'Status: ' + statusAnterior + ' → ' + status : null);
+
   showToast('✅ Atividade atualizada!');
 }
 
@@ -7628,6 +7637,10 @@ async function addComentario(tarefaId) {
     }
 
     await logAtividade('comentario', 'Comentário adicionado', textoFinal.slice(0,60), curUser?.av, null, tarefaId, '#3B82F6');
+
+    // 🔔 Notificações Telegram — comentário na tarefa
+    _notificarComentarioTelegram(tarefaId, textoFinal, imagemUrl);
+
     showToast(imagemUrl ? '🖼️ Imagem enviada!' : '💬 Comentário enviado!');
     inp?.focus();
   } finally {
@@ -8465,6 +8478,97 @@ async function enviarTelegram(chatId, texto) {
     const d = await r.json();
     if (!d.ok) console.warn('Telegram erro:', d.description, 'chat_id:', chatId);
   } catch(e) { console.warn('Telegram:', e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NOTIFICAÇÃO TELEGRAM — COMENTÁRIO EM TAREFA
+// Envia para: responsável + co-responsáveis + quem comentou (confirm) + MA
+// ══════════════════════════════════════════════════════════════════
+async function _notificarComentarioTelegram(tarefaId, texto, imagemUrl) {
+  try {
+    const t = tar.find(x => x.id === tarefaId);
+    if (!t) return;
+
+    const autorCom = curUser?.av;
+    const autorNome = curUser?.nome || autorCom || '—';
+    const tituloTarefa = t.titulo || t.tit || '(sem título)';
+    const p = proj.find(x => x.id === t.projeto_id);
+    const nomeProjeto = p?.nome || '';
+    const hora = new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+
+    // Montar lista de destinatários: resp + co-resps + MA (sem duplicatas)
+    const envolvidos = new Set();
+    if (t.resp) envolvidos.add(t.resp);
+    try { JSON.parse(t.co_responsaveis || '[]').forEach(av => envolvidos.add(av)); } catch(e) {}
+    envolvidos.add('MA'); // MA (Mabiane) sempre recebe
+
+    const textoPreview = texto && texto !== '[imagem]'
+      ? (texto.length > 120 ? texto.slice(0, 120) + '…' : texto)
+      : imagemUrl ? '[imagem anexada]' : '';
+
+    for (const av of envolvidos) {
+      const mb = memb.find(x => x.av === av);
+      if (!mb?.telegram_id) continue;
+
+      const eQuemComentou = av === autorCom;
+      const emoji = eQuemComentou ? '✅' : '💬';
+      const cabecalho = eQuemComentou
+        ? emoji + ' <b>Seu comentário foi enviado!</b>'
+        : emoji + ' <b>Novo comentário na sua tarefa</b>';
+
+      const msg = cabecalho + '\n\n'
+        + '📋 <b>' + tituloTarefa + '</b>\n'
+        + (nomeProjeto ? '📁 ' + nomeProjeto + '\n' : '')
+        + (eQuemComentou ? '' : '✍️ Por: <b>' + autorNome + '</b>\n')
+        + '🕐 ' + hora + '\n'
+        + (textoPreview ? '\n💬 <i>' + textoPreview.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</i>' : '');
+
+      await enviarTelegram(mb.telegram_id, msg);
+    }
+  } catch(e) { console.warn('Erro ao notificar comentário:', e); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NOTIFICAÇÃO TELEGRAM — ATUALIZAÇÃO DE ATIVIDADE (para MA)
+// ══════════════════════════════════════════════════════════════════
+async function _notificarAtualizacaoAtividade(a, tipo, detalhe) {
+  try {
+    const ma = memb.find(x => x.av === 'MA');
+    if (!ma?.telegram_id) return;
+
+    // Se quem atualizou for a própria MA, não notifica (evita spam)
+    // (descomente abaixo se quiser sempre notificar mesmo quando a MA faz a ação)
+    // if (curUser?.av === 'MA') return;
+
+    const setor = espacos?.find(e => e.id === a.espaco_id);
+    const resp = memb.find(x => x.av === a.autor);
+    const hora = new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const quem = curUser?.nome || curUser?.av || '—';
+
+    const statusLabel = { em_andamento:'▶ Em andamento', concluida:'✅ Concluída', pausada:'⏸ Pausada', pendente:'⏳ Pendente', cancelada:'❌ Cancelada' };
+
+    let cabecalho, corpo;
+    if (tipo === 'update') {
+      cabecalho = '📝 <b>Atualização registrada em atividade</b>';
+      corpo = (detalhe ? '\n💬 <i>' + String(detalhe).replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</i>' : '');
+    } else {
+      cabecalho = '🔄 <b>Atividade atualizada</b>';
+      corpo = (detalhe ? '\n' + detalhe : '');
+      // Adicionar status atual
+      const stLabel = statusLabel[a.status] || a.status || '—';
+      corpo += '\n📌 Status atual: ' + stLabel;
+    }
+
+    const msg = cabecalho + '\n\n'
+      + '⚡ <b>' + (a.titulo || '(sem título)') + '</b>\n'
+      + (setor ? '🏢 ' + setor.nome + '\n' : '')
+      + '👤 Responsável: ' + (resp?.nome || a.autor || '—') + '\n'
+      + '✍️ Ação por: <b>' + quem + '</b>\n'
+      + '🕐 ' + hora
+      + corpo;
+
+    await enviarTelegram(ma.telegram_id, msg);
+  } catch(e) { console.warn('Erro ao notificar atividade:', e); }
 }
 
 async function notificarTarefaTelegram(tarefa, evento, extra) {
@@ -13924,6 +14028,10 @@ async function salvarAtivSetor() {
     if (error) { showToast('❌ Erro: ' + error.message); return; }
     const idx = ativs.findIndex(x => x.id === editId);
     if (idx > -1) ativs[idx] = { ...ativs[idx], ...dados };
+
+    // 🔔 Notificar MA sobre edição de atividade
+    _notificarAtualizacaoAtividade({ ...ativs[idx], ...dados, id: editId }, 'status', null);
+
     showToast('✅ Atividade atualizada!');
   } else {
     // Nova atividade
