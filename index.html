@@ -4442,6 +4442,16 @@ select.sel{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/dist/umd/supabase.js"></script>
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
+// Normaliza texto removendo acentos e caixa, pra comparações de status nunca falharem por causa de acentuação
+function normTxt(s){ return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
+const STATUS_PROJ_FECHADO = ['concluido','concluida','cancelado','finalizado','done'];
+function isProjFechado(p){ return STATUS_PROJ_FECHADO.includes(normTxt(p.status)); }
+const STATUS_TAR_FECHADA = ['concluido','concluida','feito','feita','done','finalizado','publicado em producao','teste aprovado'];
+function isFechada(t){ return !!(t && (t.ok || STATUS_TAR_FECHADA.includes(normTxt(t.status)))); }
+function isTarAtrasada(t){ return !!(t && !isFechada(t) && t.prazo && new Date(t.prazo+'T23:59:59') < new Date()); }
+function isTarSemPrazo(t){ return !!(t && !isFechada(t) && !t.prazo); }
+function isAtivFechada(a){ return ['concluida','cancelada'].includes(normTxt(a && a.status)); }
+
 function sw(name, el) {
   const _dp = document.getElementById('detPanel');
   if (_dp) _dp.classList.remove('on');
@@ -4920,7 +4930,7 @@ async function loadAll() {
   await loadNotifs();
   renderAll();
   setTimeout(() => {
-    const projAtivos = proj.filter(p=>p.status!=='concluido');
+    const projAtivos = proj.filter(p=>!isProjFechado(p));
     animCounter(document.getElementById('statProjAtivos'), projAtivos.length);
     animCounter(document.getElementById('statUrgentes'), tar.filter(t=>!t.ok&&t.prior==='urgente').length);
     animCounter(document.getElementById('statMembros'), memb.length);
@@ -5041,10 +5051,6 @@ function renderDashInteligente() {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate()+7);
 
-  const statusFechado = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-  const isFechada = t => t.ok || statusFechado.includes((t.status||'').toLowerCase().trim());
-  const isProjFechado = p => ['concluido','concluída','cancelado','finalizado','done'].includes((p.status||'').toLowerCase().trim());
-
   // Projetos
   const projAtivos    = proj.filter(p => !isProjFechado(p));
   const projConcluidos= proj.filter(p => isProjFechado(p));
@@ -5056,7 +5062,7 @@ function renderDashInteligente() {
   // Tarefas
   const tarAbertas  = tar.filter(t => !isFechada(t));
   const tarUrgentes = tarAbertas.filter(t => t.prior === 'urgente');
-  const tarAtrasadas= tarAbertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const tarAtrasadas= tarAbertas.filter(t => isTarAtrasada(t));
 
   // Riscos
   const riscosAtivos = riscos.filter(r => r.status !== 'resolvido');
@@ -5085,6 +5091,8 @@ function renderDashInteligente() {
   const SVG_FIRE = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
   const SVG_CHECK= '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
 
+  const tarSemPrazo = tarAbertas.filter(t => isTarSemPrazo(t));
+
   // Alertas
   const alertas = [];
   projAtrasados.forEach(p => {
@@ -5103,6 +5111,9 @@ function renderDashInteligente() {
   }
   if (tarAtrasadas.length) {
     alertas.push({ tipo:'red', svg:SVG_RED, titulo:`${tarAtrasadas.length} tarefa${tarAtrasadas.length>1?'s':''} atrasada${tarAtrasadas.length>1?'s':''}`, sub:tarAtrasadas.slice(0,3).map(t=>t.titulo||t.tit||'').join(' · ') });
+  }
+  if (tarSemPrazo.length) {
+    alertas.push({ tipo:'yellow', svg:SVG_WARN, titulo:`${tarSemPrazo.length} tarefa${tarSemPrazo.length>1?'s':''} sem prazo definido`, sub:'Peça pra equipe preencher: '+tarSemPrazo.slice(0,3).map(t=>t.titulo||t.tit||'').join(' · ') });
   }
 
   const adEl = document.getElementById('alertasDash');
@@ -5175,7 +5186,7 @@ function renderDashInteligente() {
     const radarItens = [];
     projAtivos.forEach(p => {
       const tarefasProj = tar.filter(t => String(t.projeto_id) === String(p.id));
-      const atrasadas = tarefasProj.filter(t => !isFechada(t) && t.prazo && new Date(t.prazo) < hoje);
+      const atrasadas = tarefasProj.filter(t => isTarAtrasada(t));
       const semAtualiz = p.updated_at && (hoje - new Date(p.updated_at)) > 5 * 86400000;
       if (atrasadas.length >= 2) radarItens.push({ sev:'alto', texto:p.nome, sub:`${atrasadas.length} tarefas atrasadas` });
       else if (semAtualiz) radarItens.push({ sev:'medio', texto:p.nome, sub:'Sem atualização há mais de 5 dias' });
@@ -5195,7 +5206,7 @@ function renderDashInteligente() {
   if (saudeEl) {
     saudeEl.innerHTML = projAtivos.slice(0,6).map((p,i) => {
       const tf = tar.filter(t => String(t.projeto_id) === String(p.id));
-      const atrasadas = tf.filter(t => !isFechada(t) && t.prazo && new Date(t.prazo) < hoje).length;
+      const atrasadas = tf.filter(t => isTarAtrasada(t)).length;
       const rp = riscos.filter(r => String(r.projeto_id) === String(p.id) && r.status !== 'resolvido').length;
       const prazoOk = !p.fim || new Date(p.fim+'T23:59') >= hoje;
       const prog = p.prog || 0;
@@ -5324,7 +5335,7 @@ function renderAtivItem(a) {
   const cor = a.cor || '#4F46E5';
   const st = a.status || 'em_andamento';
   const stCor = statusCor[st] || '#3B82F6';
-  const _atrasada = a.prazo && st !== 'concluida' && new Date(a.prazo+'T23:59') < new Date();
+  const _atrasada = a.prazo && !isAtivFechada(a) && new Date(a.prazo+'T23:59') < new Date();
   return '<div style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s;'+(_atrasada?'border-left:4px solid #EF4444;background:rgba(239,68,68,0.06);':'')+'" onclick="abrirDetalheAtiv(\''+ a.id +'\')">'
     + '<div style="width:4px;height:40px;border-radius:4px;background:'+cor+';flex-shrink:0;"></div>'
     + '<div style="flex:1;min-width:0;">'
@@ -5333,7 +5344,7 @@ function renderAtivItem(a) {
     + a.titulo + '</div>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
     + (setor ? '<span style="font-size:10px;color:var(--tx3);">📁 '+setor.nome+'</span>' : '')
-    + (a.prazo ? '<span style="font-size:10px;font-weight:600;color:'+(new Date(a.prazo)<new Date()&&st!=='concluida'?'#EF4444':'var(--tx3)')+'">📅 '+new Date(a.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</span>' : '')
+    + (a.prazo ? '<span style="font-size:10px;font-weight:600;color:'+(new Date(a.prazo)<new Date()&&!isAtivFechada(a)?'#EF4444':'var(--tx3)')+'">📅 '+new Date(a.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</span>' : '')
     + '</div></div>'
     + (() => { const rodando = String(ativTimerId) === String(a.id) && !!ativTimerInicio; const tg = a.tempo_gasto||0; const btnC = rodando?'rgba(239,68,68,.12)':'rgba(16,185,129,.12)'; const btnBor = rodando?'rgba(239,68,68,.35)':'rgba(16,185,129,.35)'; const btnCol = rodando?'#EF4444':'#059669'; const btnIco = rodando?'⏹':'▶'; const btnTit = rodando?'Parar':'Iniciar'; return '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+(tg>0?'<span style="font-size:10px;font-weight:700;color:#059669;white-space:nowrap;">⏱'+fmtTempo(tg)+'</span>':'')+'<button onclick="event.stopPropagation();_toggleTimerAtivRow(\''+a.id+'\')" title="'+btnTit+' timer" style="width:28px;height:28px;border-radius:8px;background:'+btnC+';border:1px solid '+btnBor+';cursor:pointer;font-size:13px;color:'+btnCol+';display:flex;align-items:center;justify-content:center;">'+btnIco+'</button>'; })()
     + '<span style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:'+stCor+'18;color:'+stCor+';border:1px solid '+stCor+'33;white-space:nowrap;">'+(statusLabel[st]||st)+'</span>'
@@ -5956,7 +5967,7 @@ function trow(t) {
         <span>${p?p.nome:''}</span>
         <span>·</span><span>${m?m.av:t.resp||'—'}</span>
         <span>·</span><span class="badge" style="background:var(--surface3);color:var(--tx3);font-size:8px;padding:1px 5px">${t.status}</span>
-        ${t.prazo ? `<span>·</span><span style="color:${new Date(t.prazo)<new Date()&&!t.ok?'#EF4444':'var(--tx3)'};">📅 ${new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>` : ''}
+        ${t.prazo ? `<span>·</span><span style="color:${isTarAtrasada(t)?'#EF4444':'var(--tx3)'};">📅 ${new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>` : ''}
       </div>
     </div>
     <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
@@ -5977,8 +5988,7 @@ function renderTasks() {
   const _prjRow = document.getElementById('listaProjRow');
   if (_prjRow) _prjRow.style.display = 'flex';
 
-  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-  const _isFech = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
+  const _isFech = isFechada; // usa a função global consolidada
 
   let l = [...tar];
   // Filtrar por setor
@@ -6279,8 +6289,7 @@ function renderArvoreConteudo() {
   const board = document.getElementById('arvoreConteudo');
   if (!board) return;
 
-  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-  const _isFech = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
+  const _isFech = isFechada; // usa a função global consolidada
   const statusCor = {'to do':'#94A3B8','a fazer':'#94A3B8','especif. em análise (po)':'#6366F1','pronto para desenvolver':'#8B5CF6','em desenvolvimento':'#3B82F6','pronto p/ testar (qa/po)':'#0EA5E9','em teste':'#F59E0B','teste reprovado':'#EF4444','teste aprovado':'#92400E','publicado em produção':'#10B981','concluído':'#059669','feito':'#059669'};
   const getCorStatus = s => statusCor[(s||'').toLowerCase()] || '#94A3B8';
 
@@ -6325,7 +6334,7 @@ function renderArvoreConteudo() {
       ${_arvAtrasada?'<span style="font-size:8px;font-weight:900;color:#EF4444;background:#FEE2E2;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;margin-right:4px;">⚠ ATRAS.</span>':''}<div class="arvore-task-title" style="font-size:${13-nivel}px;color:${_arvAtrasada?'#DC2626':''}">${t.titulo||t.tit||'Sem título'}</div>
       ${filhos.length?`<span style="font-size:9px;color:var(--brand);background:var(--brand-light);padding:1px 6px;border-radius:10px;">${filhos.length} sub</span>`:''}
       <span class="arvore-task-status" style="background:${corStatus}18;color:${corStatus};border:1px solid ${corStatus}33;">${t.status||'to do'}</span>
-      ${t.prazo?`<span style="font-size:9px;color:${new Date(t.prazo)<new Date()&&!fechada?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
+      ${t.prazo?`<span style="font-size:9px;color:${(!fechada&&new Date(t.prazo+'T23:59:59')<new Date())?'#EF4444':'var(--tx4)'};white-space:nowrap;">${new Date(t.prazo).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
       <div style="display:flex;gap:2px;">${avatares}</div>
     </div>`;
 
@@ -6354,7 +6363,7 @@ function renderArvoreConteudo() {
       const tarefasDoProjeto = tf.filter(t => String(t.projeto_id)===String(pid));
       const concluidas = tarefasDoProjeto.filter(t=>_isFech(t)).length;
       const prog = tarefasDoProjeto.length ? Math.round((concluidas/tarefasDoProjeto.length)*100) : 0;
-      const isProjFechado = ['concluido','concluída','cancelado','done'].includes((p?.status||'').toLowerCase());
+      const projFechado = isProjFechado(p||{});
       const idsNoProjeto = new Set(tarefasDoProjeto.map(t=>t.id));
 
       // Raiz = sem pai OU pai fora do projeto
@@ -6362,7 +6371,7 @@ function renderArvoreConteudo() {
 
       return `<div class="arvore-proj">
         <div class="arvore-proj-title" onclick="openDet('proj','${pid}')">
-          <span style="font-size:14px;">${isProjFechado?'✅':'📁'}</span>
+          <span style="font-size:14px;">${projFechado?'✅':'📁'}</span>
           <span>${p?.nome||'Sem projeto'}</span>
           <div class="arvore-proj-bar"><div class="arvore-proj-bar-fill" style="width:${prog}%"></div></div>
           <span class="arvore-proj-prog">${prog}%</span>
@@ -7042,7 +7051,7 @@ async function openDet(type, id) {
     const STATUS_COR = {'to do':'#6B7280','em andamento':'#3B82F6','em revisão':'#8B5CF6','pronto p/ testar':'#F59E0B','aguardando':'#F97316','bloqueado':'#EF4444','feito':'#10B981'};
     const priorCor   = PRIOR_COR[t.prior]  || '#6B7280';
     const statusCor  = STATUS_COR[t.status] || '#6B7280';
-    const isVencida  = t.prazo && new Date(t.prazo) < new Date() && !t.ok;
+    const isVencida  = isTarAtrasada(t);
 
     // ── Título e badges ────────────────────────────────────────────
     const detTitleEl = document.getElementById('detTitle');
@@ -7356,9 +7365,8 @@ async function openDet(type, id) {
     // ── Subtarefas existentes ───────────────────────────────────────
     const subtarefas = tar.filter(st => String(st.tarefa_pai_id) === String(id));
     if (subtarefas.length) {
-      const _stFech2 = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
       const subHtml = subtarefas.map(st => {
-        const fechada = st.ok || _stFech2.includes((st.status||'').toLowerCase().trim());
+        const fechada = isFechada(st);
         const sm = memb.find(x=>x.av===st.resp);
         return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);margin-bottom:4px;border:1px solid var(--border);" onclick="openDet('task','${st.id}')">
           <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid ${fechada?'#10B981':'var(--border2)'};background:${fechada?'#10B981':'transparent'};display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0;">${fechada?'✓':''}</div>
@@ -7892,7 +7900,6 @@ function switchProjTab(tab) {
 function renderProjConcluidos() {
   const el = document.getElementById('hierarquiaConcluidos');
   if (!el) return;
-  const isProjFechado = p => ['concluido','concluída','cancelado','finalizado','done','concluído'].includes((p.status||'').toLowerCase().trim());
   const lista = proj.filter(isProjFechado).sort((a,b) => new Date(b.updated_at||0) - new Date(a.updated_at||0));
   if (!lista.length) {
     el.innerHTML = '<div style="text-align:center;padding:60px;color:var(--tx3);"><div style="font-size:40px;margin-bottom:12px;">🎉</div><div style="font-size:14px;font-weight:700;">Nenhum projeto concluído ainda</div></div>';
@@ -12831,14 +12838,9 @@ function renderRiscos() {
   const amanha = new Date(hoje); amanha.setDate(amanha.getDate()+1);
   const em7dias = new Date(hoje); em7dias.setDate(em7dias.getDate()+7);
 
-  // Status que indicam tarefa FECHADA/CONCLUÍDA
-  const statusFechado = ['concluído','concluida','feito','feita','done','finalizado','complete','concluido','publicado em produção','teste aprovado'];
-  const isFechada = t => t.ok || statusFechado.includes((t.status||'').toLowerCase().trim());
-  const isProjFechado = p => ['concluido','concluída','cancelado','finalizado','done'].includes((p.status||'').toLowerCase().trim());
-
   // Dados calculados — excluindo tarefas e projetos fechados
   const tarefasAbertas = tar.filter(t => !isFechada(t));
-  const tarefasAtrasadas = tarefasAbertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const tarefasAtrasadas = tarefasAbertas.filter(t => isTarAtrasada(t));
   const riscosAtivos = riscos.filter(r => r.status === 'aberto');
   const riscosCriticos = riscosAtivos.filter(r => r.sev === 'Alta');
   const reunioesHoje = reun.filter(r => r.data === hoje.toISOString().split('T')[0]);
@@ -12855,7 +12857,7 @@ function renderRiscos() {
   const projEmRisco = [...new Set([...projAtrasados, ...projSemProgresso])];
   
   // Próximas entregas (7 dias)
-  const proxEntregas = tarefasAbertas.filter(t => t.prazo && new Date(t.prazo) >= hoje && new Date(t.prazo) <= em7dias)
+  const proxEntregas = tarefasAbertas.filter(t => t.prazo && new Date(t.prazo+'T23:59:59') >= hoje && new Date(t.prazo+'T23:59:59') <= em7dias)
     .sort((a,b) => new Date(a.prazo) - new Date(b.prazo));
 
   // ═══ KPIs ═══
@@ -13296,7 +13298,7 @@ async function executarAcaoNova(action) {
 // ── SUGESTÕES CONTEXTUAIS DINÂMICAS DA NOVA ──────────────────────
 function atualizarSugestoesNova() {
   const urgentes = tar.filter(t=>!t.ok && t.prior==='urgente').length;
-  const atrasados = proj.filter(p => p.fim && new Date(p.fim)<new Date() && p.status!=='concluido').length;
+  const atrasados = proj.filter(p => p.fim && new Date(p.fim)<new Date() && !isProjFechado(p)).length;
   const riscosCrit = riscos.filter(r=>r.status==='aberto' && r.sev==='Alta').length;
 
   const sugs = [
@@ -13499,7 +13501,7 @@ function renderHierarquia() {
 
       if (ativsSetor.length) {
         const _aId = 'as_'+setor.id.replace(/-/g,'');
-        const ativsAtivas = ativsSetor.filter(a=>(a.status||'').toLowerCase().trim()!=='concluida');
+        const ativsAtivas = ativsSetor.filter(a=>!isAtivFechada(a));
         const ativsConcl  = ativsSetor.filter(a=>(a.status||'').toLowerCase().trim()==='concluida');
         h += `<div style="border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:${projSetor.length?'0':'0'}">
           <div onclick="toggleAtivSetor('${_aId}')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
@@ -13555,7 +13557,7 @@ function renderHierarquia() {
 function _renderAtivRowSimple(a, hoje) {
   const cor = a.cor || '#534AB7';
   const autor = memb.find(m=>m.av===a.autor);
-  const atrasada = a.prazo && (a.status||'').toLowerCase().trim()!=='concluida' && new Date(a.prazo+'T23:59')<hoje;
+  const atrasada = a.prazo && !isAtivFechada(a) && new Date(a.prazo+'T23:59')<hoje;
   const statusMap = {'a fazer':['#F1EFE8','#5F5E5A'],'em andamento':['#E6F1FB','#185FA5'],'em desenvolvimento':['#EEEDFE','#534AB7'],'aguardando':['#FAEEDA','#854F0B'],'concluida':['#EAF3DE','#3B6D11'],'concluída':['#EAF3DE','#3B6D11'],'cancelada':['#FCEBEB','#A32D2D']};
   const st = (a.status||'em andamento').toLowerCase().trim();
   const [sbg,sc] = statusMap[st]||['#F1EFE8','#5F5E5A'];
@@ -13585,7 +13587,7 @@ function cardProjNovo(p, hoje, cor) {
   const nAb = tf.filter(t => !t.ok).length;
   const nFt = tf.filter(t =>  t.ok).length;
   const prog = p.prog || 0;
-  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje && !['concluido','concluída'].includes((p.status||'').toLowerCase());
+  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje && !isProjFechado(p);
   const barCor = atrasado ? '#A32D2D' : (cor||'#534AB7');
   var html = '<div data-projid="' + p.id + '" class="proj-card-rel"';
   html += ' style="background:var(--surface);border:0.5px solid var(--border);border-top:3px solid ' + barCor + ';border-radius:12px;padding:14px 16px;cursor:pointer;">';
@@ -13633,11 +13635,11 @@ function abrirRelGer(projId) {
   const tasks   = tar.filter(t => t.projeto_id === projId);
   const abertas = tasks.filter(t => !t.ok);
   const concl   = tasks.filter(t =>  t.ok);
-  const vencidas = abertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const vencidas = abertas.filter(t => isTarAtrasada(t));
   const espaco  = espacos.find(e => e.id === p.espaco_id);
   const eqMembros = (p.eq||[]).map(av => memb.find(m => m.av===av)).filter(Boolean);
   const prog    = p.prog || 0;
-  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje;
+  const atrasado = p.fim && new Date(p.fim+'T12:00') < hoje && !isProjFechado(p);
   const diasRestantes = p.fim ? Math.ceil((new Date(p.fim+'T12:00') - hoje)/(1000*60*60*24)) : null;
 
   // Header
@@ -13772,7 +13774,7 @@ async function gerarAnaliseIA() {
   const tasks    = tar.filter(t => t.projeto_id === p.id);
   const abertas  = tasks.filter(t => !t.ok);
   const concl    = tasks.filter(t =>  t.ok);
-  const vencidas = abertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const vencidas = abertas.filter(t => isTarAtrasada(t));
   const espaco   = espacos.find(e => e.id === p.espaco_id);
   const eqMembros = (p.eq||[]).map(av => memb.find(m => m.av===av)).filter(Boolean);
   const diasRestantes = p.fim ? Math.ceil((new Date(p.fim+'T12:00') - hoje)/(1000*60*60*24)) : null;
@@ -13842,7 +13844,7 @@ function relGerPDF() {
   const tasks   = tar.filter(t => t.projeto_id === p.id);
   const abertas = tasks.filter(t => !t.ok);
   const concl   = tasks.filter(t =>  t.ok);
-  const vencidas = abertas.filter(t => t.prazo && new Date(t.prazo) < hoje);
+  const vencidas = abertas.filter(t => isTarAtrasada(t));
   const espaco  = espacos.find(e => e.id === p.espaco_id);
   const prog    = p.prog || 0;
   const pc      = prog>=70?'#27500A':prog>=40?'#633806':'#791F1F';
@@ -14366,10 +14368,8 @@ async function _enviarResumoDiario() {
   if (!ma?.telegram_id) return;
 
   const agora = new Date(); agora.setHours(0,0,0,0);
-  const _stFech = ['concluído','concluida','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-  const isFechada = t => t.ok || _stFech.includes((t.status||'').toLowerCase().trim());
 
-  const atrasadas = tar.filter(t => t.prazo && new Date(t.prazo) < agora && !isFechada(t));
+  const atrasadas = tar.filter(t => isTarAtrasada(t));
   const prazoHoje = tar.filter(t => t.prazo && new Date(t.prazo+'T12:00').toDateString() === new Date().toDateString() && !isFechada(t));
   const abertas = tar.filter(t => !isFechada(t));
   const emAndamento = abertas.filter(t => (t.status||'').toLowerCase().includes('andamento'));
@@ -14582,8 +14582,8 @@ function renderTimeline() {
 
   // Status da tarefa
   const getStatus = (t) => {
-    if (t.ok || t.status === 'feito' || t.status === 'concluido') return 'concluido';
-    if (t.prazo && new Date(t.prazo) < hoje) return 'atrasado';
+    if (isFechada(t)) return 'concluido';
+    if (isTarAtrasada(t)) return 'atrasado';
     if (t.status === 'em andamento') return 'andamento';
     return 'planejado';
   };
@@ -15197,7 +15197,7 @@ function salvarPesosPremiacao() {
 }
 
 async function gerarTarefasIA() {
-  const nomes = proj.filter(p=>p.status!=='concluido').map(p=>p.nome);
+  const nomes = proj.filter(p=>!isProjFechado(p)).map(p=>p.nome);
   if (!nomes.length) { showToast('⚠️ Nenhum projeto ativo'); return; }
   const escolha = prompt('Nome do projeto para gerar tarefas:\n' + nomes.join('\n'));
   if (!escolha) return;
@@ -15522,8 +15522,7 @@ function enableKanbanDragDrop() {
       if (task.status === newStatus) { draggedTaskId = null; return; }
 
       // Atualizar cache LOCAL imediatamente (sem recarregar a página)
-      const _stFech = ['concluído','feito','feita','done','finalizado','concluido','publicado em produção','teste aprovado'];
-      const ok = _stFech.includes(newStatus.toLowerCase().trim());
+      const ok = STATUS_TAR_FECHADA.includes(normTxt(newStatus));
       task.status = newStatus;
       task.ok = ok;
 
